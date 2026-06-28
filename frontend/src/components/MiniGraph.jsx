@@ -11,7 +11,7 @@ export function MiniGraph({
   onSelectNode,
   onSetMainTarget,
 }) {
-  const [hoveredNodeId, setHoveredNodeId] = useState(null)
+  const [activeTooltipNodeId, setActiveTooltipNodeId] = useState(null)
   const layout = useMemo(
     () => buildGraphLayout(graphState.nodes, rootId, size),
     [graphState.nodes, rootId, size],
@@ -20,10 +20,22 @@ export function MiniGraph({
     () => getMainPathNodeIds(graphState, rootId),
     [graphState, rootId],
   )
-  const hoveredLayoutNode = layout.nodes.find((node) => node.id === hoveredNodeId)
+  const activeTooltipNode = layout.nodes.find((node) => node.id === activeTooltipNodeId)
+
+  const closeTooltip = () => {
+    setActiveTooltipNodeId(null)
+  }
 
   return (
-    <div className={`mini-graph ${size}`}>
+    <div
+      className={`mini-graph ${size}`}
+      onMouseLeave={closeTooltip}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          closeTooltip()
+        }
+      }}
+    >
       <svg
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         role="img"
@@ -63,10 +75,8 @@ export function MiniGraph({
               tabIndex="0"
               role="button"
               aria-label={`${layoutNode.title} 노드로 이동`}
-              onMouseEnter={() => setHoveredNodeId(layoutNode.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
-              onFocus={() => setHoveredNodeId(layoutNode.id)}
-              onBlur={() => setHoveredNodeId(null)}
+              onMouseEnter={() => setActiveTooltipNodeId(layoutNode.id)}
+              onFocus={() => setActiveTooltipNodeId(layoutNode.id)}
               onClick={() => onSelectNode(layoutNode.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -84,11 +94,22 @@ export function MiniGraph({
         })}
       </svg>
 
-      {hoveredLayoutNode ? (
-        <div className="graph-tooltip">
-          <strong>{hoveredLayoutNode.title}</strong>
-          <p>{hoveredLayoutNode.description}</p>
-          <button type="button" onClick={() => onSetMainTarget(hoveredLayoutNode.id)}>
+      {activeTooltipNode ? (
+        <div
+          className="graph-tooltip"
+          role="group"
+          aria-label={`${activeTooltipNode.title} 노드 정보`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <strong>{activeTooltipNode.title}</strong>
+          <p>{activeTooltipNode.description}</p>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onSetMainTarget(activeTooltipNode.id)
+            }}
+          >
             main 지정
           </button>
         </div>

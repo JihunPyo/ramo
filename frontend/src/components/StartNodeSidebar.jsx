@@ -3,6 +3,7 @@ import { MiniGraph } from './MiniGraph.jsx'
 export function StartNodeSidebar({
   graphState,
   rootNodes,
+  isBusy = false,
   onNewChat,
   onSelectRoot,
   onSelectNode,
@@ -15,7 +16,7 @@ export function StartNodeSidebar({
         <h2>시작 노드</h2>
       </header>
 
-      <button type="button" className="new-chat-button" onClick={onNewChat}>
+      <button type="button" className="new-chat-button" onClick={onNewChat} disabled={isBusy}>
         새 채팅
       </button>
 
@@ -26,6 +27,7 @@ export function StartNodeSidebar({
             type="button"
             className={node.id === graphState.selectedRootNodeId ? 'root-card selected' : 'root-card'}
             onClick={() => onSelectRoot(node.id)}
+            disabled={isBusy}
           >
             <span>{node.title}</span>
             <small>{node.description}</small>

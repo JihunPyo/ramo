@@ -1,5 +1,17 @@
 const MAIN_TARGET_FALLBACK = ''
 
+export function createEmptyGraphState() {
+  return {
+    nodes: [],
+    sessions: [],
+    apiSessions: [],
+    activeNodeId: '',
+    selectedRootNodeId: '',
+    mainTargetNodeIdByRoot: {},
+    events: [],
+  }
+}
+
 export function getRootNodes(nodes) {
   return nodes.filter((node) => node.parentId === null)
 }
@@ -17,7 +29,13 @@ export function getActiveNode(state) {
 }
 
 export function getSessionByNodeId(state, nodeId) {
-  return state.sessions.find((session) => session.nodeId === nodeId) ?? state.sessions[0]
+  return (
+    state.sessions.find((session) => session.nodeId === nodeId) ?? {
+      id: `messages-${nodeId}`,
+      nodeId,
+      messages: [],
+    }
+  )
 }
 
 export function getContextSectionsForNode(state, nodeId) {

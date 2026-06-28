@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 const promptChips = ['웹검색', '심층 사고', '챗봇 비교']
 
-export function ChatLanding({ activeNode, onSendMessage }) {
+export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
   const [draft, setDraft] = useState('')
 
   const handleSubmit = (event) => {
@@ -33,10 +33,11 @@ export function ChatLanding({ activeNode, onSendMessage }) {
             id="landing-message"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
+            disabled={isBusy}
             rows={3}
             placeholder="메시지를 입력하세요."
           />
-          <button type="submit" aria-label="메시지 전송">
+          <button type="submit" aria-label="메시지 전송" disabled={isBusy}>
             ➤
           </button>
         </div>

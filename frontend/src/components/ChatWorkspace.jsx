@@ -10,6 +10,7 @@ export function ChatWorkspace({
   activeNode,
   session,
   graphState,
+  isBusy = false,
   onSendMessage,
   onCreateBranch,
   onSetMainTarget,
@@ -52,6 +53,7 @@ export function ChatWorkspace({
           type="button"
           className="primary-action"
           onClick={() => onSetMainTarget(activeNode.id)}
+          disabled={isBusy}
         >
           main 지정
         </button>
@@ -94,6 +96,7 @@ export function ChatWorkspace({
                     <button
                       type="button"
                       onClick={() => onCreateBranch(message.id, section.node.id)}
+                      disabled={isBusy}
                     >
                       브랜치 생성
                     </button>
@@ -111,10 +114,11 @@ export function ChatWorkspace({
           id="message-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          disabled={isBusy}
           rows={3}
           placeholder="현재 노드에서 이어서 질문한다."
         />
-        <button type="submit" className="send-button">
+        <button type="submit" className="send-button" disabled={isBusy}>
           전송
         </button>
       </form>
