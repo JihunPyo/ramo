@@ -1,4 +1,5 @@
 import { MiniGraph } from './MiniGraph.jsx'
+import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
 
 export function StartNodeSidebar({
   graphState,
@@ -8,7 +9,14 @@ export function StartNodeSidebar({
   onSelectRoot,
   onSelectNode,
   onSetMainTarget,
+  onMoveToTrash,
+  onRestoreFromTrash,
+  onDeleteForever,
 }) {
+  const trashNodes = graphState.trashNodes ?? []
+  const trashNodeIds = new Set(trashNodes.map((node) => node.id))
+  const trashRoots = trashNodes.filter((node) => !trashNodeIds.has(node.parentId))
+
   return (
     <aside className="start-sidebar" aria-label="시작 노드">
       <header className="sidebar-header">
@@ -41,8 +49,51 @@ export function StartNodeSidebar({
           rootId={graphState.selectedRootNodeId}
           onSelectNode={onSelectNode}
           onSetMainTarget={onSetMainTarget}
+          onMoveToTrash={onMoveToTrash}
         />
       </section>
+
+      <details className="trash-panel">
+        <summary>
+          <span>휴지통</span>
+          <strong>{trashNodes.length}</strong>
+        </summary>
+        {trashRoots.length > 0 ? (
+          <div className="trash-list">
+            {trashRoots.map((node) => {
+              const branchCount = getSubtreeNodeIds(trashNodes, node.id).length
+
+              return (
+                <article key={node.id} className="trash-card">
+                  <div>
+                    <strong>{node.title}</strong>
+                    <small>{branchCount}개 브랜치</small>
+                  </div>
+                  <div className="trash-actions">
+                    <button
+                      type="button"
+                      onClick={() => onRestoreFromTrash(node.id)}
+                      disabled={isBusy}
+                    >
+                      복구
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-text-button"
+                      onClick={() => onDeleteForever(node.id)}
+                      disabled={isBusy}
+                    >
+                      영구 삭제
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="trash-empty">삭제한 브랜치가 없습니다.</p>
+        )}
+      </details>
     </aside>
   )
 }

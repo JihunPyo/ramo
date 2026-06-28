@@ -8,6 +8,7 @@ export function createEmptyGraphState() {
     activeNodeId: '',
     selectedRootNodeId: '',
     mainTargetNodeIdByRoot: {},
+    trashNodes: [],
     events: [],
   }
 }
@@ -22,6 +23,26 @@ export function getNodesByRootId(nodes, rootId) {
 
 export function getChildrenByNodeId(nodes, nodeId) {
   return nodes.filter((node) => node.parentId === nodeId && !node.isHidden)
+}
+
+export function getSubtreeNodeIds(nodes, nodeId) {
+  const ids = []
+  const queue = [nodeId]
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()
+
+    if (!currentId || ids.includes(currentId)) {
+      continue
+    }
+
+    ids.push(currentId)
+    nodes
+      .filter((node) => node.parentId === currentId)
+      .forEach((node) => queue.push(node.id))
+  }
+
+  return ids
 }
 
 export function getActiveNode(state) {

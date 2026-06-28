@@ -181,7 +181,39 @@ export function createMockBranchGraphApi() {
 
       return updatedBranch
     },
+    async deleteBranch(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch_id가 존재하지 않는다.')
+      }
+
+      if (!branch.parent_branch_id) {
+        throw new Error('root branch는 영구 삭제할 수 없다.')
+      }
+
+      collectBranchIds(store, branchId).forEach((id) => {
+        store.branches.delete(id)
+        store.messagesByBranchId.delete(id)
+      })
+
+      return null
+    },
   }
+}
+
+function collectBranchIds(store, branchId) {
+  const ids = [branchId]
+
+  for (let index = 0; index < ids.length; index += 1) {
+    const parentId = ids[index]
+    Array.from(store.branches.values())
+      .filter((branch) => branch.parent_branch_id === parentId)
+      .forEach((branch) => ids.push(branch.id))
+  }
+
+  return ids
 }
 
 function createMockStore() {

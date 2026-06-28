@@ -19,6 +19,7 @@ import {
   getNodeById,
   getRootNodes,
   getSessionByNodeId,
+  getSubtreeNodeIds,
   selectNode,
   selectRoot,
   setMainTargetNode,
@@ -57,10 +58,15 @@ function App() {
         }
 
         const graphResponses = await Promise.all(
-          apiSessions.map(async (session) => ({
-            session,
-            graph: await branchGraphApi.getSessionGraph(readSessionId(session), true),
-          })),
+          apiSessions.map(async (session) => {
+            const sessionId = readSessionId(session)
+            const [graph, branches] = await Promise.all([
+              branchGraphApi.getSessionGraph(sessionId, true),
+              branchGraphApi.listBranches(sessionId),
+            ])
+
+            return { session, graph, branches }
+          }),
         )
         let nextState = buildGraphStateFromApi({
           apiSessions,
@@ -212,6 +218,99 @@ function App() {
     }
   }
 
+  const handleMoveToTrash = async (nodeId) => {
+    const currentState = graphStateRef.current
+    const node = getNodeById(currentState.nodes, nodeId)
+
+    if (!node || node.parentId === null) {
+      return
+    }
+
+    const branchIds = getSubtreeNodeIds(currentState.nodes, nodeId)
+    const confirmed = window.confirm(
+      `“${node.title}”과 하위 브랜치 ${branchIds.length - 1}개를 휴지통으로 이동할까요?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setPendingAction('휴지통으로 이동 중')
+
+    try {
+      await Promise.all(
+        branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'deleted' })),
+      )
+      await loadGraphState({
+        activeNodeId: node.parentId,
+        selectedRootNodeId: node.rootId,
+        loadMessages: true,
+      })
+      setIsLandingVisible(false)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleRestoreFromTrash = async (nodeId) => {
+    const trashNodes = graphStateRef.current.trashNodes
+    const node = getNodeById(trashNodes, nodeId)
+
+    if (!node) {
+      return
+    }
+
+    const branchIds = getSubtreeNodeIds(trashNodes, nodeId)
+    setPendingAction('브랜치 복구 중')
+
+    try {
+      await Promise.all(
+        branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'active' })),
+      )
+      await loadGraphState({
+        activeNodeId: nodeId,
+        selectedRootNodeId: node.rootId,
+        loadMessages: true,
+      })
+      setIsLandingVisible(false)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleDeleteForever = async (nodeId) => {
+    const trashNodes = graphStateRef.current.trashNodes
+    const node = getNodeById(trashNodes, nodeId)
+
+    if (!node) {
+      return
+    }
+
+    const branchCount = getSubtreeNodeIds(trashNodes, nodeId).length
+    const confirmed = window.confirm(
+      `“${node.title}”과 관련된 ${branchCount}개 브랜치를 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setPendingAction('영구 삭제 중')
+
+    try {
+      await branchGraphApi.deleteBranch(nodeId)
+      await loadGraphState({ loadMessages: false })
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
   return (
     <main className="app-shell">
       <StartNodeSidebar
@@ -222,6 +321,9 @@ function App() {
         onSelectRoot={handleSelectRoot}
         onSelectNode={handleSelectNode}
         onSetMainTarget={handleSetMainTarget}
+        onMoveToTrash={handleMoveToTrash}
+        onRestoreFromTrash={handleRestoreFromTrash}
+        onDeleteForever={handleDeleteForever}
       />
 
       <section className="workspace" aria-label="채팅 작업공간">
@@ -253,6 +355,7 @@ function App() {
               activeNode={activeNode}
               onSelectNode={handleSelectNode}
               onSetMainTarget={handleSetMainTarget}
+              onMoveToTrash={handleMoveToTrash}
               onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
             />
 
@@ -275,6 +378,7 @@ function App() {
           onClose={() => setIsFullscreenGraphOpen(false)}
           onSelectNode={handleSelectNode}
           onSetMainTarget={handleSetMainTarget}
+          onMoveToTrash={handleMoveToTrash}
         />
       ) : null}
     </main>

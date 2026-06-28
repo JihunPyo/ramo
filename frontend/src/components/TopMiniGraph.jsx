@@ -13,6 +13,7 @@ export function TopMiniGraph({
   activeNode,
   onSelectNode,
   onSetMainTarget,
+  onMoveToTrash,
   onOpenFullscreen,
 }) {
   const rootId = activeNode?.rootId ?? graphState.selectedRootNodeId
@@ -43,6 +44,7 @@ export function TopMiniGraph({
         rootId={rootId}
         onSelectNode={onSelectNode}
         onSetMainTarget={onSetMainTarget}
+        onMoveToTrash={onMoveToTrash}
       />
     </aside>
   )

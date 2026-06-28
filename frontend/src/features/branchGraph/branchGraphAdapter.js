@@ -46,8 +46,30 @@ export function buildGraphStateFromApi({
     activeNodeId: resolvedActiveNodeId,
     selectedRootNodeId: resolvedSelectedRootId,
     mainTargetNodeIdByRoot: buildMainTargetMap(nodes, previousState.mainTargetNodeIdByRoot),
+    trashNodes: graphResponses.flatMap(({ session, branches = [] }) =>
+      normalizeTrashNodes(session, branches),
+    ),
     events: previousState.events,
   }
+}
+
+function normalizeTrashNodes(session, branches) {
+  const apiSessionId = readSessionId(session)
+  const sessionTitle = session?.title ?? '새 대화'
+
+  return branches
+    .filter((branch) => branch.status === 'deleted')
+    .map((branch) => ({
+      id: readBranchId(branch),
+      rootId: readMainBranchId(session),
+      parentId: branch.parent_branch_id ?? branch.parentBranchId ?? null,
+      title: branch.name ?? branch.label ?? branch.title ?? '삭제된 브랜치',
+      description: `${sessionTitle}에서 삭제한 브랜치`,
+      apiSessionId,
+      status: 'deleted',
+      deletedAt: branch.updated_at ?? branch.updatedAt ?? '',
+    }))
+    .filter((node) => node.id)
 }
 
 export function applyBranchMessages(state, branchId, apiMessages) {

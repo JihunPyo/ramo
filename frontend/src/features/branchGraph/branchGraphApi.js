@@ -57,6 +57,11 @@ export function createHttpBranchGraphApi(client = httpClient) {
         body: patch,
       })
     },
+    deleteBranch(branchId) {
+      return client.request(`/branches/${branchId}`, {
+        method: 'DELETE',
+      })
+    },
   }
 }
 

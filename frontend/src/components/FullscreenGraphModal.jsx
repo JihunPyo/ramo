@@ -1,6 +1,12 @@
 import { MiniGraph } from './MiniGraph.jsx'
 
-export function FullscreenGraphModal({ graphState, onClose, onSelectNode, onSetMainTarget }) {
+export function FullscreenGraphModal({
+  graphState,
+  onClose,
+  onSelectNode,
+  onSetMainTarget,
+  onMoveToTrash,
+}) {
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="graph-modal" role="dialog" aria-modal="true" aria-label="전체 그래프">
@@ -20,6 +26,7 @@ export function FullscreenGraphModal({ graphState, onClose, onSelectNode, onSetM
           size="full"
           onSelectNode={onSelectNode}
           onSetMainTarget={onSetMainTarget}
+          onMoveToTrash={onMoveToTrash}
         />
       </section>
     </div>
