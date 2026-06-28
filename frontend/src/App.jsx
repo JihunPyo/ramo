@@ -31,6 +31,7 @@ const DEFAULT_MODEL_NAME = 'gpt-4o-mini'
 function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
+  const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
   const [isLandingVisible, setIsLandingVisible] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingAction, setPendingAction] = useState('')
@@ -350,14 +351,28 @@ function App() {
           <ChatLanding activeNode={activeNode} isBusy={isBusy} onSendMessage={handleSendMessage} />
         ) : (
           <>
-            <TopMiniGraph
-              graphState={graphState}
-              activeNode={activeNode}
-              onSelectNode={handleSelectNode}
-              onSetMainTarget={handleSetMainTarget}
-              onMoveToTrash={handleMoveToTrash}
-              onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
-            />
+            {isMiniGraphOpen ? (
+              <TopMiniGraph
+                graphState={graphState}
+                activeNode={activeNode}
+                onSelectNode={handleSelectNode}
+                onSetMainTarget={handleSetMainTarget}
+                onMoveToTrash={handleMoveToTrash}
+                onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
+                onClose={() => setIsMiniGraphOpen(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                className="top-graph-reopen"
+                aria-label="시각화 창 열기"
+                aria-expanded="false"
+                onClick={() => setIsMiniGraphOpen(true)}
+              >
+                <span aria-hidden="true">◇</span>
+                시각화 열기
+              </button>
+            )}
 
             <ChatWorkspace
               activeNode={activeNode}

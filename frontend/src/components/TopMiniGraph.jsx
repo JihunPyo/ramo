@@ -15,6 +15,7 @@ export function TopMiniGraph({
   onSetMainTarget,
   onMoveToTrash,
   onOpenFullscreen,
+  onClose,
 }) {
   const rootId = activeNode?.rootId ?? graphState.selectedRootNodeId
   const rootNodes = getNodesByRootId(graphState.nodes, rootId)
@@ -32,11 +33,22 @@ export function TopMiniGraph({
           <p className="eyebrow">흐름</p>
           <strong>{activeNode?.title}</strong>
         </div>
-        {shouldShowFullscreenAction ? (
-          <button type="button" className="secondary-action" onClick={onOpenFullscreen}>
-            전체화면
+        <div className="top-graph-actions">
+          {shouldShowFullscreenAction ? (
+            <button type="button" className="secondary-action" onClick={onOpenFullscreen}>
+              전체화면
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="graph-close-button"
+            aria-label="시각화 창 닫기"
+            aria-expanded="true"
+            onClick={onClose}
+          >
+            <span aria-hidden="true">×</span>
           </button>
-        ) : null}
+        </div>
       </header>
 
       <MiniGraph
