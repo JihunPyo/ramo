@@ -6,30 +6,30 @@
 
 ## 현재 상태
 
-현재 저장소는 기획 및 요구사항 정리 단계이다. 구현 코드는 아직 작성되지 않았으며, `src/`와 `tests/`는 후속 개발을 위한 기본 디렉토리로 준비되어 있다.
+현재 저장소는 기획 문서와 협업 가이드를 중심으로 정리되어 있다. 기존 정적 UI 프로토타입과 테스트 에셋은 React 전환을 위해 제거되었으며, 새 프론트엔드 앱은 `frontend/` 디렉토리에 React JavaScript 기반으로 구성할 예정이다.
 
 ## 프로젝트 구조
 
 ```text
 project-root/
 ├─ AGENTS.md
+├─ README.md
+├─ commit_log.md
 ├─ docs/
 │  ├─ PRD.md
 │  ├─ requirements.md
-│  ├─ implementation_plan.md
-│  ├─ test_plan.md
-│  ├─ requirement_status.md
-│  └─ review_notes.md
-├─ src/
-├─ tests/
-└─ README.md
+│  └─ implementation_plan.md
+└─ 협업방식가이드.md
 ```
+
+## 실행 방법
+
+- 현재 실행 가능한 프론트엔드 앱은 없다.
+- React 전환 후 `frontend/` 디렉토리에서 실행 방법을 별도로 정리한다.
 
 ## 문서 설명
 
 - `docs/PRD.md`: 원본 기획서이다.
 - `docs/requirements.md`: 요구사항 ID 목록이다.
 - `docs/implementation_plan.md`: 구현 단계와 우선순위를 정리한 문서이다.
-- `docs/test_plan.md`: 기능 테스트와 사용성 테스트 계획이다.
-- `docs/requirement_status.md`: 요구사항별 충족 여부를 추적하는 문서이다.
-- `docs/review_notes.md`: 리뷰 기록과 의사결정 메모이다.
+- `협업방식가이드.md`: 프론트엔드와 백엔드 협업 방식, API 협업 흐름, GitHub 사용 방식을 정리한 문서이다.

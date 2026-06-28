@@ -74,3 +74,102 @@
 ### 프로젝트 구조 개편 Git 상태
 
 - 2026-05-15 기준 프로젝트 루트에서 `.git` 저장소가 확인되지 않아 커밋은 수행하지 않았다.
+
+### 요구사항 검증 기준 정리
+
+- `docs/PRD.md`를 기준으로 구현 가능한 MVP 요구사항을 재검토했다.
+- `docs/requirements.md`를 `REQ-001`부터 `REQ-016`까지의 요구사항 목록으로 재작성했다.
+- 각 요구사항에 구현 범위, 검증 기준, 우선순위를 추가했다.
+- PRD의 범위 제외 항목은 구현 요구사항에서 제외하고 별도 표로 정리했다.
+- 요구사항 ID 변경에 맞춰 `docs/test_plan.md`의 관련 요구사항 매핑을 갱신했다.
+- 요구사항 ID 변경에 맞춰 `docs/requirement_status.md`의 추적 표를 갱신했다.
+
+### 요구사항 검증 기준 정리 Git 상태
+
+- 2026-05-15 기준 프로젝트 루트가 Git 저장소임을 확인했다.
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+### UI v1 구현
+
+- `feat/ui-ver1` 브랜치를 생성했다.
+- `src/index.html`을 생성하여 브랜치 채팅 UI의 기본 화면 구조를 구현했다.
+- `src/styles.css`를 생성하여 브랜치 목록, 채팅, 그래프, 상세 패널, 이벤트 로그의 레이아웃과 시각 상태를 정의했다.
+- `src/app.js`를 생성하여 Mock LLM 응답 계층, 메시지 전송, 메시지 기준 브랜치 생성, 브랜치 전환, 비활성화, 숨김, 그래프 확대 및 축소, 요약 미리보기, 이벤트 기록 상태 모델을 구현했다.
+- `tests/ui_state_model.test.cjs`를 생성하여 빈 세션, 메시지 순서, 브랜치 부모 관계, 숨김 복구, 샘플 그래프 구조, 그래프 배율 제한을 검증했다.
+- `README.md`에 UI v1 실행 방법과 테스트 명령을 추가했다.
+- `docs/implementation_plan.md`, `docs/test_plan.md`, `docs/requirement_status.md`, `docs/review_notes.md`에 UI v1 구현 상태와 검증 정보를 반영했다.
+
+### UI v1 Git 상태
+
+- 2026-05-15 기준 작업 브랜치는 `feat/ui-ver1`이다.
+- 사용자가 커밋을 명시적으로 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+### UI v1 검증 결과
+
+- `node tests/ui_state_model.test.cjs` 실행 결과, 상태 모델 테스트가 통과했다.
+- `git diff --check` 실행 결과, 공백 오류가 발견되지 않았다.
+- conda `DV` 환경에서 정적 파일 서버를 임시 실행하고 `curl -I http://localhost:4173/` 응답이 `200 OK`임을 확인했다.
+- 브라우저 검증으로 메시지 전송, 브랜치 생성, 브랜치 비활성화, 숨김 표시 복구, 그래프 확대가 정상 동작함을 확인했다.
+
+## 2026-05-18
+
+### UI v2 Light 구현
+
+- `codex/ui-v2-light` 브랜치를 생성했다.
+- v1을 보존하고 `src/v2.html`, `src/v2.css`, `src/v2.js`를 추가하여 UI v2 Light를 별도 화면으로 구현했다.
+- 밝은 Glass Morphism 스타일을 적용하고, soft blue, pale cyan, warm white 기반의 배경과 반투명 glass card UI를 구성했다.
+- 좌측 사이드바에 새 채팅 버튼, 프로젝트 영역, Mock 최근 대화 목록, 하단 프로필 버튼을 배치했다.
+- 중앙 채팅 영역에 채팅 제목, 모델 선택 드롭다운, 공유 및 설정 아이콘, 메시지 목록, 예시 질문 카드, 하단 고정 입력창을 배치했다.
+- 우상단 현재 브랜치 배지와 클릭 팝오버를 구현하고, 팝오버에 브랜치 경로, 분기 요약, SVG 미니 그래프를 표시했다.
+- Mock 메시지 송수신 흐름을 구현하여 사용자 메시지 추가 후 loading 상태와 AI 응답이 표시되도록 했다.
+- Mock AI 응답에는 문단, 목록, 인용문, 표, 코드 블록 예시를 포함했다.
+- `tests/v2_ui_state_model.test.cjs`를 추가하여 Mock 세션 선택, 메시지 송수신, 모델 선택, 브랜치 팝오버, 브랜치 생성, 미니 그래프 상태를 검증했다.
+- `README.md`, `docs/implementation_plan.md`, `docs/test_plan.md`, `docs/requirement_status.md`, `docs/review_notes.md`에 UI v2 Light 실행 방법과 구현 상태를 반영했다.
+
+### UI v2 Light 검증 결과
+
+- `node tests/v2_ui_state_model.test.cjs` 실행 결과, UI v2 상태 모델 테스트가 통과했다.
+- `node tests/ui_state_model.test.cjs` 실행 결과, 기존 UI v1 상태 모델 테스트가 통과했다.
+- `git diff --check` 실행 결과, 공백 오류가 발견되지 않았다.
+- conda `DV` 환경에서 정적 파일 서버를 실행하고 `curl -I http://127.0.0.1:4173/v2.html`, `v2.css`, `v2.js` 응답이 모두 `200 OK`임을 확인했다.
+- 브라우저 검증으로 우상단 브랜치 배지 팝오버, SVG 미니 그래프, 메시지 입력 및 Mock 응답 표시, 코드 블록 및 표 렌더링이 정상 동작함을 확인했다.
+- 브라우저 모바일 viewport 검증으로 사이드바 drawer와 하단 입력창 배치가 정상 동작함을 확인했다.
+
+## 2026-06-27
+
+### 협업 방식 가이드 문서 작성
+
+- 프로젝트 루트에 `협업방식가이드.md`를 생성했다.
+- 프론트엔드와 백엔드의 역할, MVP 개발 순서, API 협업 방식, GitHub 브랜치 및 PR 사용 방식, 통합 테스트 기준을 장-절-항 구조로 정리했다.
+- 초보 팀원이 실제 협업 흐름을 이해할 수 있도록 브랜치 생성 기능을 기준으로 프론트엔드 작업, 백엔드 작업, API 문서, PR 작성 예시를 추가했다.
+- 본 프로젝트에는 초보 팀의 관리 부담을 낮추기 위해 단일 레포 방식과 GitHub Flow 기반 작업 방식을 권장한다고 정리했다.
+
+### 협업 방식 가이드 Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+## 2026-06-28
+
+### React 전환 방향 기록
+
+- 사용자가 백엔드가 아니라 프론트엔드 개발 담당이라고 정정했다.
+- 프론트엔드는 기존 정적 HTML, CSS, JavaScript 에셋을 유지하지 않고 React 기반으로 재구현할 예정이라고 확인했다.
+- React 앱 디렉토리명을 `frontend/`로 확정했다.
+- TypeScript 없이 React JavaScript 기반으로 시작하기로 했다.
+- Figma 디자인 적용 편의성을 기준으로 스타일 방식은 CSS Modules를 우선 선택했다.
+- `docs/implementation_plan.md`에 React 전환 계획 메모를 추가했다.
+- `docs/review_notes.md`에 React 전환 결정 기록과 후속 검토 메모를 추가했다.
+- 기존 에셋 삭제는 아직 실행하지 않았다.
+
+### React 전환 방향 Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+### React 전환 준비 정리
+
+- 사용자가 필요 없는 파일을 삭제했다고 알려왔다.
+- React 전환을 위해 기존 정적 UI 프로토타입과 테스트 에셋을 제거한 상태를 커밋 대상으로 정리했다.
+- `README.md`를 현재 프로젝트 구조에 맞게 수정하고, 실행 가능한 프론트엔드 앱이 아직 없음을 명시했다.
+- `docs/test_plan.md`, `docs/requirement_status.md`, `docs/review_notes.md`, `src/.gitkeep`, `tests/.gitkeep` 삭제 상태를 반영했다.
+- `협업방식가이드.md`를 프로젝트 문서로 커밋 대상에 포함한다.
+- `.DS_Store`는 macOS 시스템 파일이므로 커밋 대상에서 제외한다.
