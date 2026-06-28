@@ -93,13 +93,15 @@ export function ChatWorkspace({
                   <p>{message.content}</p>
                   <div className="message-actions">
                     <time>{message.createdAt}</time>
-                    <button
-                      type="button"
-                      onClick={() => onCreateBranch(message.id, section.node.id)}
-                      disabled={isBusy}
-                    >
-                      브랜치 생성
-                    </button>
+                    {message.role === 'assistant' ? (
+                      <button
+                        type="button"
+                        onClick={() => onCreateBranch(message.id, section.node.id)}
+                        disabled={isBusy}
+                      >
+                        브랜치 생성
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </article>
