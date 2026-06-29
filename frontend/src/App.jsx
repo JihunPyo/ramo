@@ -32,6 +32,7 @@ function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isLandingVisible, setIsLandingVisible] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingAction, setPendingAction] = useState('')
@@ -319,11 +320,13 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={isSidebarCollapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
       <StartNodeSidebar
         graphState={graphState}
         rootNodes={rootNodes}
+        isCollapsed={isSidebarCollapsed}
         isBusy={isBusy}
+        onToggleCollapse={() => setIsSidebarCollapsed((currentValue) => !currentValue)}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
         onSelectNode={handleSelectNode}
