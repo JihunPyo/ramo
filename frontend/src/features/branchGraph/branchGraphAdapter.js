@@ -120,6 +120,11 @@ function normalizeGraphNodes({ session, graph }) {
       }
 
       const parentId = parentByNodeId.get(branchId) ?? node.parent_branch_id ?? null
+      const title = resolveNodeTitle({
+        rawTitle: node.label ?? node.name ?? node.title,
+        parentId,
+        sessionTitle,
+      })
 
       return {
         id: branchId,
@@ -127,8 +132,8 @@ function normalizeGraphNodes({ session, graph }) {
         parentId,
         parentMessageId:
           forkMessageByNodeId.get(branchId) ?? node.fork_from_message_id ?? node.parentMessageId ?? null,
-        title: node.label ?? node.name ?? node.title ?? '브랜치',
-        description: node.summary ?? `${sessionTitle}의 ${node.label ?? node.name ?? '브랜치'} 흐름이다.`,
+        title,
+        description: node.summary ?? `${sessionTitle}의 ${title} 흐름이다.`,
         sessionId: `messages-${branchId}`,
         apiSessionId,
         createdAt: formatDisplayTime(node.created_at ?? node.createdAt),
@@ -145,6 +150,16 @@ function normalizeGraphNodes({ session, graph }) {
     ...node,
     rootId: resolveRootId(nodes, node.id),
   }))
+}
+
+function resolveNodeTitle({ rawTitle, parentId, sessionTitle }) {
+  const normalizedTitle = String(rawTitle ?? '').trim()
+
+  if (parentId === null && (!normalizedTitle || normalizedTitle === 'main')) {
+    return sessionTitle
+  }
+
+  return normalizedTitle || '브랜치'
 }
 
 function resolveRootId(nodes, nodeId) {

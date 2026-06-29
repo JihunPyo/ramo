@@ -25,8 +25,8 @@ import {
   setMainTargetNode,
 } from './features/branchGraph/branchGraphModel.js'
 
-const DEFAULT_MODEL_PROVIDER = 'openai'
-const DEFAULT_MODEL_NAME = 'gpt-4o-mini'
+const DEFAULT_MODEL_PROVIDER = 'local'
+const DEFAULT_MODEL_NAME = 'local-mock'
 
 function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
@@ -141,11 +141,17 @@ function App() {
   }
 
   const handleOpenLanding = async () => {
-    setPendingAction('새 세션 생성 중')
+    const newRootTitle = createNewRootNodeTitle(getRootNodes(graphStateRef.current.nodes))
+
+    setPendingAction('새 루트 노드 생성 중')
 
     try {
-      const session = await branchGraphApi.createSession()
+      const session = await branchGraphApi.createSession(newRootTitle)
       const mainBranchId = readMainBranchId(session)
+
+      if (!mainBranchId) {
+        throw new Error('새 루트 노드 ID를 세션 생성 응답에서 확인할 수 없다.')
+      }
 
       await loadGraphState({
         activeNodeId: mainBranchId,
@@ -402,6 +408,12 @@ function App() {
 
 function getDisplayError(error) {
   return error?.message ?? '알 수 없는 오류가 발생했다.'
+}
+
+function createNewRootNodeTitle(rootNodes) {
+  const newChatRootCount = rootNodes.filter((node) => /^새 대화(?: \d+)?$/.test(node.title)).length
+
+  return newChatRootCount === 0 ? '새 대화' : `새 대화 ${newChatRootCount + 1}`
 }
 
 export default App
