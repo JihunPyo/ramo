@@ -35,6 +35,15 @@ export function ChatWorkspace({
     setDraft('')
   }
 
+  const handleMessageKeyDown = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return
+    }
+
+    event.preventDefault()
+    event.currentTarget.form?.requestSubmit()
+  }
+
   return (
     <section className="chat-workspace" aria-label="현재 노드 채팅 세션">
       <header className="chat-header">
@@ -116,6 +125,7 @@ export function ChatWorkspace({
           id="message-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleMessageKeyDown}
           disabled={isBusy}
           rows={3}
           placeholder="현재 노드에서 이어서 질문한다."

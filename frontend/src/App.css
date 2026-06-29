@@ -864,11 +864,267 @@
   gap: 10px;
 }
 
-.prompt-chip-row button {
+.composer-option-area {
+  position: relative;
+}
+
+.prompt-chip-row .option-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: 1px solid #d8deea;
   border-radius: 8px;
   background: #ffffff;
   color: #4b556c;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 7px 12px;
+}
+
+.prompt-chip-row .option-chip:hover,
+.prompt-chip-row .option-chip.active {
+  border-color: #87b5a5;
+  background: #f0f8f4;
+  color: #285f50;
+}
+
+.option-chip small {
+  border-left: 1px solid #d8deea;
+  color: #768197;
+  font-size: 11px;
+  font-weight: 700;
+  padding-left: 7px;
+}
+
+.option-chip.active small {
+  border-color: #b9d8cc;
+  color: #397361;
+}
+
+.composer-option-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  display: grid;
+  gap: 14px;
+  width: min(390px, calc(100vw - 64px));
+  box-sizing: border-box;
+  border: 1px solid #d7dee9;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(39 49 71 / 18%);
+  padding: 16px;
+  z-index: 8;
+}
+
+.composer-option-popover header {
+  display: grid;
+  gap: 4px;
+}
+
+.composer-option-popover header strong {
+  color: #2f3b52;
+  font-size: 15px;
+}
+
+.composer-option-popover header p {
+  margin: 0;
+  color: #7a8498;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.option-choice-list {
+  display: grid;
+  gap: 7px;
+}
+
+.option-choice-list button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #364158;
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
+}
+
+.option-choice-list button:hover,
+.option-choice-list button.selected {
+  border-color: #a8cfc1;
+  background: #f0f8f4;
+}
+
+.option-choice-list button > span:last-child,
+.model-choice-grid label > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.option-choice-list small,
+.model-choice-grid small {
+  color: #7a8498;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.option-check {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #cbd3df;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.selected .option-check {
+  border-color: #2f735f;
+  background: #2f735f;
+}
+
+.model-comparison-popover {
+  width: min(390px, calc(100vw - 64px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.model-comparison-popover > header {
+  padding: 16px 18px 12px;
+}
+
+.model-provider-list {
+  display: grid;
+  gap: 18px;
+  max-height: min(480px, calc(100vh - 270px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 10px 14px;
+  scrollbar-color: #a9b5c8 transparent;
+  scrollbar-width: thin;
+}
+
+.model-provider-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.model-provider-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a9b5c8;
+}
+
+.model-provider-group {
+  display: grid;
+  gap: 4px;
+}
+
+.model-provider-group h3 {
+  margin: 0;
+  color: #7a8498;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 5px 8px 4px;
+  text-transform: uppercase;
+}
+
+.model-choice-list {
+  display: grid;
+  gap: 2px;
+}
+
+.model-choice-list label {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 9px;
+  color: #3d4962;
+  cursor: pointer;
+  min-height: 43px;
+  padding: 6px 9px;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.model-choice-list label:hover {
+  background: #f5f7fa;
+}
+
+.model-choice-list label.selected {
+  background: #f0f8f4;
+  color: #285f50;
+}
+
+.model-choice-list input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.model-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #48556d;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.model-choice-list label strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-choice-list label.selected .model-mark {
+  background: #2f735f;
+  border-color: #2f735f;
+  color: #ffffff;
+}
+
+.model-selected-check {
+  color: #2f735f;
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.model-comparison-popover footer {
+  background: #ffffff;
+  padding: 12px 16px;
+}
+
+.composer-option-popover footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #768197;
+  font-size: 12px;
+  padding-top: 12px;
+}
+
+.composer-option-popover footer button {
+  border: 1px solid #2f735f;
+  border-radius: 7px;
+  background: #2f735f;
+  color: #ffffff;
   cursor: pointer;
   font-weight: 800;
   padding: 7px 12px;
@@ -1219,6 +1475,19 @@ textarea:focus-visible,
 
   .chat-landing h1 {
     font-size: 28px;
+  }
+
+  .composer-option-popover,
+  .model-comparison-popover {
+    width: min(100%, calc(100vw - 32px));
+  }
+
+  .model-provider-list {
+    max-height: min(390px, calc(100vh - 250px));
+  }
+
+  .option-chip small {
+    display: none;
   }
 
   .chat-header {
