@@ -20,6 +20,7 @@
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
   background: #ffffff;
   color: #1f2933;
   transition: grid-template-columns 180ms ease;
@@ -659,12 +660,20 @@
 
 .start-sidebar {
   display: flex;
+  align-self: start;
   flex-direction: column;
   gap: 18px;
+  position: sticky;
+  top: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   border-right: 1px solid #e4e8f0;
   background: #f5f7fb;
   padding: 26px 20px;
-  min-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
   transition: padding 180ms ease;
 }
 
@@ -815,9 +824,17 @@
   gap: 18px;
   width: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .start-sidebar.collapsed .sidebar-content {
+  align-items: center;
+  gap: 0;
+}
+
+.start-sidebar.collapsed .new-chat-button,
+.start-sidebar.collapsed .sidebar-scroll-area,
+.start-sidebar.collapsed .sidebar-account-copy {
   display: none;
 }
 
@@ -839,6 +856,17 @@
 .root-list {
   display: grid;
   gap: 10px;
+}
+
+.sidebar-scroll-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
 }
 
 .new-chat-button {
@@ -882,6 +910,7 @@
 }
 
 .sidebar-graph-panel {
+  flex: 0 0 auto;
   border: 1px solid #e1e6ef;
   border-radius: 8px;
   background: #ffffff;
@@ -889,10 +918,56 @@
 }
 
 .trash-panel {
-  margin-top: auto;
+  flex: 0 0 auto;
   border: 1px solid #dfe3e9;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.sidebar-account {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border-top: 1px solid #dfe3e9;
+  padding: 12px 2px 0;
+}
+
+.start-sidebar.collapsed .sidebar-account {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+  border-top: 0;
+  padding: 0 0 4px;
+}
+
+.sidebar-account-avatar {
+  display: block;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d8dee6;
+  border-radius: 50%;
+  background: #e8eefc;
+  object-fit: cover;
+}
+
+.sidebar-account-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-account-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-account-copy strong {
+  color: #253128;
+  font-size: 14px;
 }
 
 .trash-panel summary {
@@ -2036,10 +2111,13 @@ textarea:focus-visible,
     left: 0;
     z-index: 20;
     width: min(320px, calc(100vw - 56px));
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
     border-right: 1px solid #d7ddd4;
     border-bottom: 0;
-    overflow-y: auto;
+    overflow: hidden;
     transform: translateX(-100%);
     transition:
       transform 180ms ease,
@@ -2066,6 +2144,28 @@ textarea:focus-visible,
 
   .start-sidebar.collapsed .sidebar-content {
     display: flex;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .start-sidebar.collapsed .new-chat-button {
+    display: block;
+  }
+
+  .start-sidebar.collapsed .sidebar-scroll-area {
+    display: flex;
+  }
+
+  .start-sidebar.collapsed .sidebar-account {
+    width: auto;
+    justify-content: flex-start;
+    margin-top: 0;
+    border-top: 1px solid #dfe3e9;
+    padding: 12px 2px 0;
+  }
+
+  .start-sidebar.collapsed .sidebar-account-copy {
+    display: grid;
   }
 
   .start-sidebar.collapsed .sidebar-toggle-button::after {
