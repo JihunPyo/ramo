@@ -5,6 +5,8 @@ export function StartNodeSidebar({
   graphState,
   rootNodes,
   isCollapsed = false,
+  isDrawerMode = false,
+  isMobileDrawerOpen = false,
   isBusy = false,
   onToggleCollapse,
   onNewChat,
@@ -18,10 +20,23 @@ export function StartNodeSidebar({
   const trashNodes = graphState.trashNodes ?? []
   const trashNodeIds = new Set(trashNodes.map((node) => node.id))
   const trashRoots = trashNodes.filter((node) => !trashNodeIds.has(node.parentId))
-  const toggleLabel = isCollapsed ? '사이드바 열기' : '사이드바 접기'
+  const isDrawerHidden = isDrawerMode && !isMobileDrawerOpen
+  const isContentVisible = isDrawerMode ? isMobileDrawerOpen : !isCollapsed
+  const toggleLabel = isDrawerMode
+    ? isMobileDrawerOpen
+      ? '사이드바 닫기'
+      : '사이드바 열기'
+    : isCollapsed
+      ? '사이드바 열기'
+      : '사이드바 접기'
 
   return (
-    <aside className={isCollapsed ? 'start-sidebar collapsed' : 'start-sidebar'} aria-label="시작 노드">
+    <aside
+      className={isCollapsed ? 'start-sidebar collapsed' : 'start-sidebar'}
+      aria-hidden={isDrawerHidden}
+      aria-label="시작 노드"
+      inert={isDrawerHidden}
+    >
       <header className="sidebar-header">
         <div className="sidebar-title">
           <p className="eyebrow">Branch Chat</p>
@@ -31,7 +46,7 @@ export function StartNodeSidebar({
           type="button"
           className="sidebar-toggle-button"
           aria-label={toggleLabel}
-          aria-expanded={!isCollapsed}
+          aria-expanded={isContentVisible}
           data-tooltip={toggleLabel}
           title={toggleLabel}
           onClick={onToggleCollapse}
@@ -40,7 +55,7 @@ export function StartNodeSidebar({
         </button>
       </header>
 
-      <div className="sidebar-content" aria-hidden={isCollapsed}>
+      <div className="sidebar-content" aria-hidden={!isContentVisible}>
         <button type="button" className="new-chat-button" onClick={onNewChat} disabled={isBusy}>
           새 채팅
         </button>

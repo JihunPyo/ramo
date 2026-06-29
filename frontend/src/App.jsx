@@ -27,12 +27,15 @@ import {
 
 const DEFAULT_MODEL_PROVIDER = 'local'
 const DEFAULT_MODEL_NAME = 'local-mock'
+const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
 function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [isNarrowViewport, setIsNarrowViewport] = useState(false)
   const [isLandingVisible, setIsLandingVisible] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingAction, setPendingAction] = useState('')
@@ -42,6 +45,24 @@ function App() {
   useEffect(() => {
     graphStateRef.current = graphState
   }, [graphState])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(DESKTOP_SIDEBAR_MEDIA_QUERY)
+    const handleMediaChange = (event) => {
+      setIsNarrowViewport(!event.matches)
+
+      if (event.matches) {
+        setIsMobileSidebarOpen(false)
+      }
+    }
+
+    handleMediaChange(mediaQuery)
+    mediaQuery.addEventListener('change', handleMediaChange)
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange)
+    }
+  }, [])
 
   const rootNodes = useMemo(() => getRootNodes(graphState.nodes), [graphState.nodes])
   const activeNode = getActiveNode(graphState)
@@ -128,11 +149,13 @@ function App() {
 
   const handleSelectRoot = (rootId) => {
     setGraphState((currentState) => selectRoot(currentState, rootId))
+    setIsMobileSidebarOpen(false)
     setIsLandingVisible(true)
   }
 
   const handleSelectNode = (nodeId) => {
     setGraphState((currentState) => selectNode(currentState, nodeId))
+    setIsMobileSidebarOpen(false)
     setIsLandingVisible(false)
     void loadBranchMessages(nodeId)
   }
@@ -144,6 +167,7 @@ function App() {
   const handleOpenLanding = async () => {
     const newRootTitle = createNewRootNodeTitle(getRootNodes(graphStateRef.current.nodes))
 
+    setIsMobileSidebarOpen(false)
     setPendingAction('새 루트 노드 생성 중')
 
     try {
@@ -319,14 +343,33 @@ function App() {
     }
   }
 
+  const handleToggleSidebar = () => {
+    if (isMobileSidebarOpen) {
+      setIsMobileSidebarOpen(false)
+      return
+    }
+
+    setIsSidebarCollapsed((currentValue) => !currentValue)
+  }
+
+  const appShellClassName = [
+    'app-shell',
+    isSidebarCollapsed ? 'sidebar-collapsed' : '',
+    isMobileSidebarOpen ? 'mobile-sidebar-open' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <main className={isSidebarCollapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
+    <main className={appShellClassName}>
       <StartNodeSidebar
         graphState={graphState}
         rootNodes={rootNodes}
         isCollapsed={isSidebarCollapsed}
+        isDrawerMode={isNarrowViewport}
+        isMobileDrawerOpen={isMobileSidebarOpen}
         isBusy={isBusy}
-        onToggleCollapse={() => setIsSidebarCollapsed((currentValue) => !currentValue)}
+        onToggleCollapse={handleToggleSidebar}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
         onSelectNode={handleSelectNode}
@@ -335,9 +378,24 @@ function App() {
         onRestoreFromTrash={handleRestoreFromTrash}
         onDeleteForever={handleDeleteForever}
       />
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        aria-label="사이드바 닫기"
+        onClick={() => setIsMobileSidebarOpen(false)}
+      />
 
       <section className="workspace" aria-label="채팅 작업공간">
         <header className="workspace-topbar">
+          <button
+            type="button"
+            className="mobile-sidebar-open-button"
+            aria-label="사이드바 열기"
+            aria-expanded={isMobileSidebarOpen}
+            onClick={() => setIsMobileSidebarOpen(true)}
+          >
+            <span className="mobile-sidebar-open-icon" aria-hidden="true" />
+          </button>
           <button type="button" className="model-button">
             Branch Chat API
           </button>
