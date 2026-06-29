@@ -36,19 +36,16 @@ export function TopMiniGraph({
 
   const getPanelMetrics = () => {
     const panel = panelRef.current
-    const container = panel?.offsetParent
 
-    if (!panel || !container) {
+    if (!panel) {
       return null
     }
 
     const panelRect = panel.getBoundingClientRect()
-    const containerRect = container.getBoundingClientRect()
 
     return {
-      container,
-      x: panelRect.left - containerRect.left,
-      y: panelRect.top - containerRect.top,
+      x: panelRect.left,
+      y: panelRect.top,
       width: panel.offsetWidth,
       height: panel.offsetHeight,
     }
@@ -66,8 +63,8 @@ export function TopMiniGraph({
       event.preventDefault()
 
       if (interaction.type === 'drag') {
-        const maxX = Math.max(0, interaction.container.clientWidth - panel.offsetWidth)
-        const maxY = Math.max(0, interaction.container.clientHeight - panel.offsetHeight)
+        const maxX = Math.max(0, window.innerWidth - panel.offsetWidth)
+        const maxY = Math.max(0, window.innerHeight - panel.offsetHeight)
 
         setPanelPosition({
           x: Math.round(
@@ -88,7 +85,7 @@ export function TopMiniGraph({
       )
       const maxHeight = Math.max(
         MIN_PANEL_HEIGHT,
-        interaction.container.clientHeight - interaction.y,
+        window.innerHeight - interaction.y,
       )
       const nextHeight = Math.round(
         Math.min(
@@ -140,7 +137,6 @@ export function TopMiniGraph({
       startY: event.clientY,
       x: metrics.x,
       y: metrics.y,
-      container: metrics.container,
     }
     document.body.classList.add('graph-panel-interacting')
   }
@@ -168,7 +164,6 @@ export function TopMiniGraph({
       height: metrics.height,
       rightEdge: metrics.x + metrics.width,
       y: metrics.y,
-      container: metrics.container,
     }
     document.body.classList.add('graph-panel-interacting')
   }
@@ -195,7 +190,7 @@ export function TopMiniGraph({
     event.preventDefault()
     const rightEdge = metrics.x + metrics.width
     const nextWidth = Math.min(rightEdge, Math.max(MIN_PANEL_WIDTH, sizeByKey[0]))
-    const maxHeight = Math.max(MIN_PANEL_HEIGHT, metrics.container.clientHeight - metrics.y)
+    const maxHeight = Math.max(MIN_PANEL_HEIGHT, window.innerHeight - metrics.y)
     const nextHeight = Math.min(maxHeight, Math.max(MIN_PANEL_HEIGHT, sizeByKey[1]))
 
     setPanelPosition({ x: rightEdge - nextWidth, y: metrics.y })

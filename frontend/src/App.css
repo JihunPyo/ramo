@@ -441,7 +441,7 @@
 }
 
 .top-graph-panel {
-  position: absolute;
+  position: fixed;
   top: 84px;
   right: 24px;
   display: grid;
@@ -464,7 +464,7 @@
 }
 
 .top-graph-reopen {
-  position: absolute;
+  position: fixed;
   top: 84px;
   right: 24px;
   display: inline-flex;
@@ -959,7 +959,7 @@ textarea:focus-visible,
   }
 
   .top-graph-panel {
-    position: absolute;
+    position: fixed;
     top: 84px;
     right: 16px;
     width: min(278px, calc(100% - 32px));
@@ -967,10 +967,10 @@ textarea:focus-visible,
   }
 
   .top-graph-reopen {
-    position: static;
-    align-self: flex-end;
-    order: -1;
-    margin: 20px 32px 0;
+    position: fixed;
+    top: 84px;
+    right: 16px;
+    margin: 0;
   }
 }
 
