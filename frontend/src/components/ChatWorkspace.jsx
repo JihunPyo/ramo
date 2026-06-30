@@ -1,20 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   getBranchPath,
-  getChildrenByNodeId,
   getContextSectionsForNode,
   getMainPathNodeIds,
 } from '../features/branchGraph/branchGraphModel.js'
 
 export function ChatWorkspace({
   activeNode,
-  session,
   graphState,
   nodeNavigationKey = 0,
   isBusy = false,
   onSendMessage,
   onCreateBranch,
-  onSetMainTarget,
 }) {
   const [draft, setDraft] = useState('')
   const activeSectionRef = useRef(null)
@@ -22,7 +19,6 @@ export function ChatWorkspace({
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
   const mainPathNodeIds = getMainPathNodeIds(graphState, activeNode?.rootId ?? '')
-  const childNodes = getChildrenByNodeId(graphState.nodes, activeNode?.id ?? '')
   const isActiveNodeOnMainPath = activeNode ? mainPathNodeIds.has(activeNode.id) : false
   const contextSections = getContextSectionsForNode(graphState, activeNode?.id ?? '')
   const hasActiveStartMessage = contextSections.some(
@@ -80,34 +76,10 @@ export function ChatWorkspace({
             ))}
           </div>
         </div>
-        <button
-          type="button"
-          className="primary-action"
-          onClick={() => onSetMainTarget(activeNode.id)}
-          disabled={isBusy}
-        >
-          main 지정
-        </button>
+        <span className={isActiveNodeOnMainPath ? 'session-main-state included' : 'session-main-state'}>
+          {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
+        </span>
       </header>
-
-      <section className="node-summary" aria-label="노드 상태">
-        <div>
-          <span>main 경로</span>
-          <strong>{isActiveNodeOnMainPath ? '포함' : '미포함'}</strong>
-        </div>
-        <div>
-          <span>하위 노드</span>
-          <strong>{childNodes.length}</strong>
-        </div>
-        <div>
-          <span>포함 노드</span>
-          <strong>{contextSections.length}</strong>
-        </div>
-        <div>
-          <span>현재 세션</span>
-          <strong>{session?.id}</strong>
-        </div>
-      </section>
 
       <section className="message-list" aria-label="메시지 목록">
         {contextSections.map((section, sectionIndex) => (
@@ -162,10 +134,10 @@ export function ChatWorkspace({
           onKeyDown={handleMessageKeyDown}
           disabled={isBusy}
           rows={3}
-          placeholder="현재 노드에서 이어서 질문한다."
+          placeholder="현재 대화에서 이어서 질문하세요."
         />
-        <button type="submit" className="send-button" disabled={isBusy}>
-          전송
+        <button type="submit" className="send-button" aria-label="메시지 전송" disabled={isBusy || !draft.trim()}>
+          <span aria-hidden="true">↑</span>
         </button>
       </form>
     </section>

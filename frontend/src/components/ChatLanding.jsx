@@ -173,10 +173,11 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
   return (
     <section className="chat-landing" aria-label="채팅 시작">
       <div className="landing-mark" aria-hidden="true">
-        ✣
+        R
       </div>
-      <p className="landing-model">{activeNode?.title ?? 'Branch Chat'}</p>
+      <p className="landing-model">RAMO</p>
       <h1>무엇을 도와드릴까요?</h1>
+      <p className="landing-context">{activeNode?.title ?? '새 대화'}에서 새로운 흐름을 시작하세요.</p>
 
       <form className="landing-composer" onSubmit={handleSubmit}>
         <label htmlFor="landing-message">메시지</label>

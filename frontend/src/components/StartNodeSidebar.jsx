@@ -39,8 +39,8 @@ export function StartNodeSidebar({
     >
       <header className="sidebar-header">
         <div className="sidebar-title">
-          <p className="eyebrow">Branch Chat</p>
-          <h2>시작 노드</h2>
+          <p className="eyebrow">Branch workspace</p>
+          <h2>RAMO</h2>
         </div>
         <button
           type="button"

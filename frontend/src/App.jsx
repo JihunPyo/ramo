@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import './Modern.css'
 import { ChatLanding } from './components/ChatLanding.jsx'
 import { ChatWorkspace } from './components/ChatWorkspace.jsx'
 import { FullscreenGraphModal } from './components/FullscreenGraphModal.jsx'
@@ -18,7 +19,6 @@ import {
   getActiveNode,
   getNodeById,
   getRootNodes,
-  getSessionByNodeId,
   getSubtreeNodeIds,
   selectNode,
   selectRoot,
@@ -68,7 +68,6 @@ function App() {
 
   const rootNodes = useMemo(() => getRootNodes(graphState.nodes), [graphState.nodes])
   const activeNode = getActiveNode(graphState)
-  const activeSession = getSessionByNodeId(graphState, graphState.activeNodeId)
   const isBusy = isLoading || Boolean(pendingAction)
 
   const loadGraphState = useCallback(
@@ -410,9 +409,20 @@ function App() {
             <span className="mobile-sidebar-open-icon" aria-hidden="true" />
           </button>
           <button type="button" className="model-button">
-            Branch Chat API
+            RAMO
           </button>
           <span className="api-status">{pendingAction || (isLoading ? '동기화 중' : 'API 계약 모드')}</span>
+          {!isLandingVisible && activeNode ? (
+            <button
+              type="button"
+              className={isMiniGraphOpen ? 'graph-toggle-button active' : 'graph-toggle-button'}
+              aria-expanded={isMiniGraphOpen}
+              onClick={() => setIsMiniGraphOpen((currentValue) => !currentValue)}
+            >
+              <span aria-hidden="true">◇</span>
+              {isMiniGraphOpen ? '시각화 닫기' : '시각화 열기'}
+            </button>
+          ) : null}
           <div className="topbar-actions" aria-label="작업 도구">
             <span>알림</span>
             <span>도움말</span>
@@ -422,52 +432,41 @@ function App() {
 
         {errorMessage ? <div className="api-error">{errorMessage}</div> : null}
 
-        {isLoading && !activeNode ? (
-          <section className="empty-state" aria-label="초기 데이터 동기화">
-            <p className="eyebrow">API 동기화</p>
-            <h1>세션과 브랜치 정보를 불러오는 중이다.</h1>
-          </section>
-        ) : isLandingVisible ? (
-          <ChatLanding activeNode={activeNode} isBusy={isBusy} onSendMessage={handleSendMessage} />
-        ) : (
-          <>
-            {isMiniGraphOpen ? (
-              <TopMiniGraph
-                graphState={graphState}
-                activeNode={activeNode}
-                onSelectNode={handleSelectTopGraphNode}
-                onSetMainTarget={handleSetMainTarget}
-                onMoveToTrash={handleMoveToTrash}
-                onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
-                onClose={() => setIsMiniGraphOpen(false)}
-                layoutDirection={graphLayoutDirection}
-                onToggleLayout={handleToggleGraphLayout}
-              />
+        <div className={isMiniGraphOpen && !isLandingVisible ? 'workspace-content graph-panel-open' : 'workspace-content'}>
+          <div className="workspace-primary">
+            {isLoading && !activeNode ? (
+              <section className="empty-state" aria-label="초기 데이터 동기화">
+                <p className="eyebrow">API 동기화</p>
+                <h1>세션과 브랜치 정보를 불러오는 중이다.</h1>
+              </section>
+            ) : isLandingVisible ? (
+              <ChatLanding activeNode={activeNode} isBusy={isBusy} onSendMessage={handleSendMessage} />
             ) : (
-              <button
-                type="button"
-                className="top-graph-reopen"
-                aria-label="시각화 창 열기"
-                aria-expanded="false"
-                onClick={() => setIsMiniGraphOpen(true)}
-              >
-                <span aria-hidden="true">◇</span>
-                시각화 열기
-              </button>
+                <ChatWorkspace
+                  activeNode={activeNode}
+                  graphState={graphState}
+                nodeNavigationKey={nodeNavigationKey}
+                isBusy={isBusy}
+                onSendMessage={handleSendMessage}
+                onCreateBranch={handleCreateBranch}
+              />
             )}
+          </div>
 
-            <ChatWorkspace
-              activeNode={activeNode}
-              session={activeSession}
+          {!isLandingVisible && isMiniGraphOpen ? (
+            <TopMiniGraph
               graphState={graphState}
-              nodeNavigationKey={nodeNavigationKey}
-              isBusy={isBusy}
-              onSendMessage={handleSendMessage}
-              onCreateBranch={handleCreateBranch}
+              activeNode={activeNode}
+              onSelectNode={handleSelectTopGraphNode}
               onSetMainTarget={handleSetMainTarget}
+              onMoveToTrash={handleMoveToTrash}
+              onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
+              onClose={() => setIsMiniGraphOpen(false)}
+              layoutDirection={graphLayoutDirection}
+              onToggleLayout={handleToggleGraphLayout}
             />
-          </>
-        )}
+          ) : null}
+        </div>
       </section>
 
       {isFullscreenGraphOpen ? (
