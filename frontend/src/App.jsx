@@ -33,6 +33,7 @@ function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
+  const [nodeNavigationKey, setNodeNavigationKey] = useState(0)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isNarrowViewport, setIsNarrowViewport] = useState(false)
@@ -155,6 +156,7 @@ function App() {
 
   const handleSelectNode = (nodeId) => {
     setGraphState((currentState) => selectNode(currentState, nodeId))
+    setNodeNavigationKey((currentKey) => currentKey + 1)
     setIsMobileSidebarOpen(false)
     setIsLandingVisible(false)
     void loadBranchMessages(nodeId)
@@ -445,6 +447,7 @@ function App() {
               activeNode={activeNode}
               session={activeSession}
               graphState={graphState}
+              nodeNavigationKey={nodeNavigationKey}
               isBusy={isBusy}
               onSendMessage={handleSendMessage}
               onCreateBranch={handleCreateBranch}

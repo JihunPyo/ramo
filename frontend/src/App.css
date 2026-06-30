@@ -525,6 +525,7 @@
 
 .message-row {
   display: flex;
+  scroll-margin-top: 24px;
 }
 
 .message-row.user {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   getBranchPath,
   getChildrenByNodeId,
@@ -10,18 +10,40 @@ export function ChatWorkspace({
   activeNode,
   session,
   graphState,
+  nodeNavigationKey = 0,
   isBusy = false,
   onSendMessage,
   onCreateBranch,
   onSetMainTarget,
 }) {
   const [draft, setDraft] = useState('')
+  const activeSectionRef = useRef(null)
+  const activeStartMessageRef = useRef(null)
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
   const mainPathNodeIds = getMainPathNodeIds(graphState, activeNode?.rootId ?? '')
   const childNodes = getChildrenByNodeId(graphState.nodes, activeNode?.id ?? '')
   const isActiveNodeOnMainPath = activeNode ? mainPathNodeIds.has(activeNode.id) : false
   const contextSections = getContextSectionsForNode(graphState, activeNode?.id ?? '')
+  const hasActiveStartMessage = contextSections.some(
+    (section) => section.node.id === activeNode?.id && section.session.messages.length > 0,
+  )
+
+  useEffect(() => {
+    if (nodeNavigationKey === 0) {
+      return undefined
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
+
+      scrollTarget?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+    }
+  }, [activeNode?.id, hasActiveStartMessage, nodeNavigationKey])
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -89,14 +111,26 @@ export function ChatWorkspace({
 
       <section className="message-list" aria-label="메시지 목록">
         {contextSections.map((section, sectionIndex) => (
-          <section key={section.node.id} className="context-section">
+          <section
+            key={section.node.id}
+            ref={section.node.id === activeNode?.id ? activeSectionRef : undefined}
+            className="context-section"
+          >
             <header className="context-section-header">
               <span>{sectionIndex === contextSections.length - 1 ? '현재 노드' : '상위 노드'}</span>
               <strong>{section.node.title}</strong>
             </header>
 
-            {section.session.messages.map((message) => (
-              <article key={message.id} className={`message-row ${message.role}`}>
+            {section.session.messages.map((message, messageIndex) => (
+              <article
+                key={message.id}
+                ref={
+                  section.node.id === activeNode?.id && messageIndex === 0
+                    ? activeStartMessageRef
+                    : undefined
+                }
+                className={`message-row ${message.role}`}
+              >
                 <div className="message-bubble">
                   <span className="message-role">{message.role === 'user' ? 'User' : 'AI'}</span>
                   <p>{message.content}</p>
