@@ -43,7 +43,7 @@ export function ChatWorkspace({
     return () => {
       window.cancelAnimationFrame(animationFrameId)
     }
-  }, [activeNode?.id, hasActiveStartMessage, nodeNavigationKey])
+  }, [hasActiveStartMessage, nodeNavigationKey])
 
   const handleSubmit = (event) => {
     event.preventDefault()

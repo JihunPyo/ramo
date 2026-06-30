@@ -156,10 +156,14 @@ function App() {
 
   const handleSelectNode = (nodeId) => {
     setGraphState((currentState) => selectNode(currentState, nodeId))
-    setNodeNavigationKey((currentKey) => currentKey + 1)
     setIsMobileSidebarOpen(false)
     setIsLandingVisible(false)
     void loadBranchMessages(nodeId)
+  }
+
+  const handleSelectSidebarGraphNode = (nodeId) => {
+    setNodeNavigationKey((currentKey) => currentKey + 1)
+    handleSelectNode(nodeId)
   }
 
   const handleSetMainTarget = (nodeId) => {
@@ -374,7 +378,7 @@ function App() {
         onToggleCollapse={handleToggleSidebar}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
-        onSelectNode={handleSelectNode}
+        onSelectNode={handleSelectSidebarGraphNode}
         onSetMainTarget={handleSetMainTarget}
         onMoveToTrash={handleMoveToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
