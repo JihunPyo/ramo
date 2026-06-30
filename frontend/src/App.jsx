@@ -161,7 +161,7 @@ function App() {
     void loadBranchMessages(nodeId)
   }
 
-  const handleSelectSidebarGraphNode = (nodeId) => {
+  const handleSelectTopGraphNode = (nodeId) => {
     setNodeNavigationKey((currentKey) => currentKey + 1)
     handleSelectNode(nodeId)
   }
@@ -378,7 +378,7 @@ function App() {
         onToggleCollapse={handleToggleSidebar}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
-        onSelectNode={handleSelectSidebarGraphNode}
+        onSelectNode={handleSelectNode}
         onSetMainTarget={handleSetMainTarget}
         onMoveToTrash={handleMoveToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
@@ -428,7 +428,7 @@ function App() {
               <TopMiniGraph
                 graphState={graphState}
                 activeNode={activeNode}
-                onSelectNode={handleSelectNode}
+                onSelectNode={handleSelectTopGraphNode}
                 onSetMainTarget={handleSetMainTarget}
                 onMoveToTrash={handleMoveToTrash}
                 onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
