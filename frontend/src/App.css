@@ -1138,7 +1138,10 @@ textarea:disabled {
 }
 
 .mini-graph.full {
+  width: 100%;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .graph-toolbar {
@@ -1170,8 +1173,12 @@ textarea:disabled {
 
 .graph-viewport {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: 220px;
+  box-sizing: border-box;
   overflow: auto;
+  scrollbar-gutter: stable both-edges;
   border: 1px solid #e3e7e2;
   border-radius: 7px;
   background-color: #fbfcfa;
@@ -1198,10 +1205,19 @@ textarea:disabled {
   cursor: grabbing;
 }
 
-.graph-viewport svg {
+.graph-canvas {
+  display: grid;
+  place-items: center;
+  width: max-content;
+  min-width: 100%;
+  height: max-content;
+  min-height: 100%;
+}
+
+.graph-canvas svg {
   display: block;
   max-width: none;
-  margin: auto;
+  margin: 0;
   user-select: none;
 }
 
@@ -1329,9 +1345,12 @@ textarea:disabled {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
   width: min(1120px, 100%);
+  min-width: 0;
   max-height: min(780px, 94vh);
+  box-sizing: border-box;
   border-radius: 8px;
   background: #ffffff;
+  overflow: hidden;
   padding: 20px;
 }
 

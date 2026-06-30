@@ -33,6 +33,7 @@ function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
+  const [graphLayoutDirection, setGraphLayoutDirection] = useState('vertical')
   const [nodeNavigationKey, setNodeNavigationKey] = useState(0)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
@@ -168,6 +169,12 @@ function App() {
 
   const handleSetMainTarget = (nodeId) => {
     setGraphState((currentState) => setMainTargetNode(currentState, nodeId))
+  }
+
+  const handleToggleGraphLayout = () => {
+    setGraphLayoutDirection((currentDirection) =>
+      currentDirection === 'vertical' ? 'horizontal' : 'vertical',
+    )
   }
 
   const handleOpenLanding = async () => {
@@ -433,6 +440,8 @@ function App() {
                 onMoveToTrash={handleMoveToTrash}
                 onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
                 onClose={() => setIsMiniGraphOpen(false)}
+                layoutDirection={graphLayoutDirection}
+                onToggleLayout={handleToggleGraphLayout}
               />
             ) : (
               <button
@@ -468,6 +477,8 @@ function App() {
           onSelectNode={handleSelectNode}
           onSetMainTarget={handleSetMainTarget}
           onMoveToTrash={handleMoveToTrash}
+          layoutDirection={graphLayoutDirection}
+          onToggleLayout={handleToggleGraphLayout}
         />
       ) : null}
     </main>
