@@ -211,6 +211,15 @@ export function MiniGraph({
       return
     }
 
+    // 노드를 누르는 동작과 그래프를 끌어 이동하는 동작을 분리한다.
+    // 포인터 캡처가 노드 클릭을 가로채지 않아 실제 마우스/터치에서도
+    // 선택 콜백이 안정적으로 실행된다.
+    if (event.target.closest?.('.graph-node')) {
+      suppressClickRef.current = false
+      setContextMenu(null)
+      return
+    }
+
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     viewport.setPointerCapture(event.pointerId)
     suppressClickRef.current = false

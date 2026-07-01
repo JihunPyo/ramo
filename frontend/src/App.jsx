@@ -384,7 +384,7 @@ function App() {
         onToggleCollapse={handleToggleSidebar}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
-        onSelectNode={handleSelectNode}
+        onSelectNode={handleSelectTopGraphNode}
         onSetMainTarget={handleSetMainTarget}
         onMoveToTrash={handleMoveToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
@@ -473,7 +473,7 @@ function App() {
         <FullscreenGraphModal
           graphState={graphState}
           onClose={() => setIsFullscreenGraphOpen(false)}
-          onSelectNode={handleSelectNode}
+          onSelectNode={handleSelectTopGraphNode}
           onSetMainTarget={handleSetMainTarget}
           onMoveToTrash={handleMoveToTrash}
           layoutDirection={graphLayoutDirection}
