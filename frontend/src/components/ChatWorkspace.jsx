@@ -5,12 +5,14 @@ import {
   getContextSectionsForNode,
   getMainPathNodeIds,
 } from '../features/branchGraph/branchGraphModel.js'
+import { RichMessageContent } from './RichMessageContent.jsx'
 
 export function ChatWorkspace({
   activeNode,
   graphState,
   nodeNavigationKey = 0,
   isBusy = false,
+  isAwaitingResponse = false,
   onSendMessage,
   onCreateBranch,
   onRenameSession,
@@ -153,7 +155,7 @@ export function ChatWorkspace({
               <strong>{section.node.title}</strong>
             </header>
 
-            {section.session.messages.map((message, messageIndex) => (
+            {section.session.messages.filter(isVisibleMessage).map((message, messageIndex) => (
               <article
                 key={message.id}
                 ref={
@@ -165,7 +167,7 @@ export function ChatWorkspace({
               >
                 <div className="message-bubble">
                   <span className="message-role">{message.role === 'user' ? 'User' : 'AI'}</span>
-                  <p>{message.content}</p>
+                  <RichMessageContent content={message.content} />
                   <div className="message-actions">
                     <time>{message.createdAt}</time>
                     {message.role === 'assistant' ? (
@@ -183,6 +185,7 @@ export function ChatWorkspace({
             ))}
           </section>
         ))}
+        {isAwaitingResponse ? <PendingAssistantMessage /> : null}
       </section>
 
       <form className="composer" onSubmit={handleSubmit}>
@@ -203,4 +206,34 @@ export function ChatWorkspace({
       </form>
     </section>
   )
+}
+
+function PendingAssistantMessage() {
+  return (
+    <article className="message-row assistant pending-response" aria-live="polite" aria-label="답변 생성 대기">
+      <div className="message-bubble pending-response-bubble">
+        <span className="message-role">AI</span>
+        <div className="pending-response-card">
+          <span className="pending-response-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <div>
+            <strong>답변을 구성하는 중이다.</strong>
+            <p>현재 노드의 맥락과 선택한 모델 응답을 기다리고 있다.</p>
+          </div>
+        </div>
+        <div className="pending-response-skeleton" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function isVisibleMessage(message) {
+  return !message.isHidden && message.role !== 'system'
 }

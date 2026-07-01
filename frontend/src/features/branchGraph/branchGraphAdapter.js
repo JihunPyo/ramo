@@ -21,6 +21,7 @@ export function buildGraphStateFromApi({
     normalizeGraphNodes({
       session,
       graph,
+      previousNodes: previousState.nodes,
     }),
   )
   const nodeIds = new Set(nodes.map((node) => node.id))
@@ -97,11 +98,12 @@ export function applyBranchMessages(state, branchId, apiMessages) {
   }
 }
 
-function normalizeGraphNodes({ session, graph }) {
+function normalizeGraphNodes({ session, graph, previousNodes = [] }) {
   const apiSessionId = readSessionId(session)
   const sessionTitle = session?.title ?? '새 대화'
   const graphNodes = Array.isArray(graph?.nodes) ? graph.nodes : []
   const graphEdges = Array.isArray(graph?.edges) ? graph.edges : []
+  const previousNodeById = new Map(previousNodes.map((node) => [node.id, node]))
   const parentIdsByNodeId = new Map()
   const forkMessageByNodeId = new Map()
 
@@ -127,8 +129,13 @@ function normalizeGraphNodes({ session, graph }) {
 
       const declaredParentIds =
         node.merged_parent_branch_ids ?? node.mergedParentBranchIds ?? node.parent_branch_ids ?? []
+      const previousParentIds = previousNodeById.get(branchId)?.parentIds ?? []
       const parentIds = [
-        ...new Set([...(parentIdsByNodeId.get(branchId) ?? []), ...declaredParentIds]),
+        ...new Set([
+          ...(parentIdsByNodeId.get(branchId) ?? []),
+          ...declaredParentIds,
+          ...(previousParentIds.length > 1 ? previousParentIds : []),
+        ]),
       ]
       const parentId = node.parent_branch_id ?? parentIds[0] ?? null
       const title = resolveNodeTitle({
@@ -243,10 +250,21 @@ function groupMessagesByBranch(apiMessages, fallbackBranchId) {
 }
 
 function normalizeMessage(message) {
+  const status = message.status ?? 'active'
+  const metadata = message.metadata ?? message.meta ?? {}
+
   return {
     id: message.id ?? message.message_id,
     role: message.role,
     content: message.content,
+    status,
+    kind: message.kind ?? metadata.kind ?? '',
+    isHidden:
+      status === 'hidden' ||
+      message.visible === false ||
+      message.is_hidden === true ||
+      message.isHidden === true ||
+      metadata.hidden_from_user === true,
     createdAt: formatDisplayTime(message.created_at ?? message.createdAt),
   }
 }

@@ -13,9 +13,11 @@ export function createHttpBranchGraphApi(client = httpClient) {
       })
     },
     updateSession(sessionId, patch) {
-      return client.request(`/sessions/${sessionId}`, {
+      return client.request(`/sessions/${sessionId}/title`, {
         method: 'PATCH',
-        body: patch,
+        body: {
+          title: patch.title,
+        },
       })
     },
     listBranches(sessionId) {
@@ -57,17 +59,39 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
-    mergeBranches({ sessionId, branchIds, name }) {
-      return client.request('/branches/merge', {
+    mergeBranches({
+      sessionId,
+      branchIds,
+      parentBranchId,
+      forkFromMessageId,
+      name,
+      modelProvider = 'chatkhu',
+      modelName = 'gpt-5.4-mini',
+    }) {
+      return client.request('/merge', {
         method: 'POST',
         body: {
           session_id: sessionId,
-          branch_ids: branchIds,
+          branch_id_1: branchIds[0],
+          branch_id_2: branchIds[1],
+          parent_branch_id: parentBranchId,
+          fork_from_message_id: forkFromMessageId,
+          model_provider: modelProvider,
+          model_name: modelName,
           ...(name ? { name } : {}),
         },
       })
     },
     updateBranch(branchId, patch) {
+      if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
+        return client.request(`/branches/${branchId}/name`, {
+          method: 'PATCH',
+          body: {
+            name: patch.name,
+          },
+        })
+      }
+
       return client.request(`/branches/${branchId}`, {
         method: 'PATCH',
         body: patch,

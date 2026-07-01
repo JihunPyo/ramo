@@ -230,7 +230,26 @@ export function createMockBranchGraphApi() {
       }
 
       store.branches.set(branchId, branch)
-      store.messagesByBranchId.set(branchId, [])
+      store.messagesByBranchId.set(branchId, [
+        createApiMessage({
+          branch,
+          role: 'system',
+          content: `internal merge prompt: ${uniqueBranchIds.join(', ')}`,
+          modelProvider: 'mock',
+          modelName: 'mock-llm',
+          status: 'hidden',
+          kind: 'merge_internal',
+          metadata: { hidden_from_user: true },
+        }),
+        createApiMessage({
+          branch,
+          role: 'assistant',
+          content: createMergedResponseContent(sourceBranches, store),
+          modelProvider: 'mock',
+          modelName: 'mock-llm',
+          kind: 'merge_result',
+        }),
+      ])
 
       return branch
     },
@@ -432,6 +451,41 @@ function createMockTags(node) {
   return tagsByNodeId[node.id] ?? ['대화', node.parentId ? '분기' : '메인']
 }
 
+function createMergedResponseContent(sourceBranches, store) {
+  const branchSummaries = sourceBranches.map((branch) => {
+    const messages = store.messagesByBranchId.get(branch.id) ?? []
+    const latestAssistantMessage = [...messages].reverse().find((message) => message.role === 'assistant')
+    const summary = latestAssistantMessage?.content ?? branch.summary ?? '요약 가능한 메시지가 아직 없다.'
+
+    return {
+      name: branch.name,
+      summary: stripMarkdown(summary).slice(0, 96),
+    }
+  })
+
+  return `## 병합 결과
+
+선택한 두 노드의 내용을 하나의 후속 흐름으로 정리했다. 내부 병합 프롬프트는 사용자 화면에 표시하지 않고, 아래 요약만 노출한다.
+
+| 원본 노드 | 반영 내용 |
+| --- | --- |
+${branchSummaries.map((branch) => `| ${branch.name} | ${branch.summary} |`).join('\n')}
+
+### 정리된 다음 단계
+
+- 두 흐름에서 겹치는 목표를 하나의 실행 기준으로 묶었다.
+- 서로 다른 판단 기준은 분리해서 유지하되, 현재 병합 노드에서 함께 검토할 수 있게 했다.
+- 이후 질문은 이 병합 노드에서 이어가면 두 원본 노드의 맥락을 기준으로 답변을 확장할 수 있다.`
+}
+
+function stripMarkdown(value) {
+  return String(value)
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#>*`|_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function getBranchesBySession(store, sessionId) {
   return Array.from(store.branches.values()).filter((branch) => branch.session_id === sessionId)
 }
@@ -467,7 +521,16 @@ function getBranchChain(store, branchId) {
   return chain
 }
 
-function createApiMessage({ branch, role, content, modelProvider, modelName }) {
+function createApiMessage({
+  branch,
+  role,
+  content,
+  modelProvider,
+  modelName,
+  status = 'active',
+  kind = '',
+  metadata = {},
+}) {
   return {
     id: `mock-message-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     session_id: branch.session_id,
@@ -477,7 +540,9 @@ function createApiMessage({ branch, role, content, modelProvider, modelName }) {
     content,
     model_provider: modelProvider,
     model_name: modelName,
-    status: 'active',
+    status,
+    kind,
+    metadata,
     created_at: new Date().toISOString(),
   }
 }

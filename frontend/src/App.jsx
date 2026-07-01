@@ -26,11 +26,12 @@ import {
   selectRoot,
   renameNode,
   setMainTargetNode,
+  setMergedNodeParentLinks,
   setNodeCollapsed,
 } from './features/branchGraph/branchGraphModel.js'
 
-const DEFAULT_MODEL_PROVIDER = 'local'
-const DEFAULT_MODEL_NAME = 'local-mock'
+const DEFAULT_MODEL_PROVIDER = 'chatkhu'
+const DEFAULT_MODEL_NAME = 'gpt-5.4-mini'
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
 function App() {
@@ -272,9 +273,20 @@ function App() {
     setErrorMessage('')
 
     try {
+      const mergeParentMessages = await branchGraphApi.getBranchMessages(mergeNodes[0].id, false)
+      const forkFromMessage = [...mergeParentMessages]
+        .reverse()
+        .find((message) => message.role === 'assistant') ?? mergeParentMessages.at(-1)
+
+      if (!forkFromMessage?.id) {
+        throw new Error('합치기 기준으로 사용할 부모 노드 메시지가 없습니다.')
+      }
+
       const mergedBranch = await branchGraphApi.mergeBranches({
         sessionId: mergeNodes[0].apiSessionId,
         branchIds: mergeNodes.map((node) => node.id),
+        parentBranchId: mergeNodes[0].id,
+        forkFromMessageId: forkFromMessage.id,
         name: `병합: ${mergeNodes.map((node) => node.title).join(' + ')}`,
       })
       const mergedBranchId = readBranchId(mergedBranch)
@@ -283,11 +295,22 @@ function App() {
         throw new Error('합쳐진 노드 ID를 확인할 수 없습니다.')
       }
 
-      await loadGraphState({
+      const nextState = await loadGraphState({
         activeNodeId: mergedBranchId,
         selectedRootNodeId: mergeNodes[0].rootId,
         loadMessages: true,
       })
+
+      if (nextState) {
+        setGraphState(
+          setMergedNodeParentLinks(
+            nextState,
+            mergedBranchId,
+            mergeNodes.map((node) => node.id),
+          ),
+        )
+      }
+
       setNodeNavigationKey((currentKey) => currentKey + 1)
       setMergeNodeIds([])
       setIsFullscreenGraphOpen(false)
@@ -657,6 +680,7 @@ function App() {
                   graphState={graphState}
                 nodeNavigationKey={nodeNavigationKey}
                 isBusy={isBusy}
+                isAwaitingResponse={pendingAction === '메시지 전송 중'}
                 onSendMessage={handleSendMessage}
                 onCreateBranch={handleCreateBranch}
                 onRenameSession={handleRenameSession}

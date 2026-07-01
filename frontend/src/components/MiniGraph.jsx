@@ -9,6 +9,8 @@ import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 const MIN_ZOOM = 0.45
 const MAX_ZOOM = 2.5
+const WHEEL_ZOOM_IN_FACTOR = 1.045
+const WHEEL_ZOOM_OUT_FACTOR = 0.957
 const MINI_NODE_RADIUS = 12
 const FULL_NODE_RADIUS = 18
 
@@ -152,21 +154,6 @@ export function MiniGraph({
       viewport.scrollTop = Math.max(0, (layout.height * nextZoom - viewport.clientHeight) / 2)
     })
   }, [layout.height, layout.nodes.length, layout.width])
-
-  const focusCurrentNode = () => {
-    const viewport = viewportRef.current
-    const activeNode = layout.nodes.find((node) => node.id === graphState.activeNodeId)
-
-    if (!viewport || !activeNode) {
-      return
-    }
-
-    viewport.scrollTo({
-      left: Math.max(0, activeNode.x * zoomRef.current - viewport.clientWidth / 2),
-      top: Math.max(0, activeNode.y * zoomRef.current - viewport.clientHeight / 2),
-      behavior: 'smooth',
-    })
-  }
 
   useEffect(() => {
     fitGraph()
@@ -348,12 +335,9 @@ export function MiniGraph({
         <button type="button" onClick={() => updateZoom(zoomRef.current - 0.15)} aria-label="축소">
           −
         </button>
-        <output aria-label="확대 비율">{Math.round(zoom * 100)}%</output>
         <button type="button" onClick={() => updateZoom(zoomRef.current + 0.15)} aria-label="확대">
           +
         </button>
-        <button type="button" onClick={fitGraph}>화면 맞춤</button>
-        <button type="button" onClick={focusCurrentNode}>현재 노드</button>
         {allowLayoutToggle ? (
           <button
             type="button"
@@ -375,7 +359,11 @@ export function MiniGraph({
         className="graph-viewport"
         onWheel={(event) => {
           event.preventDefault()
-          updateZoom(zoomRef.current * (event.deltaY < 0 ? 1.12 : 0.89), event.clientX, event.clientY)
+          updateZoom(
+            zoomRef.current * (event.deltaY < 0 ? WHEEL_ZOOM_IN_FACTOR : WHEEL_ZOOM_OUT_FACTOR),
+            event.clientX,
+            event.clientY,
+          )
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

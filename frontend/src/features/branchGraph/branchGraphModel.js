@@ -233,6 +233,43 @@ export function setNodeCollapsed(state, nodeId, isCollapsed) {
   }
 }
 
+export function setMergedNodeParentLinks(state, nodeId, parentNodeIds) {
+  const node = getNodeById(state.nodes, nodeId)
+  const uniqueParentNodeIds = [
+    ...new Set(parentNodeIds.filter((parentNodeId) => parentNodeId && parentNodeId !== nodeId)),
+  ]
+
+  if (!node || uniqueParentNodeIds.length < 2) {
+    return state
+  }
+
+  const sourceTitles = uniqueParentNodeIds
+    .map((parentNodeId) => getNodeById(state.nodes, parentNodeId)?.title)
+    .filter(Boolean)
+  const mergeTags = [...new Set([...(node.tags ?? []), '병합'])]
+
+  return {
+    ...state,
+    nodes: state.nodes.map((candidate) => {
+      if (candidate.id !== nodeId) {
+        return candidate
+      }
+
+      return {
+        ...candidate,
+        parentId: uniqueParentNodeIds[0],
+        parentIds: uniqueParentNodeIds,
+        tags: mergeTags,
+        description:
+          sourceTitles.length > 0
+            ? `${sourceTitles.join(' + ')} 흐름을 합친 결과 노드이다.`
+            : candidate.description,
+      }
+    }),
+    events: addEvent(state.events, 'link_merged_node_parents', nodeId),
+  }
+}
+
 export function appendUserMessage(state, nodeId, content) {
   const message = createMessage('user', content)
 
