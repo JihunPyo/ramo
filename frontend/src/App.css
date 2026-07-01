@@ -2003,6 +2003,28 @@ textarea:disabled {
   stroke-width: 4;
 }
 
+.graph-node.collapsed > circle {
+  stroke-dasharray: 4 2;
+  filter: drop-shadow(0 2px 3px rgb(47 115 95 / 24%));
+}
+
+.graph-collapse-indicator {
+  pointer-events: none;
+}
+
+.graph-collapse-indicator rect {
+  fill: #2f735f;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.graph-node .graph-collapse-indicator text {
+  fill: #ffffff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+}
+
 .graph-node.inactive {
   opacity: 0.48;
 }

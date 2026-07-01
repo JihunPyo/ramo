@@ -3,6 +3,7 @@ import {
   buildGraphLayout,
   getBranchPath,
   getMainPathNodeIds,
+  getSubtreeNodeIds,
 } from '../features/branchGraph/branchGraphModel.js'
 
 const MIN_ZOOM = 0.45
@@ -417,10 +418,14 @@ export function MiniGraph({
             const isActive = layoutNode.id === graphState.activeNodeId
             const isMain = mainPathNodeIds.has(layoutNode.id)
             const isHoveredPathNode = hoveredPathNodeIds?.has(layoutNode.id)
+            const collapsedDescendantCount = layoutNode.isCollapsed
+              ? Math.max(0, getSubtreeNodeIds(graphState.nodes, layoutNode.id).length - 1)
+              : 0
             const nodeClass = [
               'graph-node',
               isActive ? 'active' : '',
               isMain ? 'main' : '',
+              collapsedDescendantCount > 0 ? 'collapsed' : '',
               layoutNode.isActive ? '' : 'inactive',
               isHoveredPathNode ? 'hover-path' : '',
               hoveredPathNodeIds && !isHoveredPathNode ? 'path-muted' : '',
@@ -434,7 +439,11 @@ export function MiniGraph({
                 className={nodeClass}
                 tabIndex="0"
                 role="button"
-                aria-label={`${layoutNode.title} 노드로 이동`}
+                aria-label={`${layoutNode.title} 노드로 이동${
+                  collapsedDescendantCount > 0
+                    ? `, 하위 노드 ${collapsedDescendantCount}개 접힘`
+                    : ''
+                }`}
                 onMouseEnter={() => !contextMenu && showTooltipNode(layoutNode.id)}
                 onMouseLeave={hideTooltipNode}
                 onFocus={() => showTooltipNode(layoutNode.id)}
@@ -476,6 +485,25 @@ export function MiniGraph({
                 }}
               >
                 <circle cx={layoutNode.x} cy={layoutNode.y} r={size === 'full' ? 18 : 12} />
+                {collapsedDescendantCount > 0 ? (
+                  <g className="graph-collapse-indicator" aria-hidden="true">
+                    <title>하위 노드 {collapsedDescendantCount}개 접힘</title>
+                    <rect
+                      x={layoutNode.x + (size === 'full' ? 9 : 5)}
+                      y={layoutNode.y - (size === 'full' ? 29 : 22)}
+                      width={size === 'full' ? 30 : 24}
+                      height={size === 'full' ? 18 : 15}
+                      rx={size === 'full' ? 9 : 7.5}
+                    />
+                    <text
+                      x={layoutNode.x + (size === 'full' ? 24 : 17)}
+                      y={layoutNode.y - (size === 'full' ? 20 : 14.5)}
+                      dominantBaseline="middle"
+                    >
+                      +{collapsedDescendantCount}
+                    </text>
+                  </g>
+                ) : null}
                 <text x={layoutNode.x} y={layoutNode.y + (size === 'full' ? 34 : 28)}>
                   {layoutNode.shortTitle}
                 </text>
