@@ -72,7 +72,8 @@
 .landing-composer { width: 100%; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 5%); padding: 8px 10px 10px; }
 .landing-input-row { align-items: center; min-height: 54px; border: 0; background: transparent; }
 .landing-input-row textarea { min-height: 26px; max-height: 180px; padding: 6px 8px; line-height: 1.55; overflow-y: hidden; }
-.landing-input-row button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; margin-top: 10px; }
+.landing-input-row textarea:focus-visible { outline: 0; box-shadow: none; }
+.landing-input-row button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; margin-top: 10px; transform: translateY(-3px); }
 .prompt-chip-row { gap: 5px; padding: 0 4px; }
 .prompt-chip-row .option-chip { gap: 4px; min-height: 28px; border-color: transparent; border-radius: 999px; background: var(--color-surface-soft); color: #4c534c; font-size: 11px; padding: 4px 8px; }
 .prompt-chip-row .option-chip small { display: none; }
