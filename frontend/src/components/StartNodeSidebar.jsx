@@ -18,6 +18,7 @@ export function StartNodeSidebar({
   isMobileDrawerOpen = false,
   isBusy = false,
   onToggleCollapse,
+  onOpenHome,
   onNewChat,
   onSelectRoot,
   onRestoreFromTrash,
@@ -44,9 +45,9 @@ export function StartNodeSidebar({
       inert={isDrawerHidden}
     >
       <header className="sidebar-header">
-        <div className="sidebar-title">
+        <button type="button" className="sidebar-title sidebar-home-button" onClick={onOpenHome} aria-label="RAMO 홈으로 이동">
           <h2>RAMO</h2>
-        </div>
+        </button>
         <button
           type="button"
           className="sidebar-toggle-button"

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import {
   getBranchPath,
   getContextSectionsForNode,
@@ -12,12 +13,17 @@ export function ChatWorkspace({
   isBusy = false,
   onSendMessage,
   onCreateBranch,
+  onRenameSession,
 }) {
   const [draft, setDraft] = useState('')
+  const [isRenamingSession, setIsRenamingSession] = useState(false)
+  const [sessionNameDraft, setSessionNameDraft] = useState('')
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
+  const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
+  const rootNode = branchPath[0]
   const mainPathNodeIds = getMainPathNodeIds(graphState, activeNode?.rootId ?? '')
   const isActiveNodeOnMainPath = activeNode ? mainPathNodeIds.has(activeNode.id) : false
   const contextSections = getContextSectionsForNode(graphState, activeNode?.id ?? '')
@@ -62,11 +68,57 @@ export function ChatWorkspace({
     event.currentTarget.form?.requestSubmit()
   }
 
+  const startRenamingSession = () => {
+    setSessionNameDraft(rootNode?.title ?? '')
+    setIsRenamingSession(true)
+  }
+
+  const submitSessionName = async () => {
+    const nextName = sessionNameDraft.trim()
+
+    if (!rootNode || !nextName) {
+      return
+    }
+
+    await onRenameSession(rootNode.id, nextName)
+    setIsRenamingSession(false)
+  }
+
+  const handleSessionNameKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      void submitSessionName()
+    }
+
+    if (event.key === 'Escape') {
+      setIsRenamingSession(false)
+    }
+  }
+
   return (
     <section className="chat-workspace" aria-label="현재 노드 채팅 세션">
       <header className="chat-header">
         <div>
-          <p className="eyebrow">현재 세션</p>
+          {isRenamingSession ? (
+            <div className="session-name-editor">
+              <input
+                value={sessionNameDraft}
+                onChange={(event) => setSessionNameDraft(event.target.value)}
+                onKeyDown={handleSessionNameKeyDown}
+                aria-label="세션 이름"
+                maxLength={60}
+                autoFocus
+              />
+              <button type="button" onClick={() => void submitSessionName()} disabled={isBusy || !sessionNameDraft.trim()}>저장</button>
+              <button type="button" onClick={() => setIsRenamingSession(false)}>취소</button>
+            </div>
+          ) : (
+            <button type="button" className="session-name-button" onClick={startRenamingSession} disabled={isBusy}>
+              <span>세션</span>
+              <strong>{rootNode?.title}</strong>
+              <span aria-hidden="true">✎</span>
+            </button>
+          )}
           <h1>{activeNode?.title}</h1>
           <div className="path-line">
             {branchPath.map((node) => (
@@ -128,12 +180,13 @@ export function ChatWorkspace({
       <form className="composer" onSubmit={handleSubmit}>
         <label htmlFor="message-input">메시지</label>
         <textarea
+          ref={textareaRef}
           id="message-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleMessageKeyDown}
           disabled={isBusy}
-          rows={3}
+          rows={1}
           placeholder="현재 대화에서 이어서 질문하세요."
         />
         <button type="submit" className="send-button" aria-label="메시지 전송" disabled={isBusy || !draft.trim()}>

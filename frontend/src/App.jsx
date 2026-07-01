@@ -273,6 +273,36 @@ function App() {
     }
   }
 
+  const handleOpenHome = () => {
+    setIsMobileSidebarOpen(false)
+    setIsLandingVisible(true)
+  }
+
+  const handleRenameSession = async (rootNodeId, title) => {
+    const currentState = graphStateRef.current
+    const rootNode = getNodeById(currentState.nodes, rootNodeId)
+
+    if (!rootNode?.apiSessionId) {
+      return
+    }
+
+    setPendingAction('세션 이름 변경 중')
+
+    try {
+      await branchGraphApi.updateSession(rootNode.apiSessionId, { title })
+      await loadGraphState({
+        activeNodeId: currentState.activeNodeId,
+        selectedRootNodeId: currentState.selectedRootNodeId,
+        loadMessages: true,
+      })
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
   const handleMoveToTrash = async (nodeId) => {
     const currentState = graphStateRef.current
     const node = getNodeById(currentState.nodes, nodeId)
@@ -393,6 +423,7 @@ function App() {
         isMobileDrawerOpen={isMobileSidebarOpen}
         isBusy={isBusy}
         onToggleCollapse={handleToggleSidebar}
+        onOpenHome={handleOpenHome}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
         onRestoreFromTrash={handleRestoreFromTrash}
@@ -415,9 +446,6 @@ function App() {
             onClick={() => setIsMobileSidebarOpen(true)}
           >
             <span className="mobile-sidebar-open-icon" aria-hidden="true" />
-          </button>
-          <button type="button" className="model-button">
-            RAMO
           </button>
           <span className="api-status">{pendingAction || (isLoading ? '동기화 중' : 'API 계약 모드')}</span>
           {!isLandingVisible && activeNode ? (
@@ -457,6 +485,7 @@ function App() {
                 isBusy={isBusy}
                 onSendMessage={handleSendMessage}
                 onCreateBranch={handleCreateBranch}
+                onRenameSession={handleRenameSession}
               />
             )}
           </div>

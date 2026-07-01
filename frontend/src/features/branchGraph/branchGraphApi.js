@@ -12,6 +12,12 @@ export function createHttpBranchGraphApi(client = httpClient) {
         body: title ? { title } : {},
       })
     },
+    updateSession(sessionId, patch) {
+      return client.request(`/sessions/${sessionId}`, {
+        method: 'PATCH',
+        body: patch,
+      })
+    },
     listBranches(sessionId) {
       return client.request(`/sessions/${sessionId}/branches`)
     },

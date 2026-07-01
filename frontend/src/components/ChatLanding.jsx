@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 
 const webSearchOptions = [
   {
@@ -105,6 +106,7 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
   const [thinkingLevel, setThinkingLevel] = useState('medium')
   const [selectedModels, setSelectedModels] = useState(['chatgpt-auto', 'claude-sonnet-4-6'])
   const optionAreaRef = useRef(null)
+  const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -172,25 +174,21 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
 
   return (
     <section className="chat-landing" aria-label="채팅 시작">
-      <div className="landing-mark" aria-hidden="true">
-        R
-      </div>
-      <p className="landing-model">RAMO</p>
       <h1>무엇을 도와드릴까요?</h1>
-      <p className="landing-context">{activeNode?.title ?? '새 대화'}에서 새로운 흐름을 시작하세요.</p>
 
       <form className="landing-composer" onSubmit={handleSubmit}>
         <label htmlFor="landing-message">메시지</label>
         <div className="landing-input-row">
           <span aria-hidden="true">＋</span>
           <textarea
+            ref={textareaRef}
             id="landing-message"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleMessageKeyDown}
             disabled={isBusy}
-            rows={3}
-            placeholder="메시지를 입력하세요."
+            rows={1}
+            placeholder={`${activeNode?.title ?? '새 대화'}에서 무엇이든 물어보세요`}
           />
           <button type="submit" aria-label="메시지 전송" disabled={isBusy || !draft.trim()}>
             ➤

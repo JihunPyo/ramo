@@ -39,6 +39,35 @@ export function createMockBranchGraphApi() {
 
       return session
     },
+    async updateSession(sessionId, patch) {
+      await delay()
+      const sessionIndex = store.sessions.findIndex((session) => session.id === sessionId)
+
+      if (sessionIndex < 0) {
+        throw new Error('session_id가 존재하지 않습니다.')
+      }
+
+      const currentSession = store.sessions[sessionIndex]
+      const title = patch.title?.trim() || currentSession.title
+      const updatedSession = {
+        ...currentSession,
+        title,
+        updated_at: new Date().toISOString(),
+      }
+
+      store.sessions[sessionIndex] = updatedSession
+
+      const rootBranch = store.branches.get(currentSession.main_branch_id)
+      if (rootBranch) {
+        store.branches.set(rootBranch.id, {
+          ...rootBranch,
+          name: title,
+          updated_at: updatedSession.updated_at,
+        })
+      }
+
+      return updatedSession
+    },
     async listBranches(sessionId) {
       await delay()
       return getBranchesBySession(store, sessionId)
@@ -172,6 +201,7 @@ export function createMockBranchGraphApi() {
 
       const updatedBranch = {
         ...branch,
+        name: patch.name?.trim() || branch.name,
         status: patch.status ?? branch.status,
         is_collapsed: patch.is_collapsed ?? branch.is_collapsed,
         updated_at: new Date().toISOString(),
