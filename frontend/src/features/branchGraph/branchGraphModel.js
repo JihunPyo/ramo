@@ -190,7 +190,7 @@ export function addBranchFromMessage(state, messageId, parentNodeId = state.acti
   }
 }
 
-export function buildGraphLayout(nodes, rootId, size = 'mini') {
+export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vertical') {
   const visibleNodes = getNodesByRootId(nodes, rootId)
   const levels = new Map()
   const rootNode = getNodeById(visibleNodes, rootId)
@@ -217,11 +217,39 @@ export function buildGraphLayout(nodes, rootId, size = 'mini') {
   const paddingY = size === 'full' ? 70 : 34
   const widestLevel = Math.max(...Array.from(levels.values()).map((levelNodes) => levelNodes.length))
   const maxDepth = Math.max(...Array.from(levels.keys()))
-  const width = Math.max(size === 'full' ? 760 : 280, paddingX * 2 + (widestLevel - 1) * horizontalGap)
-  const height = Math.max(size === 'full' ? 520 : 220, paddingY * 2 + maxDepth * verticalGap)
+  const isHorizontal = direction === 'horizontal'
+  const horizontalDepthGap = size === 'full' ? 190 : 120
+  const verticalSiblingGap = size === 'full' ? 100 : 72
+  const width = isHorizontal
+    ? Math.max(size === 'full' ? 760 : 280, paddingX * 2 + maxDepth * horizontalDepthGap)
+    : Math.max(
+        size === 'full' ? 760 : 280,
+        paddingX * 2 + (widestLevel - 1) * horizontalGap,
+      )
+  const height = isHorizontal
+    ? Math.max(
+        size === 'full' ? 520 : 220,
+        paddingY * 2 + (widestLevel - 1) * verticalSiblingGap,
+      )
+    : Math.max(size === 'full' ? 520 : 220, paddingY * 2 + maxDepth * verticalGap)
   const layoutNodes = []
 
   Array.from(levels.entries()).forEach(([depth, levelNodes]) => {
+    if (isHorizontal) {
+      const levelHeight = (levelNodes.length - 1) * verticalSiblingGap
+      const startY = height / 2 - levelHeight / 2
+
+      levelNodes.forEach((node, index) => {
+        layoutNodes.push({
+          ...node,
+          x: paddingX + depth * horizontalDepthGap,
+          y: startY + index * verticalSiblingGap,
+          shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
+        })
+      })
+      return
+    }
+
     const levelWidth = (levelNodes.length - 1) * horizontalGap
     const startX = width / 2 - levelWidth / 2
 

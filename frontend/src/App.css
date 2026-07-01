@@ -1450,6 +1450,11 @@
   flex: 0 0 auto;
 }
 
+.top-graph-panel,
+.top-graph-panel .graph-viewport {
+  background-color: #ffffff;
+}
+
 .graph-tooltip.top-graph-external-tooltip {
   position: absolute;
   top: calc(100% + 8px);

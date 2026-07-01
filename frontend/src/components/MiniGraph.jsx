@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildGraphLayout,
+  getBranchPath,
   getMainPathNodeIds,
 } from '../features/branchGraph/branchGraphModel.js'
 
@@ -14,6 +15,14 @@ export function MiniGraph({
   onSelectNode,
   onSetMainTarget,
   onMoveToTrash,
+  autoFitOnResize = false,
+  allowLayoutToggle = false,
+  layoutDirection = 'vertical',
+  onToggleLayout,
+  highlightPathOnHover = false,
+  tooltipHideDelay = 0,
+  renderTooltip = true,
+  onTooltipNodeChange,
 }) {
   const viewportRef = useRef(null)
   const graphRef = useRef(null)
@@ -21,42 +30,83 @@ export function MiniGraph({
   const pointersRef = useRef(new Map())
   const gestureRef = useRef(null)
   const longPressTimerRef = useRef(null)
+  const tooltipHideTimerRef = useRef(null)
   const suppressClickRef = useRef(false)
+  const viewAdjustmentFrameRef = useRef(0)
   const [zoom, setZoom] = useState(1)
   const [activeTooltipNodeId, setActiveTooltipNodeId] = useState(null)
   const [contextMenu, setContextMenu] = useState(null)
   const layout = useMemo(
-    () => buildGraphLayout(graphState.nodes, rootId, size),
-    [graphState.nodes, rootId, size],
+    () => buildGraphLayout(graphState.nodes, rootId, size, layoutDirection),
+    [graphState.nodes, layoutDirection, rootId, size],
   )
   const mainPathNodeIds = useMemo(
     () => getMainPathNodeIds(graphState, rootId),
     [graphState, rootId],
   )
+  const hoveredPathNodeIds = useMemo(() => {
+    if (!highlightPathOnHover || !activeTooltipNodeId) {
+      return null
+    }
+
+    return new Set(
+      getBranchPath(graphState.nodes, activeTooltipNodeId).map((pathNode) => pathNode.id),
+    )
+  }, [activeTooltipNodeId, graphState.nodes, highlightPathOnHover])
   const activeTooltipNode = layout.nodes.find((node) => node.id === activeTooltipNodeId)
   const contextNode = layout.nodes.find((node) => node.id === contextMenu?.nodeId)
 
+  const showTooltipNode = (nodeId) => {
+    window.clearTimeout(tooltipHideTimerRef.current)
+    setActiveTooltipNodeId(nodeId)
+  }
+
+  const hideTooltipNode = () => {
+    window.clearTimeout(tooltipHideTimerRef.current)
+
+    if (tooltipHideDelay <= 0) {
+      setActiveTooltipNodeId(null)
+      return
+    }
+
+    tooltipHideTimerRef.current = window.setTimeout(() => {
+      setActiveTooltipNodeId(null)
+    }, tooltipHideDelay)
+  }
+
+  useEffect(() => {
+    onTooltipNodeChange?.(activeTooltipNode ?? null)
+  }, [activeTooltipNode, onTooltipNodeChange])
+
   const updateZoom = (nextZoom, clientX, clientY) => {
     const viewport = viewportRef.current
+    const svg = graphRef.current?.querySelector('svg')
     const previousZoom = zoomRef.current
     const resolvedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom))
 
-    if (!viewport || resolvedZoom === previousZoom) {
+    if (!viewport || !svg || resolvedZoom === previousZoom) {
       return
     }
 
     const rect = viewport.getBoundingClientRect()
+    const svgRect = svg.getBoundingClientRect()
+    const renderedZoom = svgRect.width / layout.width
     const anchorX = clientX === undefined ? rect.left + rect.width / 2 : clientX
     const anchorY = clientY === undefined ? rect.top + rect.height / 2 : clientY
-    const contentX = (viewport.scrollLeft + anchorX - rect.left) / previousZoom
-    const contentY = (viewport.scrollTop + anchorY - rect.top) / previousZoom
+    const contentX = (anchorX - svgRect.left) / renderedZoom
+    const contentY = (anchorY - svgRect.top) / renderedZoom
 
     zoomRef.current = resolvedZoom
     setZoom(resolvedZoom)
 
-    window.requestAnimationFrame(() => {
-      viewport.scrollLeft = contentX * resolvedZoom - (anchorX - rect.left)
-      viewport.scrollTop = contentY * resolvedZoom - (anchorY - rect.top)
+    window.cancelAnimationFrame(viewAdjustmentFrameRef.current)
+    viewAdjustmentFrameRef.current = window.requestAnimationFrame(() => {
+      const nextSvgRect = svg.getBoundingClientRect()
+      const nextAnchorX = nextSvgRect.left + contentX * resolvedZoom
+      const nextAnchorY = nextSvgRect.top + contentY * resolvedZoom
+
+      viewport.scrollLeft += nextAnchorX - anchorX
+      viewport.scrollTop += nextAnchorY - anchorY
     })
   }
 
@@ -82,7 +132,8 @@ export function MiniGraph({
 
     zoomRef.current = nextZoom
     setZoom(nextZoom)
-    window.requestAnimationFrame(() => {
+    window.cancelAnimationFrame(viewAdjustmentFrameRef.current)
+    viewAdjustmentFrameRef.current = window.requestAnimationFrame(() => {
       viewport.scrollLeft = Math.max(0, (layout.width * nextZoom - viewport.clientWidth) / 2)
       viewport.scrollTop = Math.max(0, (layout.height * nextZoom - viewport.clientHeight) / 2)
     })
@@ -107,7 +158,36 @@ export function MiniGraph({
     fitGraph()
   }, [fitGraph, rootId])
 
-  useEffect(() => () => window.clearTimeout(longPressTimerRef.current), [])
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const resizeTarget = graphRef.current?.closest('.top-graph-panel')
+
+    if (!autoFitOnResize || !viewport || !resizeTarget || typeof ResizeObserver === 'undefined') {
+      return undefined
+    }
+
+    let animationFrameId = 0
+    const resizeObserver = new ResizeObserver(() => {
+      window.cancelAnimationFrame(animationFrameId)
+      animationFrameId = window.requestAnimationFrame(fitGraph)
+    })
+
+    resizeObserver.observe(resizeTarget)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.cancelAnimationFrame(animationFrameId)
+    }
+  }, [autoFitOnResize, fitGraph])
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(longPressTimerRef.current)
+      window.clearTimeout(tooltipHideTimerRef.current)
+      window.cancelAnimationFrame(viewAdjustmentFrameRef.current)
+    },
+    [],
+  )
 
   const openContextMenu = (node, clientX, clientY) => {
     const graphRect = graphRef.current?.getBoundingClientRect()
@@ -218,6 +298,20 @@ export function MiniGraph({
         </button>
         <button type="button" onClick={fitGraph}>화면 맞춤</button>
         <button type="button" onClick={focusCurrentNode}>현재 노드</button>
+        {allowLayoutToggle ? (
+          <button
+            type="button"
+            aria-label={`맵 변경: 현재 ${layoutDirection === 'vertical' ? '세로' : '가로'} 방향`}
+            title={`${layoutDirection === 'vertical' ? '가로' : '세로'} 방향으로 변경`}
+            onClick={() => {
+              setActiveTooltipNodeId(null)
+              setContextMenu(null)
+              onToggleLayout?.()
+            }}
+          >
+            맵 변경
+          </button>
+        ) : null}
       </div>
 
       <div
@@ -233,24 +327,41 @@ export function MiniGraph({
         onPointerCancel={handlePointerEnd}
         onClick={() => setContextMenu(null)}
       >
-        <svg
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          width={layout.width * zoom}
-          height={layout.height * zoom}
-          role="img"
-          aria-label="노드 관계 그래프"
-          preserveAspectRatio="xMidYMid meet"
-        >
+        <div className="graph-canvas">
+          <svg
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            width={layout.width * zoom}
+            height={layout.height * zoom}
+            role="img"
+            aria-label="노드 관계 그래프"
+            preserveAspectRatio="xMidYMid meet"
+          >
           {layout.edges.map((edge) => {
             const isMainEdge = mainPathNodeIds.has(edge.from.id) && mainPathNodeIds.has(edge.to.id)
+            const isHoveredPathEdge =
+              hoveredPathNodeIds?.has(edge.from.id) && hoveredPathNodeIds.has(edge.to.id)
+            const edgeClass = [
+              'graph-edge',
+              isMainEdge ? 'main' : '',
+              isHoveredPathEdge ? 'hover-path' : '',
+              hoveredPathNodeIds && !isHoveredPathEdge ? 'path-muted' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
 
             return (
               <path
                 key={`${edge.from.id}-${edge.to.id}`}
-                d={`M ${edge.from.x} ${edge.from.y + 15} C ${edge.from.x} ${
-                  edge.from.y + 52
-                }, ${edge.to.x} ${edge.to.y - 52}, ${edge.to.x} ${edge.to.y - 15}`}
-                className={isMainEdge ? 'graph-edge main' : 'graph-edge'}
+                d={
+                  layoutDirection === 'horizontal'
+                    ? `M ${edge.from.x + 15} ${edge.from.y} C ${edge.from.x + 52} ${
+                        edge.from.y
+                      }, ${edge.to.x - 52} ${edge.to.y}, ${edge.to.x - 15} ${edge.to.y}`
+                    : `M ${edge.from.x} ${edge.from.y + 15} C ${edge.from.x} ${
+                        edge.from.y + 52
+                      }, ${edge.to.x} ${edge.to.y - 52}, ${edge.to.x} ${edge.to.y - 15}`
+                }
+                className={edgeClass}
               />
             )
           })}
@@ -258,11 +369,14 @@ export function MiniGraph({
           {layout.nodes.map((layoutNode) => {
             const isActive = layoutNode.id === graphState.activeNodeId
             const isMain = mainPathNodeIds.has(layoutNode.id)
+            const isHoveredPathNode = hoveredPathNodeIds?.has(layoutNode.id)
             const nodeClass = [
               'graph-node',
               isActive ? 'active' : '',
               isMain ? 'main' : '',
               layoutNode.isActive ? '' : 'inactive',
+              isHoveredPathNode ? 'hover-path' : '',
+              hoveredPathNodeIds && !isHoveredPathNode ? 'path-muted' : '',
             ]
               .filter(Boolean)
               .join(' ')
@@ -274,10 +388,10 @@ export function MiniGraph({
                 tabIndex="0"
                 role="button"
                 aria-label={`${layoutNode.title} 노드로 이동`}
-                onMouseEnter={() => !contextMenu && setActiveTooltipNodeId(layoutNode.id)}
-                onMouseLeave={() => setActiveTooltipNodeId(null)}
-                onFocus={() => setActiveTooltipNodeId(layoutNode.id)}
-                onBlur={() => setActiveTooltipNodeId(null)}
+                onMouseEnter={() => !contextMenu && showTooltipNode(layoutNode.id)}
+                onMouseLeave={hideTooltipNode}
+                onFocus={() => showTooltipNode(layoutNode.id)}
+                onBlur={hideTooltipNode}
                 onContextMenu={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
@@ -321,10 +435,11 @@ export function MiniGraph({
               </g>
             )
           })}
-        </svg>
+          </svg>
+        </div>
       </div>
 
-      {activeTooltipNode && !contextMenu ? (
+      {renderTooltip && activeTooltipNode && !contextMenu ? (
         <div className="graph-tooltip" role="status">
           <strong>{activeTooltipNode.title}</strong>
           <p>{activeTooltipNode.description}</p>

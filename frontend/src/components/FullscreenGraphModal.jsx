@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { MiniGraph } from './MiniGraph.jsx'
 
 export function FullscreenGraphModal({
@@ -6,7 +7,11 @@ export function FullscreenGraphModal({
   onSelectNode,
   onSetMainTarget,
   onMoveToTrash,
+  layoutDirection,
+  onToggleLayout,
 }) {
+  const [tooltipNode, setTooltipNode] = useState(null)
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="graph-modal" role="dialog" aria-modal="true" aria-label="전체 그래프">
@@ -27,7 +32,23 @@ export function FullscreenGraphModal({
           onSelectNode={onSelectNode}
           onSetMainTarget={onSetMainTarget}
           onMoveToTrash={onMoveToTrash}
+          allowLayoutToggle
+          layoutDirection={layoutDirection}
+          onToggleLayout={onToggleLayout}
+          highlightPathOnHover
+          tooltipHideDelay={180}
+          renderTooltip={false}
+          onTooltipNodeChange={setTooltipNode}
         />
+
+        <div className="fullscreen-graph-tooltip-slot" aria-live="polite" aria-atomic="true">
+          {tooltipNode ? (
+            <div className="graph-tooltip fullscreen-graph-tooltip" role="status">
+              <strong>{tooltipNode.title}</strong>
+              <p>{tooltipNode.description}</p>
+            </div>
+          ) : null}
+        </div>
       </section>
     </div>
   )
