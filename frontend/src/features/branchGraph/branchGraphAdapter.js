@@ -63,6 +63,11 @@ function normalizeTrashNodes(session, branches) {
       id: readBranchId(branch),
       rootId: readMainBranchId(session),
       parentId: branch.parent_branch_id ?? branch.parentBranchId ?? null,
+      parentIds:
+        branch.merged_parent_branch_ids ??
+        branch.mergedParentBranchIds ??
+        branch.parent_branch_ids ??
+        [],
       title: branch.name ?? branch.label ?? branch.title ?? '삭제된 브랜치',
       description: `${sessionTitle}에서 삭제한 브랜치`,
       apiSessionId,

@@ -205,6 +205,10 @@ export function createMockBranchGraphApi() {
         throw new Error('같은 세션의 브랜치만 합칠 수 있다.')
       }
 
+      if (areBranchesOnSameShortestRootPath(store, uniqueBranchIds[0], uniqueBranchIds[1])) {
+        throw new Error('같은 가지에 있는 브랜치는 합칠 수 없다.')
+      }
+
       const createdAt = new Date().toISOString()
       const branchId = `mock-merge-${Date.now()}`
       const branch = {
@@ -233,8 +237,8 @@ export function createMockBranchGraphApi() {
         throw new Error('branch_id가 존재하지 않는다.')
       }
 
-      if (!branch.parent_branch_id && ['inactive', 'deleted'].includes(patch.status)) {
-        throw new Error('root branch는 inactive 또는 deleted로 변경할 수 없다.')
+      if (!branch.parent_branch_id && patch.status === 'inactive') {
+        throw new Error('root branch는 inactive로 변경할 수 없다.')
       }
 
       const updatedBranch = {
@@ -257,14 +261,13 @@ export function createMockBranchGraphApi() {
         throw new Error('branch_id가 존재하지 않는다.')
       }
 
-      if (!branch.parent_branch_id) {
-        throw new Error('root branch는 영구 삭제할 수 없다.')
-      }
-
       collectBranchIds(store, branchId).forEach((id) => {
         store.branches.delete(id)
         store.messagesByBranchId.delete(id)
       })
+      if (!branch.parent_branch_id) {
+        store.sessions = store.sessions.filter((session) => session.id !== branch.session_id)
+      }
 
       return null
     },
@@ -277,11 +280,68 @@ function collectBranchIds(store, branchId) {
   for (let index = 0; index < ids.length; index += 1) {
     const parentId = ids[index]
     Array.from(store.branches.values())
-      .filter((branch) => branch.parent_branch_id === parentId)
-      .forEach((branch) => ids.push(branch.id))
+      .filter((branch) =>
+        branch.parent_branch_id === parentId || branch.merged_parent_branch_ids?.includes(parentId),
+      )
+      .forEach((branch) => {
+        if (!ids.includes(branch.id)) {
+          ids.push(branch.id)
+        }
+      })
   }
 
   return ids
+}
+
+function areBranchesOnSameShortestRootPath(store, firstBranchId, secondBranchId) {
+  if (!firstBranchId || !secondBranchId || firstBranchId === secondBranchId) {
+    return true
+  }
+
+  const firstPathIds = new Set(getShortestBranchIdPath(store, firstBranchId))
+  const secondPathIds = new Set(getShortestBranchIdPath(store, secondBranchId))
+
+  return firstPathIds.has(secondBranchId) || secondPathIds.has(firstBranchId)
+}
+
+function getShortestBranchIdPath(store, branchId) {
+  const branch = store.branches.get(branchId)
+
+  if (!branch) {
+    return []
+  }
+
+  const queue = [{ branch, path: [branch.id] }]
+  const visitedBranchIds = new Set()
+
+  while (queue.length > 0) {
+    const { branch: currentBranch, path } = queue.shift()
+
+    if (visitedBranchIds.has(currentBranch.id)) {
+      continue
+    }
+
+    visitedBranchIds.add(currentBranch.id)
+    const parentBranches = getParentBranchIds(currentBranch)
+      .map((parentBranchId) => store.branches.get(parentBranchId))
+      .filter(Boolean)
+
+    if (parentBranches.length === 0) {
+      return [...path].reverse()
+    }
+
+    parentBranches.forEach((parentBranch) => {
+      queue.push({ branch: parentBranch, path: [...path, parentBranch.id] })
+    })
+  }
+
+  return []
+}
+
+function getParentBranchIds(branch) {
+  return [
+    ...new Set([branch.parent_branch_id, ...(branch.merged_parent_branch_ids ?? [])].filter(Boolean)),
+  ]
 }
 
 function createMockStore() {
@@ -293,7 +353,7 @@ function createMockStore() {
       `mock-session-${node.id}`,
     ]),
   )
-  const sessions = rootNodes.map((node) => ({
+  let sessions = rootNodes.map((node) => ({
     id: apiSessionIdByRootId.get(node.id),
     title: node.title,
     main_branch_id: node.id,

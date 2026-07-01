@@ -15,6 +15,7 @@ import {
 } from './features/branchGraph/branchGraphAdapter.js'
 import { branchGraphApi } from './features/branchGraph/branchGraphApi.js'
 import {
+  areNodesOnSameShortestRootPath,
   createEmptyGraphState,
   getActiveNode,
   getMainLeafNodeForRoot,
@@ -236,16 +237,21 @@ function App() {
   }
 
   const handleSelectMergeNode = (nodeId) => {
-    setMergeNodeIds((currentNodeIds) => {
-      const firstNode = getNodeById(graphStateRef.current.nodes, currentNodeIds[0])
-      const nextNode = getNodeById(graphStateRef.current.nodes, nodeId)
+    const nodes = graphStateRef.current.nodes
+    const firstNode = getNodeById(nodes, mergeNodeIds[0])
+    const nextNode = getNodeById(nodes, nodeId)
 
-      if (!firstNode || !nextNode || firstNode.rootId !== nextNode.rootId || firstNode.id === nextNode.id) {
-        return currentNodeIds
-      }
+    if (!firstNode || !nextNode || firstNode.rootId !== nextNode.rootId || firstNode.id === nextNode.id) {
+      return
+    }
 
-      return [firstNode.id, nextNode.id]
-    })
+    if (areNodesOnSameShortestRootPath(nodes, firstNode.id, nextNode.id)) {
+      setErrorMessage('같은 가지에 있는 노드는 합칠 수 없습니다.')
+      return
+    }
+
+    setErrorMessage('')
+    setMergeNodeIds([firstNode.id, nextNode.id])
   }
 
   const handleConfirmMerge = async () => {
@@ -254,6 +260,11 @@ function App() {
       .filter(Boolean)
 
     if (mergeNodes.length !== 2 || mergeNodes[0].rootId !== mergeNodes[1].rootId) {
+      return
+    }
+
+    if (areNodesOnSameShortestRootPath(graphStateRef.current.nodes, mergeNodes[0].id, mergeNodes[1].id)) {
+      setErrorMessage('같은 가지에 있는 노드는 합칠 수 없습니다.')
       return
     }
 
@@ -456,6 +467,51 @@ function App() {
     }
   }
 
+  const handleMoveSessionToTrash = async (rootNodeId) => {
+    const currentState = graphStateRef.current
+    const rootNode = getNodeById(currentState.nodes, rootNodeId)
+
+    if (!rootNode || rootNode.parentId !== null) {
+      return
+    }
+
+    const branchIds = getSubtreeNodeIds(currentState.nodes, rootNodeId)
+    const childBranchCount = Math.max(0, branchIds.length - 1)
+    const confirmed = window.confirm(
+      `“${rootNode.title}” 세션과 하위 브랜치 ${childBranchCount}개를 휴지통으로 이동할까요?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    const isDeletingCurrentTree =
+      branchIds.includes(currentState.activeNodeId) ||
+      currentState.selectedRootNodeId === rootNodeId
+
+    setIsMobileSidebarOpen(false)
+    setPendingAction('세션 휴지통 이동 중')
+
+    try {
+      await Promise.all(
+        branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'deleted' })),
+      )
+      await loadGraphState({
+        activeNodeId: isDeletingCurrentTree ? undefined : currentState.activeNodeId,
+        selectedRootNodeId: isDeletingCurrentTree ? undefined : currentState.selectedRootNodeId,
+        loadMessages: !isDeletingCurrentTree,
+      })
+      if (isDeletingCurrentTree) {
+        setIsLandingVisible(true)
+      }
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
   const handleRestoreFromTrash = async (nodeId) => {
     const trashNodes = graphStateRef.current.trashNodes
     const node = getNodeById(trashNodes, nodeId)
@@ -543,11 +599,7 @@ function App() {
         onOpenHome={handleOpenHome}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
-
-        onSelectNode={handleSelectNode}
-        onSetMainTarget={handleSetMainTarget}
-        onRenameNode={handleRenameNode}
-        onMoveToTrash={handleMoveToTrash}
+        onMoveSessionToTrash={handleMoveSessionToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
         onDeleteForever={handleDeleteForever}
       />

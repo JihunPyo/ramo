@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
 
 const MOCK_USER_AVATAR_URL = `data:image/svg+xml,${encodeURIComponent(
@@ -21,14 +23,28 @@ export function StartNodeSidebar({
   onOpenHome,
   onNewChat,
   onSelectRoot,
+  onMoveSessionToTrash,
   onRestoreFromTrash,
   onDeleteForever,
 }) {
+  const [contextMenu, setContextMenu] = useState(null)
+  const [toggleTooltip, setToggleTooltip] = useState(null)
+  const contextMenuRef = useRef(null)
+  const toggleButtonRef = useRef(null)
   const trashNodes = graphState.trashNodes ?? []
   const trashNodeIds = new Set(trashNodes.map((node) => node.id))
-  const trashRoots = trashNodes.filter((node) => !trashNodeIds.has(node.parentId))
+  const trashRoots = trashNodes.filter((node) => {
+    const parentIds = node.parentIds?.length ? node.parentIds : [node.parentId]
+
+    return !parentIds.some((parentId) => trashNodeIds.has(parentId))
+  })
+  const rootNodeById = useMemo(
+    () => new Map(rootNodes.map((node) => [node.id, node])),
+    [rootNodes],
+  )
   const isDrawerHidden = isDrawerMode && !isMobileDrawerOpen
   const isContentVisible = isDrawerMode ? isMobileDrawerOpen : !isCollapsed
+  const contextNode = contextMenu ? rootNodeById.get(contextMenu.nodeId) : null
   const toggleLabel = isDrawerMode
     ? isMobileDrawerOpen
       ? '사이드바 닫기'
@@ -36,6 +52,138 @@ export function StartNodeSidebar({
     : isCollapsed
       ? '사이드바 열기'
       : '사이드바 접기'
+
+  const getToggleTooltipPosition = useCallback(() => {
+    const buttonRect = toggleButtonRef.current?.getBoundingClientRect()
+
+    if (!buttonRect) {
+      return null
+    }
+
+    const tooltipWidth = 132
+    const gap = 12
+    const shouldPlaceRight = isCollapsed && !isDrawerMode
+    const sidebarRight = toggleButtonRef.current
+      ?.closest('.start-sidebar')
+      ?.getBoundingClientRect()
+      .right
+    const preferredLeft = shouldPlaceRight
+      ? Math.max(buttonRect.right + gap, (sidebarRight ?? buttonRect.right) + 8)
+      : buttonRect.left - tooltipWidth - gap
+    const fallbackLeft = buttonRect.right + gap
+
+    return {
+      label: toggleLabel,
+      left: Math.max(8, preferredLeft < 8 ? fallbackLeft : preferredLeft),
+      top: buttonRect.top + buttonRect.height / 2,
+    }
+  }, [isCollapsed, isDrawerMode, toggleLabel])
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return undefined
+    }
+
+    const closeContextMenu = () => {
+      setContextMenu(null)
+    }
+
+    const handlePointerDown = (event) => {
+      if (!contextMenuRef.current?.contains(event.target)) {
+        closeContextMenu()
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeContextMenu()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', closeContextMenu)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', closeContextMenu)
+    }
+  }, [contextMenu])
+
+  useEffect(() => {
+    if (isContentVisible || !contextMenu) {
+      return undefined
+    }
+
+    const timerId = window.setTimeout(() => {
+      setContextMenu(null)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [contextMenu, isContentVisible])
+
+  useEffect(() => {
+    if (!toggleTooltip) {
+      return undefined
+    }
+
+    const updateToggleTooltip = () => {
+      setToggleTooltip(getToggleTooltipPosition())
+    }
+    const timerId = window.setTimeout(updateToggleTooltip, 0)
+
+    window.addEventListener('resize', updateToggleTooltip)
+    window.addEventListener('scroll', updateToggleTooltip, true)
+
+    return () => {
+      window.clearTimeout(timerId)
+      window.removeEventListener('resize', updateToggleTooltip)
+      window.removeEventListener('scroll', updateToggleTooltip, true)
+    }
+  }, [getToggleTooltipPosition, toggleTooltip])
+
+  const showToggleTooltip = () => {
+    setToggleTooltip(getToggleTooltipPosition())
+  }
+
+  const hideToggleTooltip = () => {
+    setToggleTooltip(null)
+  }
+
+  const openContextMenu = (event, nodeId) => {
+    event.preventDefault()
+
+    if (isBusy) {
+      return
+    }
+
+    const menuWidth = 176
+    const menuHeight = 88
+
+    setContextMenu({
+      nodeId,
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
+    })
+  }
+
+  const handleSelectRoot = (nodeId) => {
+    setContextMenu(null)
+    onSelectRoot(nodeId)
+  }
+
+  const handleMoveSessionToTrash = () => {
+    if (!contextNode) {
+      return
+    }
+
+    const nodeId = contextNode.id
+    setContextMenu(null)
+    onMoveSessionToTrash?.(nodeId)
+  }
 
   return (
     <aside
@@ -49,13 +197,16 @@ export function StartNodeSidebar({
           <h2>RAMO</h2>
         </button>
         <button
+          ref={toggleButtonRef}
           type="button"
           className="sidebar-toggle-button"
           aria-label={toggleLabel}
           aria-expanded={isContentVisible}
-          data-tooltip={toggleLabel}
-          title={toggleLabel}
+          onBlur={hideToggleTooltip}
           onClick={onToggleCollapse}
+          onFocus={showToggleTooltip}
+          onMouseEnter={showToggleTooltip}
+          onMouseLeave={hideToggleTooltip}
         >
           <span className="sidebar-toggle-icon" aria-hidden="true" />
         </button>
@@ -73,7 +224,9 @@ export function StartNodeSidebar({
                 key={node.id}
                 type="button"
                 className={node.id === graphState.selectedRootNodeId ? 'root-card selected' : 'root-card'}
-                onClick={() => onSelectRoot(node.id)}
+                aria-haspopup="menu"
+                onClick={() => handleSelectRoot(node.id)}
+                onContextMenu={(event) => openContextMenu(event, node.id)}
                 disabled={isBusy}
               >
                 <span>{node.title}</span>
@@ -132,6 +285,36 @@ export function StartNodeSidebar({
           </div>
         </footer>
       </div>
+
+      {contextNode && typeof document !== 'undefined' ? createPortal(
+        <div
+          ref={contextMenuRef}
+          className="sidebar-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          role="menu"
+        >
+          <strong>{contextNode.title}</strong>
+          <button
+            type="button"
+            role="menuitem"
+            className="danger-menu-item"
+            onClick={handleMoveSessionToTrash}
+          >
+            세션 삭제
+          </button>
+        </div>,
+        document.body,
+      ) : null}
+      {toggleTooltip && typeof document !== 'undefined' ? createPortal(
+        <div
+          className="sidebar-toggle-tooltip"
+          style={{ left: toggleTooltip.left, top: toggleTooltip.top }}
+          role="tooltip"
+        >
+          {toggleTooltip.label}
+        </div>,
+        document.body,
+      ) : null}
     </aside>
   )
 }

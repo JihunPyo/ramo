@@ -82,6 +82,51 @@ export function getBranchPath(nodes, nodeId) {
   return path
 }
 
+export function getShortestBranchPath(nodes, nodeId) {
+  const startNode = getNodeById(nodes, nodeId)
+
+  if (!startNode) {
+    return []
+  }
+
+  const queue = [{ node: startNode, path: [startNode] }]
+  const visitedNodeIds = new Set()
+
+  while (queue.length > 0) {
+    const { node, path } = queue.shift()
+
+    if (visitedNodeIds.has(node.id)) {
+      continue
+    }
+
+    visitedNodeIds.add(node.id)
+    const parentNodes = getParentNodeIds(node)
+      .map((parentId) => getNodeById(nodes, parentId))
+      .filter(Boolean)
+
+    if (parentNodes.length === 0) {
+      return [...path].reverse()
+    }
+
+    parentNodes.forEach((parentNode) => {
+      queue.push({ node: parentNode, path: [...path, parentNode] })
+    })
+  }
+
+  return []
+}
+
+export function areNodesOnSameShortestRootPath(nodes, firstNodeId, secondNodeId) {
+  if (!firstNodeId || !secondNodeId || firstNodeId === secondNodeId) {
+    return true
+  }
+
+  const firstPathIds = new Set(getShortestBranchPath(nodes, firstNodeId).map((node) => node.id))
+  const secondPathIds = new Set(getShortestBranchPath(nodes, secondNodeId).map((node) => node.id))
+
+  return firstPathIds.has(secondNodeId) || secondPathIds.has(firstNodeId)
+}
+
 export function getMainPathNodeIds(state, rootId) {
   const mainLeafNode = getMainLeafNodeForRoot(state, rootId)
   const path = getBranchPath(state.nodes, mainLeafNode?.id ?? MAIN_TARGET_FALLBACK)
@@ -252,24 +297,14 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
     return { width: 320, height: 180, nodes: [], edges: [] }
   }
 
-  const queue = [{ node: rootNode, depth: 0 }]
-  const visitedNodeIds = new Set()
+  const depthByNodeId = getGraphDepths(visibleNodes, rootNode.id)
 
-  while (queue.length > 0) {
-    const { node, depth } = queue.shift()
-
-    if (visitedNodeIds.has(node.id)) {
-      continue
-    }
-
-    visitedNodeIds.add(node.id)
+  visibleNodes.forEach((node) => {
+    const depth = depthByNodeId.get(node.id) ?? 0
     const levelNodes = levels.get(depth) ?? []
-    levels.set(depth, [...levelNodes, node])
 
-    getChildrenByNodeId(visibleNodes, node.id).forEach((childNode) => {
-      queue.push({ node: childNode, depth: depth + 1 })
-    })
-  }
+    levels.set(depth, [...levelNodes, node])
+  })
 
   const horizontalGap = size === 'full' ? 170 : 82
   const verticalGap = size === 'full' ? 120 : 72
@@ -294,38 +329,40 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
     : Math.max(size === 'full' ? 520 : 220, paddingY * 2 + maxDepth * verticalGap)
   const layoutNodes = []
 
-  Array.from(levels.entries()).forEach(([depth, levelNodes]) => {
-    if (isHorizontal) {
-      const levelHeight = (levelNodes.length - 1) * verticalSiblingGap
-      const startY = height / 2 - levelHeight / 2
+  Array.from(levels.entries())
+    .sort(([firstDepth], [secondDepth]) => firstDepth - secondDepth)
+    .forEach(([depth, levelNodes]) => {
+      if (isHorizontal) {
+        const levelHeight = (levelNodes.length - 1) * verticalSiblingGap
+        const startY = height / 2 - levelHeight / 2
+
+        levelNodes.forEach((node, index) => {
+          layoutNodes.push({
+            ...node,
+            x: paddingX + depth * horizontalDepthGap,
+            y: startY + index * verticalSiblingGap,
+            shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
+          })
+        })
+        return
+      }
+
+      const levelWidth = (levelNodes.length - 1) * horizontalGap
+      const startX = width / 2 - levelWidth / 2
 
       levelNodes.forEach((node, index) => {
         layoutNodes.push({
           ...node,
-          x: paddingX + depth * horizontalDepthGap,
-          y: startY + index * verticalSiblingGap,
+          x: startX + index * horizontalGap,
+          y: paddingY + depth * verticalGap,
           shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
         })
       })
-      return
-    }
-
-    const levelWidth = (levelNodes.length - 1) * horizontalGap
-    const startX = width / 2 - levelWidth / 2
-
-    levelNodes.forEach((node, index) => {
-      layoutNodes.push({
-        ...node,
-        x: startX + index * horizontalGap,
-        y: paddingY + depth * verticalGap,
-        shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
-      })
     })
-  })
 
   const edges = layoutNodes
     .flatMap((node) =>
-      (node.parentIds?.length ? node.parentIds : [node.parentId])
+      getParentNodeIds(node)
         .filter(Boolean)
         .map((parentId) => ({
           from: layoutNodes.find((candidate) => candidate.id === parentId),
@@ -376,6 +413,52 @@ function isChildOfNode(node, nodeId) {
   return node.parentId === nodeId || node.parentIds?.includes(nodeId)
 }
 
+function getParentNodeIds(node) {
+  return [...new Set([node.parentId, ...(node.parentIds ?? [])].filter(Boolean))]
+}
+
+function getGraphDepths(nodes, rootId) {
+  const nodeIds = new Set(nodes.map((node) => node.id))
+  const depthByNodeId = new Map([[rootId, 0]])
+
+  nodes.forEach((node) => {
+    if (!depthByNodeId.has(node.id)) {
+      depthByNodeId.set(node.id, 0)
+    }
+  })
+
+  for (let pass = 0; pass < nodes.length; pass += 1) {
+    let hasChanged = false
+
+    nodes.forEach((node) => {
+      if (node.id === rootId) {
+        return
+      }
+
+      const parentDepths = getParentNodeIds(node)
+        .filter((parentId) => nodeIds.has(parentId))
+        .map((parentId) => depthByNodeId.get(parentId) ?? 0)
+
+      if (parentDepths.length === 0) {
+        return
+      }
+
+      const nextDepth = Math.max(...parentDepths) + 1
+
+      if (nextDepth > (depthByNodeId.get(node.id) ?? 0)) {
+        depthByNodeId.set(node.id, nextDepth)
+        hasChanged = true
+      }
+    })
+
+    if (!hasChanged) {
+      break
+    }
+  }
+
+  return depthByNodeId
+}
+
 function appendMessageToSession(state, nodeId, message, eventName) {
   return {
     ...state,
@@ -402,11 +485,18 @@ function getDeepestActiveLeafNode(nodes, rootId) {
 
   const visibleActiveNodes = getNodesByRootId(nodes, rootId).filter((node) => node.isActive !== false)
   const queue = [{ node: rootNode, depth: 0 }]
+  const visitedNodeIds = new Set()
   let deepestLeaf = { node: rootNode, depth: 0 }
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift()
-    const children = visibleActiveNodes.filter((candidate) => candidate.parentId === node.id)
+
+    if (visitedNodeIds.has(node.id)) {
+      continue
+    }
+
+    visitedNodeIds.add(node.id)
+    const children = visibleActiveNodes.filter((candidate) => isChildOfNode(candidate, node.id))
 
     if (children.length === 0 && depth > deepestLeaf.depth) {
       deepestLeaf = { node, depth }
