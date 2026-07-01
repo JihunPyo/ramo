@@ -36,14 +36,22 @@ export function ChatWorkspace({
       return undefined
     }
 
-    const animationFrameId = window.requestAnimationFrame(() => {
-      const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
+    let scrollAnimationFrameId
+    const renderAnimationFrameId = window.requestAnimationFrame(() => {
+      scrollAnimationFrameId = window.requestAnimationFrame(() => {
+        const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
 
-      scrollTarget?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        scrollTarget?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest',
+        })
+      })
     })
 
     return () => {
-      window.cancelAnimationFrame(animationFrameId)
+      window.cancelAnimationFrame(renderAnimationFrameId)
+      window.cancelAnimationFrame(scrollAnimationFrameId)
     }
   }, [hasActiveStartMessage, nodeNavigationKey])
 

@@ -145,6 +145,7 @@ function normalizeGraphNodes({ session, graph }) {
         parentMessageId:
           forkMessageByNodeId.get(branchId) ?? node.fork_from_message_id ?? node.parentMessageId ?? null,
         title,
+        tags: normalizeNodeTags(node.tags ?? node.tag_list ?? node.tagList),
         description: node.summary ?? `${sessionTitle}의 ${title} 흐름이다.`,
         sessionId: `messages-${branchId}`,
         apiSessionId,
@@ -162,6 +163,23 @@ function normalizeGraphNodes({ session, graph }) {
     ...node,
     rootId: resolveRootId(nodes, node.id),
   }))
+}
+
+function normalizeNodeTags(rawTags) {
+  if (!Array.isArray(rawTags)) {
+    return []
+  }
+
+  return rawTags
+    .map((tag) => {
+      if (typeof tag === 'string' || typeof tag === 'number') {
+        return String(tag)
+      }
+
+      return tag?.name ?? tag?.label ?? tag?.title ?? tag?.value ?? ''
+    })
+    .map((tag) => tag.trim().replace(/^#+/, ''))
+    .filter(Boolean)
 }
 
 function resolveNodeTitle({ rawTitle, parentId, sessionTitle }) {

@@ -5,6 +5,7 @@ import {
   getMainPathNodeIds,
   getSubtreeNodeIds,
 } from '../features/branchGraph/branchGraphModel.js'
+import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 const MIN_ZOOM = 0.45
 const MAX_ZOOM = 2.5
@@ -525,10 +526,7 @@ export function MiniGraph({
       </div>
 
       {renderTooltip && activeTooltipNode && !contextMenu ? (
-        <div className="graph-tooltip" role="status">
-          <strong>{activeTooltipNode.title}</strong>
-          <p>{activeTooltipNode.description}</p>
-        </div>
+        <GraphNodeTooltip node={activeTooltipNode} />
       ) : null}
 
       {contextNode ? (

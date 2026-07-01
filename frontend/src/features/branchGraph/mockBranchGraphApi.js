@@ -27,6 +27,7 @@ export function createMockBranchGraphApi() {
         parent_branch_id: null,
         fork_from_message_id: null,
         name: title,
+        tags: ['새 대화', '메인'],
         status: 'active',
         is_collapsed: false,
         created_at: createdAt,
@@ -86,6 +87,8 @@ export function createMockBranchGraphApi() {
         nodes: branches.map((branch) => ({
           id: branch.id,
           label: branch.name,
+          summary: branch.summary,
+          tags: branch.tags,
           status: branch.status,
           message_count: store.messagesByBranchId.get(branch.id)?.length ?? 0,
           is_collapsed: branch.is_collapsed,
@@ -181,6 +184,7 @@ export function createMockBranchGraphApi() {
         parent_branch_id: parentBranchId,
         fork_from_message_id: forkFromMessageId,
         name: name ?? `분기: ${forkMessage.content.slice(0, 16)}`,
+        tags: ['새 분기', '대화'],
         status: 'active',
         is_collapsed: false,
         created_at: createdAt,
@@ -218,6 +222,7 @@ export function createMockBranchGraphApi() {
         merged_parent_branch_ids: uniqueBranchIds,
         fork_from_message_id: null,
         name: name?.trim() || `병합: ${sourceBranches.map((branch) => branch.name).join(' + ')}`,
+        tags: ['병합', '대화 흐름'],
         status: 'active',
         is_collapsed: false,
         created_at: createdAt,
@@ -369,6 +374,8 @@ function createMockStore() {
         parent_branch_id: node.parentId,
         fork_from_message_id: node.parentMessageId,
         name: node.title,
+        summary: node.description,
+        tags: createMockTags(node),
         status: node.isActive ? 'active' : 'inactive',
         is_collapsed: node.isHidden,
         created_at: createIsoDate(node.createdAt),
@@ -404,6 +411,25 @@ function createMockStore() {
     messagesByBranchId,
     messageSequence: 1000,
   }
+}
+
+function createMockTags(node) {
+  const tagsByNodeId = {
+    'root-learning': ['LLM', '학습 전략'],
+    'learning-context': ['컨텍스트', '대화 관리', '핵심'],
+    'learning-example': ['예시', '비교'],
+    'learning-side-question': ['용어', '질문'],
+    'root-project': ['프로젝트', '기획'],
+    'project-user-flow': ['UX', '사용자 흐름'],
+    'project-graph-policy': ['그래프', '정책'],
+    'project-api': ['API', '백엔드 연동'],
+    'project-test': ['테스트', '검증'],
+    'project-metrics': ['지표', '분석'],
+    'project-ui': ['UI', '컴포넌트'],
+    'project-rollout': ['배포', '적용 순서'],
+  }
+
+  return tagsByNodeId[node.id] ?? ['대화', node.parentId ? '분기' : '메인']
 }
 
 function getBranchesBySession(store, sessionId) {

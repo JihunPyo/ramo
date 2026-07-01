@@ -335,6 +335,7 @@
 
 .context-section {
   gap: 16px;
+  scroll-margin-top: 150px;
 }
 
 .context-section-header {
@@ -357,6 +358,7 @@
 
 .message-row {
   padding: 0 4px;
+  scroll-margin-top: 150px;
 }
 
 .message-bubble {
@@ -1262,7 +1264,7 @@
 
 .message-row {
   display: flex;
-  scroll-margin-top: 24px;
+  scroll-margin-top: 150px;
 }
 
 .message-row.user {
@@ -2107,6 +2109,16 @@ textarea:disabled {
 
 .graph-tooltip button {
   justify-self: start;
+}
+
+.graph-tooltip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: #3f7f70;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .graph-tooltip p {

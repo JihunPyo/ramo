@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MiniGraph } from './MiniGraph.jsx'
+import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 export function FullscreenGraphModal({
   graphState,
@@ -79,10 +80,10 @@ export function FullscreenGraphModal({
         <div className="fullscreen-graph-footer">
           <div className="fullscreen-graph-tooltip-slot" aria-live="polite" aria-atomic="true">
             {tooltipNode ? (
-              <div className="graph-tooltip fullscreen-graph-tooltip" role="status">
-                <strong>{tooltipNode.title}</strong>
-                <p>{tooltipNode.description}</p>
-              </div>
+              <GraphNodeTooltip
+                node={tooltipNode}
+                className="fullscreen-graph-tooltip"
+              />
             ) : null}
           </div>
           {isMergeMode ? (

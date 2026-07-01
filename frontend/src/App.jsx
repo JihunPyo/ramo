@@ -170,6 +170,7 @@ function App() {
   }
 
   const handleSelectNode = (nodeId) => {
+    setNodeNavigationKey((currentKey) => currentKey + 1)
     setGraphState((currentState) => selectNode(currentState, nodeId))
     setIsMobileSidebarOpen(false)
     setIsLandingVisible(false)
@@ -177,7 +178,6 @@ function App() {
   }
 
   const handleSelectTopGraphNode = (nodeId) => {
-    setNodeNavigationKey((currentKey) => currentKey + 1)
     handleSelectNode(nodeId)
   }
 

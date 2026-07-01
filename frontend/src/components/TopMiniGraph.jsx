@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MiniGraph } from './MiniGraph.jsx'
+import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 const DEFAULT_PANEL_SIZE = { width: 278, height: 300 }
 const MIN_PANEL_WIDTH = 260
@@ -287,10 +288,10 @@ export function TopMiniGraph({
       </button>
 
       {externalTooltipNode ? (
-        <div className="graph-tooltip top-graph-external-tooltip" role="status">
-          <strong>{externalTooltipNode.title}</strong>
-          <p>{externalTooltipNode.description}</p>
-        </div>
+        <GraphNodeTooltip
+          node={externalTooltipNode}
+          className="top-graph-external-tooltip"
+        />
       ) : null}
     </aside>
   )
