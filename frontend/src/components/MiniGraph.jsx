@@ -17,6 +17,7 @@ export function MiniGraph({
   onSetMainTarget,
   onRenameNode,
   onToggleNodeCollapse,
+  onStartNodeMerge,
   onMoveToTrash,
   autoFitOnResize = false,
   allowLayoutToggle = false,
@@ -26,6 +27,7 @@ export function MiniGraph({
   tooltipHideDelay = 0,
   renderTooltip = true,
   onTooltipNodeChange,
+  mergeSelectedNodeIds = [],
 }) {
   const viewportRef = useRef(null)
   const graphRef = useRef(null)
@@ -394,6 +396,7 @@ export function MiniGraph({
             const edgeClass = [
               'graph-edge',
               isMainEdge ? 'main' : '',
+              edge.isMerge ? 'merge' : '',
               isHoveredPathEdge ? 'hover-path' : '',
               hoveredPathNodeIds && !isHoveredPathEdge ? 'path-muted' : '',
             ]
@@ -421,6 +424,8 @@ export function MiniGraph({
             const isActive = layoutNode.id === graphState.activeNodeId
             const isMain = mainPathNodeIds.has(layoutNode.id)
             const isHoveredPathNode = hoveredPathNodeIds?.has(layoutNode.id)
+            const isMergeSelected = mergeSelectedNodeIds.includes(layoutNode.id)
+            const isMergedNode = (layoutNode.parentIds?.length ?? 0) > 1
             const collapsedDescendantCount = layoutNode.isCollapsed
               ? Math.max(0, getSubtreeNodeIds(graphState.nodes, layoutNode.id).length - 1)
               : 0
@@ -428,6 +433,8 @@ export function MiniGraph({
               'graph-node',
               isActive ? 'active' : '',
               isMain ? 'main' : '',
+              isMergeSelected ? 'merge-selected' : '',
+              isMergedNode ? 'merged' : '',
               collapsedDescendantCount > 0 ? 'collapsed' : '',
               layoutNode.isActive ? '' : 'inactive',
               isHoveredPathNode ? 'hover-path' : '',
@@ -446,7 +453,7 @@ export function MiniGraph({
                   collapsedDescendantCount > 0
                     ? `, 하위 노드 ${collapsedDescendantCount}개 접힘`
                     : ''
-                }`}
+                }${isMergeSelected ? ', 합치기 대상으로 선택됨' : ''}`}
                 onMouseEnter={() => !contextMenu && showTooltipNode(layoutNode.id)}
                 onMouseLeave={hideTooltipNode}
                 onFocus={() => showTooltipNode(layoutNode.id)}
@@ -586,6 +593,18 @@ export function MiniGraph({
           <button type="button" role="menuitem" onClick={() => onSetMainTarget(contextNode.id)}>
             main 지정
           </button>
+          {onStartNodeMerge ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setContextMenu(null)
+                onStartNodeMerge(contextNode.id)
+              }}
+            >
+              노드 합치기
+            </button>
+          ) : null}
           {contextNodeHasChildren && onToggleNodeCollapse ? (
             <button
               type="button"

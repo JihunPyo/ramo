@@ -22,7 +22,7 @@ export function getNodesByRootId(nodes, rootId) {
 }
 
 export function getChildrenByNodeId(nodes, nodeId) {
-  return nodes.filter((node) => node.parentId === nodeId && !node.isHidden)
+  return nodes.filter((node) => isChildOfNode(node, nodeId) && !node.isHidden)
 }
 
 export function getSubtreeNodeIds(nodes, nodeId) {
@@ -38,7 +38,7 @@ export function getSubtreeNodeIds(nodes, nodeId) {
 
     ids.push(currentId)
     nodes
-      .filter((node) => node.parentId === currentId)
+      .filter((node) => isChildOfNode(node, currentId))
       .forEach((node) => queue.push(node.id))
   }
 
@@ -253,9 +253,16 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
   }
 
   const queue = [{ node: rootNode, depth: 0 }]
+  const visitedNodeIds = new Set()
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift()
+
+    if (visitedNodeIds.has(node.id)) {
+      continue
+    }
+
+    visitedNodeIds.add(node.id)
     const levelNodes = levels.get(depth) ?? []
     levels.set(depth, [...levelNodes, node])
 
@@ -317,11 +324,15 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
   })
 
   const edges = layoutNodes
-    .filter((node) => node.parentId)
-    .map((node) => ({
-      from: layoutNodes.find((candidate) => candidate.id === node.parentId),
-      to: node,
-    }))
+    .flatMap((node) =>
+      (node.parentIds?.length ? node.parentIds : [node.parentId])
+        .filter(Boolean)
+        .map((parentId) => ({
+          from: layoutNodes.find((candidate) => candidate.id === parentId),
+          to: node,
+          isMerge: (node.parentIds?.length ?? 0) > 1,
+        })),
+    )
     .filter((edge) => edge.from && edge.to)
 
   return { width, height, nodes: layoutNodes, edges }
@@ -337,9 +348,16 @@ function getVisibleGraphNodes(nodes, rootId) {
 
   const visibleNodes = []
   const queue = [rootNode]
+  const visitedNodeIds = new Set()
 
   while (queue.length > 0) {
     const node = queue.shift()
+
+    if (visitedNodeIds.has(node.id)) {
+      continue
+    }
+
+    visitedNodeIds.add(node.id)
     visibleNodes.push(node)
 
     if (node.isCollapsed) {
@@ -352,6 +370,10 @@ function getVisibleGraphNodes(nodes, rootId) {
   }
 
   return visibleNodes
+}
+
+function isChildOfNode(node, nodeId) {
+  return node.parentId === nodeId || node.parentIds?.includes(nodeId)
 }
 
 function appendMessageToSession(state, nodeId, message, eventName) {

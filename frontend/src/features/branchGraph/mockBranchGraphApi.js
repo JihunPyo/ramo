@@ -89,14 +89,19 @@ export function createMockBranchGraphApi() {
           status: branch.status,
           message_count: store.messagesByBranchId.get(branch.id)?.length ?? 0,
           is_collapsed: branch.is_collapsed,
+          parent_branch_id: branch.parent_branch_id,
+          merged_parent_branch_ids: branch.merged_parent_branch_ids,
         })),
-        edges: branches
-          .filter((branch) => branch.parent_branch_id)
-          .map((branch) => ({
-            source: branch.parent_branch_id,
-            target: branch.id,
-            fork_from_message_id: branch.fork_from_message_id,
-          })),
+        edges: branches.flatMap((branch) =>
+          (branch.merged_parent_branch_ids ?? [branch.parent_branch_id])
+            .filter(Boolean)
+            .map((parentBranchId) => ({
+              source: parentBranchId,
+              target: branch.id,
+              fork_from_message_id: branch.fork_from_message_id,
+              is_merge: Boolean(branch.merged_parent_branch_ids),
+            })),
+        ),
       }
     },
     async getBranchMessages(branchId, includeInherited = true) {
@@ -176,6 +181,39 @@ export function createMockBranchGraphApi() {
         parent_branch_id: parentBranchId,
         fork_from_message_id: forkFromMessageId,
         name: name ?? `분기: ${forkMessage.content.slice(0, 16)}`,
+        status: 'active',
+        is_collapsed: false,
+        created_at: createdAt,
+        updated_at: createdAt,
+      }
+
+      store.branches.set(branchId, branch)
+      store.messagesByBranchId.set(branchId, [])
+
+      return branch
+    },
+    async mergeBranches({ sessionId, branchIds, name }) {
+      await delay()
+      const uniqueBranchIds = [...new Set(branchIds)]
+      const sourceBranches = uniqueBranchIds.map((branchId) => store.branches.get(branchId))
+
+      if (uniqueBranchIds.length !== 2 || sourceBranches.some((branch) => !branch)) {
+        throw new Error('합칠 두 브랜치를 선택해야 한다.')
+      }
+
+      if (sourceBranches.some((branch) => branch.session_id !== sessionId)) {
+        throw new Error('같은 세션의 브랜치만 합칠 수 있다.')
+      }
+
+      const createdAt = new Date().toISOString()
+      const branchId = `mock-merge-${Date.now()}`
+      const branch = {
+        id: branchId,
+        session_id: sessionId,
+        parent_branch_id: uniqueBranchIds[0],
+        merged_parent_branch_ids: uniqueBranchIds,
+        fork_from_message_id: null,
+        name: name?.trim() || `병합: ${sourceBranches.map((branch) => branch.name).join(' + ')}`,
         status: 'active',
         is_collapsed: false,
         created_at: createdAt,

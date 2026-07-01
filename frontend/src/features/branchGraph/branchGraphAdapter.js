@@ -97,7 +97,7 @@ function normalizeGraphNodes({ session, graph }) {
   const sessionTitle = session?.title ?? '새 대화'
   const graphNodes = Array.isArray(graph?.nodes) ? graph.nodes : []
   const graphEdges = Array.isArray(graph?.edges) ? graph.edges : []
-  const parentByNodeId = new Map()
+  const parentIdsByNodeId = new Map()
   const forkMessageByNodeId = new Map()
 
   graphEdges.forEach((edge) => {
@@ -105,7 +105,8 @@ function normalizeGraphNodes({ session, graph }) {
     const sourceId = edge.source ?? edge.from
 
     if (targetId && sourceId) {
-      parentByNodeId.set(targetId, sourceId)
+      const parentIds = parentIdsByNodeId.get(targetId) ?? []
+      parentIdsByNodeId.set(targetId, [...new Set([...parentIds, sourceId])])
       forkMessageByNodeId.set(targetId, edge.fork_from_message_id ?? edge.forkFromMessageId ?? null)
     }
   })
@@ -119,7 +120,12 @@ function normalizeGraphNodes({ session, graph }) {
         return null
       }
 
-      const parentId = parentByNodeId.get(branchId) ?? node.parent_branch_id ?? null
+      const declaredParentIds =
+        node.merged_parent_branch_ids ?? node.mergedParentBranchIds ?? node.parent_branch_ids ?? []
+      const parentIds = [
+        ...new Set([...(parentIdsByNodeId.get(branchId) ?? []), ...declaredParentIds]),
+      ]
+      const parentId = node.parent_branch_id ?? parentIds[0] ?? null
       const title = resolveNodeTitle({
         rawTitle: node.label ?? node.name ?? node.title,
         parentId,
@@ -130,6 +136,7 @@ function normalizeGraphNodes({ session, graph }) {
         id: branchId,
         rootId: '',
         parentId,
+        parentIds: parentIds.length > 0 ? parentIds : parentId ? [parentId] : [],
         parentMessageId:
           forkMessageByNodeId.get(branchId) ?? node.fork_from_message_id ?? node.parentMessageId ?? null,
         title,

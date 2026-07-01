@@ -14,6 +14,7 @@ export function TopMiniGraph({
   onSetMainTarget,
   onRenameNode,
   onToggleNodeCollapse,
+  onStartNodeMerge,
   onMoveToTrash,
   onOpenFullscreen,
   onClose,
@@ -262,6 +263,7 @@ export function TopMiniGraph({
         onSetMainTarget={onSetMainTarget}
         onRenameNode={onRenameNode}
         onToggleNodeCollapse={onToggleNodeCollapse}
+        onStartNodeMerge={onStartNodeMerge}
         onMoveToTrash={onMoveToTrash}
         autoFitOnResize
         allowLayoutToggle

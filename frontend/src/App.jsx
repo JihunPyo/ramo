@@ -35,6 +35,7 @@ const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
+  const [mergeNodeIds, setMergeNodeIds] = useState([])
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
   const [graphLayoutDirection, setGraphLayoutDirection] = useState('vertical')
   const [nodeNavigationKey, setNodeNavigationKey] = useState(0)
@@ -217,6 +218,84 @@ function App() {
     } finally {
       setPendingAction('')
     }
+  }
+
+  const handleStartNodeMerge = (nodeId) => {
+    const node = getNodeById(graphStateRef.current.nodes, nodeId)
+
+    if (!node) {
+      return
+    }
+
+    setGraphState((currentState) => ({
+      ...currentState,
+      selectedRootNodeId: node.rootId,
+    }))
+    setMergeNodeIds([nodeId])
+    setIsFullscreenGraphOpen(true)
+  }
+
+  const handleSelectMergeNode = (nodeId) => {
+    setMergeNodeIds((currentNodeIds) => {
+      const firstNode = getNodeById(graphStateRef.current.nodes, currentNodeIds[0])
+      const nextNode = getNodeById(graphStateRef.current.nodes, nodeId)
+
+      if (!firstNode || !nextNode || firstNode.rootId !== nextNode.rootId || firstNode.id === nextNode.id) {
+        return currentNodeIds
+      }
+
+      return [firstNode.id, nextNode.id]
+    })
+  }
+
+  const handleConfirmMerge = async () => {
+    const mergeNodes = mergeNodeIds
+      .map((nodeId) => getNodeById(graphStateRef.current.nodes, nodeId))
+      .filter(Boolean)
+
+    if (mergeNodes.length !== 2 || mergeNodes[0].rootId !== mergeNodes[1].rootId) {
+      return
+    }
+
+    setPendingAction('노드 합치는 중')
+    setErrorMessage('')
+
+    try {
+      const mergedBranch = await branchGraphApi.mergeBranches({
+        sessionId: mergeNodes[0].apiSessionId,
+        branchIds: mergeNodes.map((node) => node.id),
+        name: `병합: ${mergeNodes.map((node) => node.title).join(' + ')}`,
+      })
+      const mergedBranchId = readBranchId(mergedBranch)
+
+      if (!mergedBranchId) {
+        throw new Error('합쳐진 노드 ID를 확인할 수 없습니다.')
+      }
+
+      await loadGraphState({
+        activeNodeId: mergedBranchId,
+        selectedRootNodeId: mergeNodes[0].rootId,
+        loadMessages: true,
+      })
+      setNodeNavigationKey((currentKey) => currentKey + 1)
+      setMergeNodeIds([])
+      setIsFullscreenGraphOpen(false)
+      setIsLandingVisible(false)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleOpenFullscreenGraph = () => {
+    setMergeNodeIds([])
+    setIsFullscreenGraphOpen(true)
+  }
+
+  const handleCloseFullscreenGraph = () => {
+    setMergeNodeIds([])
+    setIsFullscreenGraphOpen(false)
   }
 
   const handleToggleGraphLayout = () => {
@@ -541,8 +620,9 @@ function App() {
               onSetMainTarget={handleSetMainTarget}
               onRenameNode={handleRenameNode}
               onToggleNodeCollapse={handleToggleNodeCollapse}
+              onStartNodeMerge={handleStartNodeMerge}
               onMoveToTrash={handleMoveToTrash}
-              onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
+              onOpenFullscreen={handleOpenFullscreenGraph}
               onClose={() => setIsMiniGraphOpen(false)}
               layoutDirection={graphLayoutDirection}
               onToggleLayout={handleToggleGraphLayout}
@@ -554,14 +634,19 @@ function App() {
       {isFullscreenGraphOpen ? (
         <FullscreenGraphModal
           graphState={graphState}
-          onClose={() => setIsFullscreenGraphOpen(false)}
+          onClose={handleCloseFullscreenGraph}
           onSelectNode={handleSelectTopGraphNode}
           onSetMainTarget={handleSetMainTarget}
           onRenameNode={handleRenameNode}
           onToggleNodeCollapse={handleToggleNodeCollapse}
+          onStartNodeMerge={handleStartNodeMerge}
           onMoveToTrash={handleMoveToTrash}
           layoutDirection={graphLayoutDirection}
           onToggleLayout={handleToggleGraphLayout}
+          mergeNodeIds={mergeNodeIds}
+          onSelectMergeNode={handleSelectMergeNode}
+          onConfirmMerge={handleConfirmMerge}
+          isMerging={pendingAction === '노드 합치는 중'}
         />
       ) : null}
     </main>

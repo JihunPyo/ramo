@@ -57,6 +57,16 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
+    mergeBranches({ sessionId, branchIds, name }) {
+      return client.request('/branches/merge', {
+        method: 'POST',
+        body: {
+          session_id: sessionId,
+          branch_ids: branchIds,
+          ...(name ? { name } : {}),
+        },
+      })
+    },
     updateBranch(branchId, patch) {
       return client.request(`/branches/${branchId}`, {
         method: 'PATCH',
