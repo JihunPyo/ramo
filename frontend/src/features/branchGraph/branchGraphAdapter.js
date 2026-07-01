@@ -180,11 +180,17 @@ function buildMainTargetMap(nodes, previousMap = {}) {
     .filter((node) => node.parentId === null)
     .reduce((map, rootNode) => {
       const previousTargetId = previousMap[rootNode.id]
-      const hasPreviousTarget = nodes.some((node) => node.id === previousTargetId)
+      const hasPreviousTarget = nodes.some(
+        (node) => node.id === previousTargetId && node.rootId === rootNode.id && !node.isHidden,
+      )
+
+      if (!hasPreviousTarget) {
+        return map
+      }
 
       return {
         ...map,
-        [rootNode.id]: hasPreviousTarget ? previousTargetId : rootNode.id,
+        [rootNode.id]: previousTargetId,
       }
     }, {})
 }

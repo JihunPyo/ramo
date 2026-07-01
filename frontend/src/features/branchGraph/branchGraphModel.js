@@ -83,23 +83,40 @@ export function getBranchPath(nodes, nodeId) {
 }
 
 export function getMainPathNodeIds(state, rootId) {
-  const targetNodeId = state.mainTargetNodeIdByRoot[rootId] ?? MAIN_TARGET_FALLBACK
-  const path = getBranchPath(state.nodes, targetNodeId)
+  const mainLeafNode = getMainLeafNodeForRoot(state, rootId)
+  const path = getBranchPath(state.nodes, mainLeafNode?.id ?? MAIN_TARGET_FALLBACK)
 
   return new Set(path.map((node) => node.id))
 }
 
-export function selectRoot(state, rootId) {
+export function getMainLeafNodeForRoot(state, rootId) {
   const rootNode = getNodeById(state.nodes, rootId)
 
   if (!rootNode) {
+    return null
+  }
+
+  const targetNodeId = state.mainTargetNodeIdByRoot[rootId]
+  const targetNode = getNodeById(state.nodes, targetNodeId)
+
+  if (targetNode && targetNode.rootId === rootId && !targetNode.isHidden) {
+    return targetNode
+  }
+
+  return getDeepestActiveLeafNode(state.nodes, rootId) ?? rootNode
+}
+
+export function selectRoot(state, rootId) {
+  const mainLeafNode = getMainLeafNodeForRoot(state, rootId)
+
+  if (!mainLeafNode) {
     return state
   }
 
   return {
     ...state,
     selectedRootNodeId: rootId,
-    activeNodeId: rootId,
+    activeNodeId: mainLeafNode.id,
   }
 }
 
@@ -289,6 +306,33 @@ function appendMessageToSession(state, nodeId, message, eventName) {
     }),
     events: addEvent(state.events, eventName, nodeId),
   }
+}
+
+function getDeepestActiveLeafNode(nodes, rootId) {
+  const rootNode = getNodeById(nodes, rootId)
+
+  if (!rootNode) {
+    return null
+  }
+
+  const visibleActiveNodes = getNodesByRootId(nodes, rootId).filter((node) => node.isActive !== false)
+  const queue = [{ node: rootNode, depth: 0 }]
+  let deepestLeaf = { node: rootNode, depth: 0 }
+
+  while (queue.length > 0) {
+    const { node, depth } = queue.shift()
+    const children = visibleActiveNodes.filter((candidate) => candidate.parentId === node.id)
+
+    if (children.length === 0 && depth > deepestLeaf.depth) {
+      deepestLeaf = { node, depth }
+    }
+
+    children.forEach((childNode) => {
+      queue.push({ node: childNode, depth: depth + 1 })
+    })
+  }
+
+  return deepestLeaf.node
 }
 
 function createMessage(role, content) {

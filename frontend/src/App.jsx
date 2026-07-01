@@ -17,6 +17,7 @@ import { branchGraphApi } from './features/branchGraph/branchGraphApi.js'
 import {
   createEmptyGraphState,
   getActiveNode,
+  getMainLeafNodeForRoot,
   getNodeById,
   getRootNodes,
   getSubtreeNodeIds,
@@ -149,9 +150,19 @@ function App() {
   }, [loadGraphState])
 
   const handleSelectRoot = (rootId) => {
+    const mainLeafNode = getMainLeafNodeForRoot(graphStateRef.current, rootId)
+
     setGraphState((currentState) => selectRoot(currentState, rootId))
     setIsMobileSidebarOpen(false)
-    setIsLandingVisible(true)
+
+    if (!mainLeafNode) {
+      setIsLandingVisible(true)
+      return
+    }
+
+    setNodeNavigationKey((currentKey) => currentKey + 1)
+    setIsLandingVisible(false)
+    void loadBranchMessages(mainLeafNode.id)
   }
 
   const handleSelectNode = (nodeId) => {
