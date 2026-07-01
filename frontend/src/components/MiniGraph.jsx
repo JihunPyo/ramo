@@ -14,6 +14,7 @@ export function MiniGraph({
   size = 'mini',
   onSelectNode,
   onSetMainTarget,
+  onRenameNode,
   onMoveToTrash,
   autoFitOnResize = false,
   allowLayoutToggle = false,
@@ -36,6 +37,9 @@ export function MiniGraph({
   const [zoom, setZoom] = useState(1)
   const [activeTooltipNodeId, setActiveTooltipNodeId] = useState(null)
   const [contextMenu, setContextMenu] = useState(null)
+  const [renameValue, setRenameValue] = useState(null)
+  const [renameError, setRenameError] = useState('')
+  const [isRenaming, setIsRenaming] = useState(false)
   const layout = useMemo(
     () => buildGraphLayout(graphState.nodes, rootId, size, layoutDirection),
     [graphState.nodes, layoutDirection, rootId, size],
@@ -198,10 +202,40 @@ export function MiniGraph({
 
     setContextMenu({
       nodeId: node.id,
-      x: Math.min(clientX - graphRect.left, graphRect.width - 176),
-      y: Math.min(clientY - graphRect.top, graphRect.height - 122),
+      x: Math.max(8, Math.min(clientX - graphRect.left, graphRect.width - 184)),
+      y: Math.max(8, Math.min(clientY - graphRect.top, graphRect.height - 176)),
     })
+    setRenameValue(null)
+    setRenameError('')
     setActiveTooltipNodeId(null)
+  }
+
+  const handleRenameSubmit = async (event) => {
+    event.preventDefault()
+    const normalizedTitle = renameValue.trim()
+
+    if (!normalizedTitle) {
+      setRenameError('노드 이름을 입력해 주세요.')
+      return
+    }
+
+    if (normalizedTitle === contextNode.title) {
+      setContextMenu(null)
+      return
+    }
+
+    setIsRenaming(true)
+    setRenameError('')
+
+    try {
+      await onRenameNode(contextNode.id, normalizedTitle)
+      setContextMenu(null)
+      setRenameValue(null)
+    } catch (error) {
+      setRenameError(error?.message ?? '노드 이름을 수정하지 못했습니다.')
+    } finally {
+      setIsRenaming(false)
+    }
   }
 
   const handlePointerDown = (event) => {
@@ -463,6 +497,56 @@ export function MiniGraph({
           onClick={(event) => event.stopPropagation()}
         >
           <strong>{contextNode.title}</strong>
+          {renameValue === null ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setRenameValue(contextNode.title)
+                setRenameError('')
+              }}
+            >
+              노드 이름 수정
+            </button>
+          ) : (
+            <form className="graph-node-rename-form" onSubmit={handleRenameSubmit}>
+              <label htmlFor={`node-name-${contextNode.id}`}>노드 이름</label>
+              <input
+                id={`node-name-${contextNode.id}`}
+                value={renameValue}
+                maxLength={100}
+                autoFocus
+                disabled={isRenaming}
+                onChange={(event) => {
+                  setRenameValue(event.target.value)
+                  setRenameError('')
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    setRenameValue(null)
+                    setRenameError('')
+                  }
+                }}
+              />
+              {renameError ? <small role="alert">{renameError}</small> : null}
+              <div className="graph-node-rename-actions">
+                <button type="submit" disabled={isRenaming}>
+                  {isRenaming ? '저장 중' : '저장'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isRenaming}
+                  onClick={() => {
+                    setRenameValue(null)
+                    setRenameError('')
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          )}
           <button type="button" role="menuitem" onClick={() => onSetMainTarget(contextNode.id)}>
             main 지정
           </button>

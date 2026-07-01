@@ -23,6 +23,7 @@ import {
   getSubtreeNodeIds,
   selectNode,
   selectRoot,
+  renameNode,
   setMainTargetNode,
 } from './features/branchGraph/branchGraphModel.js'
 
@@ -179,6 +180,27 @@ function App() {
 
   const handleSetMainTarget = (nodeId) => {
     setGraphState((currentState) => setMainTargetNode(currentState, nodeId))
+  }
+
+  const handleRenameNode = async (nodeId, title) => {
+    const normalizedTitle = title.trim()
+
+    if (!normalizedTitle) {
+      throw new Error('노드 이름을 입력해 주세요.')
+    }
+
+    setPendingAction('노드 이름 수정 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.updateBranch(nodeId, { name: normalizedTitle })
+      setGraphState((currentState) => renameNode(currentState, nodeId, normalizedTitle))
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+      throw error
+    } finally {
+      setPendingAction('')
+    }
   }
 
   const handleToggleGraphLayout = () => {
@@ -426,6 +448,11 @@ function App() {
         onOpenHome={handleOpenHome}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
+
+        onSelectNode={handleSelectNode}
+        onSetMainTarget={handleSetMainTarget}
+        onRenameNode={handleRenameNode}
+        onMoveToTrash={handleMoveToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
         onDeleteForever={handleDeleteForever}
       />
@@ -496,6 +523,7 @@ function App() {
               activeNode={activeNode}
               onSelectNode={handleSelectTopGraphNode}
               onSetMainTarget={handleSetMainTarget}
+              onRenameNode={handleRenameNode}
               onMoveToTrash={handleMoveToTrash}
               onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
               onClose={() => setIsMiniGraphOpen(false)}
@@ -512,6 +540,7 @@ function App() {
           onClose={() => setIsFullscreenGraphOpen(false)}
           onSelectNode={handleSelectTopGraphNode}
           onSetMainTarget={handleSetMainTarget}
+          onRenameNode={handleRenameNode}
           onMoveToTrash={handleMoveToTrash}
           layoutDirection={graphLayoutDirection}
           onToggleLayout={handleToggleGraphLayout}

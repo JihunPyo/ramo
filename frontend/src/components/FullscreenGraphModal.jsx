@@ -6,6 +6,7 @@ export function FullscreenGraphModal({
   onClose,
   onSelectNode,
   onSetMainTarget,
+  onRenameNode,
   onMoveToTrash,
   layoutDirection,
   onToggleLayout,
@@ -31,6 +32,7 @@ export function FullscreenGraphModal({
           size="full"
           onSelectNode={onSelectNode}
           onSetMainTarget={onSetMainTarget}
+          onRenameNode={onRenameNode}
           onMoveToTrash={onMoveToTrash}
           allowLayoutToggle
           layoutDirection={layoutDirection}

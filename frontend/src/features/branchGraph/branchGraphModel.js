@@ -152,6 +152,22 @@ export function setMainTargetNode(state, nodeId) {
   }
 }
 
+export function renameNode(state, nodeId, title) {
+  const normalizedTitle = String(title ?? '').trim()
+
+  if (!normalizedTitle || !getNodeById(state.nodes, nodeId)) {
+    return state
+  }
+
+  return {
+    ...state,
+    nodes: state.nodes.map((node) =>
+      node.id === nodeId ? { ...node, title: normalizedTitle } : node,
+    ),
+    events: addEvent(state.events, 'rename_node', nodeId),
+  }
+}
+
 export function appendUserMessage(state, nodeId, content) {
   const message = createMessage('user', content)
 
