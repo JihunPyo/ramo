@@ -33,7 +33,7 @@ export function ChatWorkspace({
     const animationFrameId = window.requestAnimationFrame(() => {
       const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
 
-      scrollTarget?.scrollIntoView({ behavior: 'auto', block: 'start' })
+      scrollTarget?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
 
     return () => {
