@@ -2076,12 +2076,28 @@ textarea:disabled {
   display: grid;
   gap: 6px;
   width: 176px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  touch-action: pan-y;
   border: 1px solid #d8ddd7;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 14px 34px rgb(31 41 51 / 18%);
   padding: 8px;
   z-index: 5;
+}
+
+.graph-context-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.graph-context-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #b8c3bb;
 }
 
 .graph-context-menu strong {

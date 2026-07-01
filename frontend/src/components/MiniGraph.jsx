@@ -205,10 +205,13 @@ export function MiniGraph({
       return
     }
 
+    const menuTop = Math.max(8, Math.min(clientY - graphRect.top, graphRect.height - 214))
+
     setContextMenu({
       nodeId: node.id,
       x: Math.max(8, Math.min(clientX - graphRect.left, graphRect.width - 184)),
-      y: Math.max(8, Math.min(clientY - graphRect.top, graphRect.height - 214)),
+      y: menuTop,
+      maxHeight: Math.max(96, graphRect.height - menuTop - 8),
     })
     setRenameValue(null)
     setRenameError('')
@@ -524,9 +527,10 @@ export function MiniGraph({
       {contextNode ? (
         <div
           className="graph-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          style={{ left: contextMenu.x, top: contextMenu.y, maxHeight: contextMenu.maxHeight }}
           role="menu"
           onClick={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
         >
           <strong>{contextNode.title}</strong>
           {renameValue === null ? (
