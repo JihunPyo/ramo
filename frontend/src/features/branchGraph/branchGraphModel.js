@@ -168,6 +168,26 @@ export function renameNode(state, nodeId, title) {
   }
 }
 
+export function setNodeCollapsed(state, nodeId, isCollapsed) {
+  const node = getNodeById(state.nodes, nodeId)
+
+  if (!node) {
+    return state
+  }
+
+  return {
+    ...state,
+    nodes: state.nodes.map((candidate) =>
+      candidate.id === nodeId ? { ...candidate, isCollapsed } : candidate,
+    ),
+    events: addEvent(
+      state.events,
+      isCollapsed ? 'collapse_descendant_nodes' : 'expand_descendant_nodes',
+      nodeId,
+    ),
+  }
+}
+
 export function appendUserMessage(state, nodeId, content) {
   const message = createMessage('user', content)
 
@@ -224,7 +244,7 @@ export function addBranchFromMessage(state, messageId, parentNodeId = state.acti
 }
 
 export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vertical') {
-  const visibleNodes = getNodesByRootId(nodes, rootId)
+  const visibleNodes = getVisibleGraphNodes(nodes, rootId)
   const levels = new Map()
   const rootNode = getNodeById(visibleNodes, rootId)
 
@@ -305,6 +325,33 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
     .filter((edge) => edge.from && edge.to)
 
   return { width, height, nodes: layoutNodes, edges }
+}
+
+function getVisibleGraphNodes(nodes, rootId) {
+  const rootNodes = getNodesByRootId(nodes, rootId)
+  const rootNode = getNodeById(rootNodes, rootId)
+
+  if (!rootNode) {
+    return []
+  }
+
+  const visibleNodes = []
+  const queue = [rootNode]
+
+  while (queue.length > 0) {
+    const node = queue.shift()
+    visibleNodes.push(node)
+
+    if (node.isCollapsed) {
+      continue
+    }
+
+    getChildrenByNodeId(rootNodes, node.id).forEach((childNode) => {
+      queue.push(childNode)
+    })
+  }
+
+  return visibleNodes
 }
 
 function appendMessageToSession(state, nodeId, message, eventName) {

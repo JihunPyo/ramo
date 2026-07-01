@@ -13,6 +13,7 @@ export function TopMiniGraph({
   onSelectNode,
   onSetMainTarget,
   onRenameNode,
+  onToggleNodeCollapse,
   onMoveToTrash,
   onOpenFullscreen,
   onClose,
@@ -260,6 +261,7 @@ export function TopMiniGraph({
         onSelectNode={onSelectNode}
         onSetMainTarget={onSetMainTarget}
         onRenameNode={onRenameNode}
+        onToggleNodeCollapse={onToggleNodeCollapse}
         onMoveToTrash={onMoveToTrash}
         autoFitOnResize
         allowLayoutToggle

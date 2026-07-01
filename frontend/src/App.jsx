@@ -25,6 +25,7 @@ import {
   selectRoot,
   renameNode,
   setMainTargetNode,
+  setNodeCollapsed,
 } from './features/branchGraph/branchGraphModel.js'
 
 const DEFAULT_MODEL_PROVIDER = 'local'
@@ -195,6 +196,21 @@ function App() {
     try {
       await branchGraphApi.updateBranch(nodeId, { name: normalizedTitle })
       setGraphState((currentState) => renameNode(currentState, nodeId, normalizedTitle))
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+      throw error
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleToggleNodeCollapse = async (nodeId, isCollapsed) => {
+    setPendingAction(isCollapsed ? '하위 노드 접는 중' : '하위 노드 펼치는 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.updateBranch(nodeId, { is_collapsed: isCollapsed })
+      setGraphState((currentState) => setNodeCollapsed(currentState, nodeId, isCollapsed))
     } catch (error) {
       setErrorMessage(getDisplayError(error))
       throw error
@@ -524,6 +540,7 @@ function App() {
               onSelectNode={handleSelectTopGraphNode}
               onSetMainTarget={handleSetMainTarget}
               onRenameNode={handleRenameNode}
+              onToggleNodeCollapse={handleToggleNodeCollapse}
               onMoveToTrash={handleMoveToTrash}
               onOpenFullscreen={() => setIsFullscreenGraphOpen(true)}
               onClose={() => setIsMiniGraphOpen(false)}
@@ -541,6 +558,7 @@ function App() {
           onSelectNode={handleSelectTopGraphNode}
           onSetMainTarget={handleSetMainTarget}
           onRenameNode={handleRenameNode}
+          onToggleNodeCollapse={handleToggleNodeCollapse}
           onMoveToTrash={handleMoveToTrash}
           layoutDirection={graphLayoutDirection}
           onToggleLayout={handleToggleGraphLayout}

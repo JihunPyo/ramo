@@ -15,6 +15,7 @@ export function MiniGraph({
   onSelectNode,
   onSetMainTarget,
   onRenameNode,
+  onToggleNodeCollapse,
   onMoveToTrash,
   autoFitOnResize = false,
   allowLayoutToggle = false,
@@ -59,6 +60,9 @@ export function MiniGraph({
   }, [activeTooltipNodeId, graphState.nodes, highlightPathOnHover])
   const activeTooltipNode = layout.nodes.find((node) => node.id === activeTooltipNodeId)
   const contextNode = layout.nodes.find((node) => node.id === contextMenu?.nodeId)
+  const contextNodeHasChildren = contextNode
+    ? graphState.nodes.some((node) => node.parentId === contextNode.id && !node.isHidden)
+    : false
 
   const showTooltipNode = (nodeId) => {
     window.clearTimeout(tooltipHideTimerRef.current)
@@ -203,7 +207,7 @@ export function MiniGraph({
     setContextMenu({
       nodeId: node.id,
       x: Math.max(8, Math.min(clientX - graphRect.left, graphRect.width - 184)),
-      y: Math.max(8, Math.min(clientY - graphRect.top, graphRect.height - 176)),
+      y: Math.max(8, Math.min(clientY - graphRect.top, graphRect.height - 214)),
     })
     setRenameValue(null)
     setRenameError('')
@@ -550,6 +554,18 @@ export function MiniGraph({
           <button type="button" role="menuitem" onClick={() => onSetMainTarget(contextNode.id)}>
             main 지정
           </button>
+          {contextNodeHasChildren && onToggleNodeCollapse ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setContextMenu(null)
+                void onToggleNodeCollapse(contextNode.id, !contextNode.isCollapsed)
+              }}
+            >
+              {contextNode.isCollapsed ? '하위 노드 펼치기' : '하위 노드 접기'}
+            </button>
+          ) : null}
           {contextNode.parentId !== null && onMoveToTrash ? (
             <button
               type="button"

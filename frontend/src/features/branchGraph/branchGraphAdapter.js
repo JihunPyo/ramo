@@ -138,7 +138,7 @@ function normalizeGraphNodes({ session, graph }) {
         apiSessionId,
         createdAt: formatDisplayTime(node.created_at ?? node.createdAt),
         isActive: status === 'active',
-        isHidden: Boolean(node.is_collapsed ?? node.isCollapsed),
+        isHidden: false,
         status,
         isCollapsed: Boolean(node.is_collapsed ?? node.isCollapsed),
         messageCount: node.message_count ?? node.messageCount ?? 0,
