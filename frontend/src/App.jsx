@@ -384,9 +384,6 @@ function App() {
         onToggleCollapse={handleToggleSidebar}
         onNewChat={handleOpenLanding}
         onSelectRoot={handleSelectRoot}
-        onSelectNode={handleSelectTopGraphNode}
-        onSetMainTarget={handleSetMainTarget}
-        onMoveToTrash={handleMoveToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
         onDeleteForever={handleDeleteForever}
       />

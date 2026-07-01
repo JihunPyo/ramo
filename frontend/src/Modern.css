@@ -17,7 +17,7 @@
 .sidebar-toggle-button, .mobile-sidebar-open-button { border: 0; background: transparent; }
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
 .new-chat-button { border: 0; border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: 0 1px 2px rgb(32 35 31 / 7%); }
-.root-card, .sidebar-graph-panel, .trash-panel { border-color: transparent; border-radius: var(--radius-sm); box-shadow: none; }
+.root-card, .trash-panel { border-color: transparent; border-radius: var(--radius-sm); box-shadow: none; }
 .root-card { background: transparent; }
 .root-card:hover, .root-card.selected { border-color: transparent; background: #e2e6e1; }
 

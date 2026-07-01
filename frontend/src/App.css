@@ -77,7 +77,6 @@
 }
 
 .root-card,
-.sidebar-graph-panel,
 .trash-panel {
   border-color: transparent;
   border-radius: var(--radius-sm);
@@ -907,14 +906,6 @@
 .root-card small {
   color: #6b766a;
   line-height: 1.45;
-}
-
-.sidebar-graph-panel {
-  flex: 0 0 auto;
-  border: 1px solid #e1e6ef;
-  border-radius: 8px;
-  background: #ffffff;
-  padding: 12px;
 }
 
 .trash-panel {

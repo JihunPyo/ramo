@@ -1,4 +1,3 @@
-import { MiniGraph } from './MiniGraph.jsx'
 import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
 
 const MOCK_USER_AVATAR_URL = `data:image/svg+xml,${encodeURIComponent(
@@ -21,9 +20,6 @@ export function StartNodeSidebar({
   onToggleCollapse,
   onNewChat,
   onSelectRoot,
-  onSelectNode,
-  onSetMainTarget,
-  onMoveToTrash,
   onRestoreFromTrash,
   onDeleteForever,
 }) {
@@ -49,7 +45,6 @@ export function StartNodeSidebar({
     >
       <header className="sidebar-header">
         <div className="sidebar-title">
-          <p className="eyebrow">Branch workspace</p>
           <h2>RAMO</h2>
         </div>
         <button
@@ -86,16 +81,6 @@ export function StartNodeSidebar({
             ))}
           </nav>
 
-          <section className="sidebar-graph-panel" aria-label="선택된 시작 노드 그래프">
-            <MiniGraph
-              graphState={graphState}
-              rootId={graphState.selectedRootNodeId}
-              onSelectNode={onSelectNode}
-              onSetMainTarget={onSetMainTarget}
-              onMoveToTrash={onMoveToTrash}
-            />
-          </section>
-
           <details className="trash-panel">
             <summary>
               <span>휴지통</span>
@@ -110,7 +95,7 @@ export function StartNodeSidebar({
                     <article key={node.id} className="trash-card">
                       <div>
                         <strong>{node.title}</strong>
-                        <small>{branchCount}개 브랜치</small>
+                        <small>{branchCount}개 항목</small>
                       </div>
                       <div className="trash-actions">
                         <button
@@ -134,7 +119,7 @@ export function StartNodeSidebar({
                 })}
               </div>
             ) : (
-              <p className="trash-empty">삭제한 브랜치가 없습니다.</p>
+              <p className="trash-empty">삭제한 항목이 없습니다.</p>
             )}
           </details>
         </div>
