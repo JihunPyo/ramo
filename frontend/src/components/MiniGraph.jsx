@@ -9,6 +9,8 @@ import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 const MIN_ZOOM = 0.45
 const MAX_ZOOM = 2.5
+const MINI_NODE_RADIUS = 12
+const FULL_NODE_RADIUS = 18
 
 export function MiniGraph({
   graphState,
@@ -407,15 +409,7 @@ export function MiniGraph({
             return (
               <path
                 key={`${edge.from.id}-${edge.to.id}`}
-                d={
-                  layoutDirection === 'horizontal'
-                    ? `M ${edge.from.x + 15} ${edge.from.y} C ${edge.from.x + 52} ${
-                        edge.from.y
-                      }, ${edge.to.x - 52} ${edge.to.y}, ${edge.to.x - 15} ${edge.to.y}`
-                    : `M ${edge.from.x} ${edge.from.y + 15} C ${edge.from.x} ${
-                        edge.from.y + 52
-                      }, ${edge.to.x} ${edge.to.y - 52}, ${edge.to.x} ${edge.to.y - 15}`
-                }
+                d={createGraphEdgePath(edge, layoutDirection, size)}
                 className={edgeClass}
               />
             )
@@ -632,4 +626,67 @@ export function MiniGraph({
       ) : null}
     </div>
   )
+}
+
+function createGraphEdgePath(edge, layoutDirection, size) {
+  const radius = size === 'full' ? FULL_NODE_RADIUS : MINI_NODE_RADIUS
+
+  if (layoutDirection === 'horizontal') {
+    return createHorizontalEdgePath(edge, radius, size)
+  }
+
+  return createVerticalEdgePath(edge, radius, size)
+}
+
+function createVerticalEdgePath(edge, radius, size) {
+  const startX = edge.from.x
+  const startY = edge.from.y + radius
+  const endX = edge.to.x + getMergeFanInOffset(edge, size)
+  const endY = edge.to.y - radius
+  const deltaY = Math.max(1, endY - startY)
+  const controlOffset = clamp(deltaY * 0.42, 14, size === 'full' ? 46 : 30)
+  const approachOffset = edge.isMerge
+    ? clamp(deltaY * 0.34, 12, size === 'full' ? 40 : 26)
+    : controlOffset
+
+  return `M ${roundCoord(startX)} ${roundCoord(startY)} C ${roundCoord(startX)} ${roundCoord(
+    startY + controlOffset,
+  )}, ${roundCoord(endX)} ${roundCoord(endY - approachOffset)}, ${roundCoord(endX)} ${roundCoord(
+    endY,
+  )}`
+}
+
+function createHorizontalEdgePath(edge, radius, size) {
+  const startX = edge.from.x + radius
+  const startY = edge.from.y
+  const endX = edge.to.x - radius
+  const endY = edge.to.y + getMergeFanInOffset(edge, size)
+  const deltaX = Math.max(1, endX - startX)
+  const controlOffset = clamp(deltaX * 0.42, 14, size === 'full' ? 52 : 34)
+  const approachOffset = edge.isMerge
+    ? clamp(deltaX * 0.34, 12, size === 'full' ? 44 : 28)
+    : controlOffset
+
+  return `M ${roundCoord(startX)} ${roundCoord(startY)} C ${roundCoord(
+    startX + controlOffset,
+  )} ${roundCoord(startY)}, ${roundCoord(endX - approachOffset)} ${roundCoord(
+    endY,
+  )}, ${roundCoord(endX)} ${roundCoord(endY)}`
+}
+
+function getMergeFanInOffset(edge, size) {
+  if (!edge.isMerge || edge.mergeCount <= 1) {
+    return 0
+  }
+
+  const gap = size === 'full' ? 13 : 8
+  return (edge.mergeIndex - (edge.mergeCount - 1) / 2) * gap
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function roundCoord(value) {
+  return Math.round(value * 100) / 100
 }

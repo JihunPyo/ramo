@@ -290,7 +290,6 @@ export function addBranchFromMessage(state, messageId, parentNodeId = state.acti
 
 export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vertical') {
   const visibleNodes = getVisibleGraphNodes(nodes, rootId)
-  const levels = new Map()
   const rootNode = getNodeById(visibleNodes, rootId)
 
   if (!rootNode) {
@@ -298,81 +297,163 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
   }
 
   const depthByNodeId = getGraphDepths(visibleNodes, rootNode.id)
-
-  visibleNodes.forEach((node) => {
-    const depth = depthByNodeId.get(node.id) ?? 0
-    const levelNodes = levels.get(depth) ?? []
-
-    levels.set(depth, [...levelNodes, node])
-  })
+  const levels = groupNodesByDepth(visibleNodes, depthByNodeId)
+  const nodeOrderById = new Map(visibleNodes.map((node, index) => [node.id, index]))
 
   const horizontalGap = size === 'full' ? 170 : 82
   const verticalGap = size === 'full' ? 120 : 72
   const paddingX = size === 'full' ? 90 : 42
   const paddingY = size === 'full' ? 70 : 34
-  const widestLevel = Math.max(...Array.from(levels.values()).map((levelNodes) => levelNodes.length))
   const maxDepth = Math.max(...Array.from(levels.keys()))
   const isHorizontal = direction === 'horizontal'
   const horizontalDepthGap = size === 'full' ? 190 : 120
   const verticalSiblingGap = size === 'full' ? 100 : 72
+  const crossAxisGap = isHorizontal ? verticalSiblingGap : horizontalGap
+  const crossPositionByNodeId = getLayeredCrossPositions(levels, nodeOrderById, crossAxisGap)
+  const crossPositions = Array.from(crossPositionByNodeId.values())
+  const minCrossPosition = Math.min(...crossPositions)
+  const maxCrossPosition = Math.max(...crossPositions)
+  const crossRange = maxCrossPosition - minCrossPosition
   const width = isHorizontal
     ? Math.max(size === 'full' ? 760 : 280, paddingX * 2 + maxDepth * horizontalDepthGap)
-    : Math.max(
-        size === 'full' ? 760 : 280,
-        paddingX * 2 + (widestLevel - 1) * horizontalGap,
-      )
+    : Math.max(size === 'full' ? 760 : 280, paddingX * 2 + crossRange)
   const height = isHorizontal
-    ? Math.max(
-        size === 'full' ? 520 : 220,
-        paddingY * 2 + (widestLevel - 1) * verticalSiblingGap,
-      )
+    ? Math.max(size === 'full' ? 520 : 220, paddingY * 2 + crossRange)
     : Math.max(size === 'full' ? 520 : 220, paddingY * 2 + maxDepth * verticalGap)
+  const crossAxisSize = isHorizontal ? height : width
+  const crossAxisOffset = crossAxisSize / 2 - (minCrossPosition + maxCrossPosition) / 2
   const layoutNodes = []
 
   Array.from(levels.entries())
     .sort(([firstDepth], [secondDepth]) => firstDepth - secondDepth)
     .forEach(([depth, levelNodes]) => {
-      if (isHorizontal) {
-        const levelHeight = (levelNodes.length - 1) * verticalSiblingGap
-        const startY = height / 2 - levelHeight / 2
+      const sortedLevelNodes = [...levelNodes].sort(
+        (firstNode, secondNode) =>
+          (crossPositionByNodeId.get(firstNode.id) ?? 0) -
+            (crossPositionByNodeId.get(secondNode.id) ?? 0) ||
+          (nodeOrderById.get(firstNode.id) ?? 0) - (nodeOrderById.get(secondNode.id) ?? 0),
+      )
 
-        levelNodes.forEach((node, index) => {
+      sortedLevelNodes.forEach((node) => {
+        const crossPosition = (crossPositionByNodeId.get(node.id) ?? 0) + crossAxisOffset
+
+        if (isHorizontal) {
           layoutNodes.push({
             ...node,
             x: paddingX + depth * horizontalDepthGap,
-            y: startY + index * verticalSiblingGap,
+            y: crossPosition,
             shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
           })
-        })
-        return
-      }
+          return
+        }
 
-      const levelWidth = (levelNodes.length - 1) * horizontalGap
-      const startX = width / 2 - levelWidth / 2
-
-      levelNodes.forEach((node, index) => {
         layoutNodes.push({
           ...node,
-          x: startX + index * horizontalGap,
+          x: crossPosition,
           y: paddingY + depth * verticalGap,
           shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
         })
       })
     })
 
-  const edges = layoutNodes
-    .flatMap((node) =>
-      getParentNodeIds(node)
-        .filter(Boolean)
-        .map((parentId) => ({
-          from: layoutNodes.find((candidate) => candidate.id === parentId),
-          to: node,
-          isMerge: (node.parentIds?.length ?? 0) > 1,
-        })),
+  const layoutNodeById = new Map(layoutNodes.map((node) => [node.id, node]))
+  const edges = layoutNodes.flatMap((node) => {
+    const visibleParentIds = getParentNodeIds(node).filter((parentId) =>
+      layoutNodeById.has(parentId),
     )
-    .filter((edge) => edge.from && edge.to)
+    const isMerge = visibleParentIds.length > 1
+
+    return visibleParentIds.map((parentId, parentIndex) => ({
+      from: layoutNodeById.get(parentId),
+      to: node,
+      isMerge,
+      mergeIndex: parentIndex,
+      mergeCount: visibleParentIds.length,
+    }))
+  })
 
   return { width, height, nodes: layoutNodes, edges }
+}
+
+function groupNodesByDepth(nodes, depthByNodeId) {
+  return nodes.reduce((levels, node) => {
+    const depth = depthByNodeId.get(node.id) ?? 0
+    const levelNodes = levels.get(depth) ?? []
+
+    levels.set(depth, [...levelNodes, node])
+    return levels
+  }, new Map())
+}
+
+function getLayeredCrossPositions(levels, nodeOrderById, crossAxisGap) {
+  const crossPositionByNodeId = new Map()
+
+  Array.from(levels.entries())
+    .sort(([firstDepth], [secondDepth]) => firstDepth - secondDepth)
+    .forEach(([, levelNodes]) => {
+      const targetItems = levelNodes.map((node, index) => ({
+        node,
+        order: nodeOrderById.get(node.id) ?? index,
+        target: getNodeTargetCrossPosition(
+          node,
+          index,
+          levelNodes.length,
+          crossAxisGap,
+          crossPositionByNodeId,
+        ),
+      }))
+
+      distributeCrossPositions(targetItems, crossAxisGap).forEach(({ node, crossPosition }) => {
+        crossPositionByNodeId.set(node.id, crossPosition)
+      })
+    })
+
+  return crossPositionByNodeId
+}
+
+function getNodeTargetCrossPosition(
+  node,
+  fallbackIndex,
+  levelNodeCount,
+  crossAxisGap,
+  crossPositionByNodeId,
+) {
+  const parentCrossPositions = getParentNodeIds(node)
+    .map((parentId) => crossPositionByNodeId.get(parentId))
+    .filter((crossPosition) => Number.isFinite(crossPosition))
+
+  if (parentCrossPositions.length > 0) {
+    return average(parentCrossPositions)
+  }
+
+  return (fallbackIndex - (levelNodeCount - 1) / 2) * crossAxisGap
+}
+
+function distributeCrossPositions(items, crossAxisGap) {
+  const sortedItems = [...items].sort(
+    (firstItem, secondItem) =>
+      firstItem.target - secondItem.target || firstItem.order - secondItem.order,
+  )
+  const positionedItems = sortedItems.map((item, index) => {
+    const previousPosition = index > 0 ? sortedItems[index - 1].crossPosition : null
+    const minimumPosition =
+      previousPosition === null ? item.target : previousPosition + crossAxisGap
+
+    item.crossPosition = Math.max(item.target, minimumPosition)
+    return item
+  })
+  const desiredCenter = average(sortedItems.map((item) => item.target))
+  const actualCenter = average(positionedItems.map((item) => item.crossPosition))
+  const centerShift = desiredCenter - actualCenter
+
+  return positionedItems.map((item) => ({
+    node: item.node,
+    crossPosition: item.crossPosition + centerShift,
+  }))
+}
+
+function average(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length
 }
 
 function getVisibleGraphNodes(nodes, rootId) {

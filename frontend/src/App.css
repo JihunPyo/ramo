@@ -1974,7 +1974,11 @@ textarea:disabled {
   fill: none;
   stroke: #b8c3b4;
   stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   transition: opacity 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+  shape-rendering: geometricPrecision;
+  vector-effect: non-scaling-stroke;
 }
 
 .graph-edge.main {
@@ -1985,7 +1989,7 @@ textarea:disabled {
 .graph-edge.merge {
   stroke: #7658c7;
   stroke-width: 3;
-  stroke-dasharray: 7 4;
+  stroke-dasharray: 5 7;
 }
 
 .graph-edge.hover-path {
