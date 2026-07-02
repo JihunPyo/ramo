@@ -13,14 +13,16 @@ export function readBranchId(branch) {
 export function buildGraphStateFromApi({
   apiSessions,
   graphResponses,
+  trashSessions = [],
   previousState,
   activeNodeId,
   selectedRootNodeId,
 }) {
-  const nodes = graphResponses.flatMap(({ session, graph }) =>
+  const nodes = graphResponses.flatMap(({ session, graph, branches = [] }) =>
     normalizeGraphNodes({
       session,
       graph,
+      branches,
       previousNodes: previousState.nodes,
     }),
   )
@@ -47,16 +49,43 @@ export function buildGraphStateFromApi({
     activeNodeId: resolvedActiveNodeId,
     selectedRootNodeId: resolvedSelectedRootId,
     mainTargetNodeIdByRoot: buildMainTargetMap(nodes, previousState.mainTargetNodeIdByRoot),
-    trashNodes: graphResponses.flatMap(({ session, branches = [] }) =>
-      normalizeTrashNodes(session, branches),
-    ),
+    trashNodes: [
+      ...normalizeTrashSessions(trashSessions),
+      ...graphResponses.flatMap(({ session, branches = [], branchTrash = [] }) =>
+        normalizeTrashNodes(session, branches, branchTrash),
+      ),
+    ],
     events: previousState.events,
   }
 }
 
-function normalizeTrashNodes(session, branches) {
+function normalizeTrashSessions(trashSessions) {
+  return trashSessions
+    .map((session) => {
+      const apiSessionId = readSessionId(session)
+
+      return {
+        id: `trash-session-${apiSessionId}`,
+        rootId: `trash-session-${apiSessionId}`,
+        parentId: null,
+        parentIds: [],
+        title: session?.title ?? '삭제된 세션',
+        description: '휴지통으로 이동한 세션이다.',
+        apiSessionId,
+        trashType: 'session',
+        status: 'deleted',
+        deletedAt: session?.deleted_at ?? session?.deletedAt ?? '',
+      }
+    })
+    .filter((node) => node.apiSessionId)
+}
+
+function normalizeTrashNodes(session, branches, branchTrash) {
   const apiSessionId = readSessionId(session)
   const sessionTitle = session?.title ?? '새 대화'
+  const deletedAtByBranchId = new Map(
+    branchTrash.map((branch) => [readBranchId(branch), branch.deleted_at ?? branch.deletedAt ?? '']),
+  )
 
   return branches
     .filter((branch) => branch.status === 'deleted')
@@ -65,6 +94,8 @@ function normalizeTrashNodes(session, branches) {
       rootId: readMainBranchId(session),
       parentId: branch.parent_branch_id ?? branch.parentBranchId ?? null,
       parentIds:
+        branch.merge_parent_ids ??
+        branch.mergeParentIds ??
         branch.merged_parent_branch_ids ??
         branch.mergedParentBranchIds ??
         branch.parent_branch_ids ??
@@ -72,8 +103,15 @@ function normalizeTrashNodes(session, branches) {
       title: branch.name ?? branch.label ?? branch.title ?? '삭제된 브랜치',
       description: `${sessionTitle}에서 삭제한 브랜치`,
       apiSessionId,
+      trashType: 'branch',
       status: 'deleted',
-      deletedAt: branch.updated_at ?? branch.updatedAt ?? '',
+      deletedAt:
+        deletedAtByBranchId.get(readBranchId(branch)) ??
+        branch.deleted_at ??
+        branch.deletedAt ??
+        branch.updated_at ??
+        branch.updatedAt ??
+        '',
     }))
     .filter((node) => node.id)
 }
@@ -98,11 +136,12 @@ export function applyBranchMessages(state, branchId, apiMessages) {
   }
 }
 
-function normalizeGraphNodes({ session, graph, previousNodes = [] }) {
+function normalizeGraphNodes({ session, graph, branches = [], previousNodes = [] }) {
   const apiSessionId = readSessionId(session)
   const sessionTitle = session?.title ?? '새 대화'
   const graphNodes = Array.isArray(graph?.nodes) ? graph.nodes : []
   const graphEdges = Array.isArray(graph?.edges) ? graph.edges : []
+  const branchById = new Map(branches.map((branch) => [readBranchId(branch), branch]))
   const previousNodeById = new Map(previousNodes.map((node) => [node.id, node]))
   const parentIdsByNodeId = new Map()
   const forkMessageByNodeId = new Map()
@@ -121,14 +160,24 @@ function normalizeGraphNodes({ session, graph, previousNodes = [] }) {
   const nodes = graphNodes
     .map((node) => {
       const branchId = readBranchId(node)
-      const status = node.status ?? 'active'
+      const branch = branchById.get(branchId)
+      const status = node.status ?? branch?.status ?? 'active'
 
       if (!branchId || status === 'deleted') {
         return null
       }
 
       const declaredParentIds =
-        node.merged_parent_branch_ids ?? node.mergedParentBranchIds ?? node.parent_branch_ids ?? []
+        branch?.merge_parent_ids ??
+        branch?.mergeParentIds ??
+        branch?.merged_parent_branch_ids ??
+        branch?.mergedParentBranchIds ??
+        node.merge_parent_ids ??
+        node.mergeParentIds ??
+        node.merged_parent_branch_ids ??
+        node.mergedParentBranchIds ??
+        node.parent_branch_ids ??
+        []
       const previousParentIds = previousNodeById.get(branchId)?.parentIds ?? []
       const parentIds = [
         ...new Set([
@@ -137,9 +186,9 @@ function normalizeGraphNodes({ session, graph, previousNodes = [] }) {
           ...(previousParentIds.length > 1 ? previousParentIds : []),
         ]),
       ]
-      const parentId = node.parent_branch_id ?? parentIds[0] ?? null
+      const parentId = branch?.parent_branch_id ?? node.parent_branch_id ?? parentIds[0] ?? null
       const title = resolveNodeTitle({
-        rawTitle: node.label ?? node.name ?? node.title,
+        rawTitle: node.label ?? branch?.name ?? node.name ?? node.title,
         parentId,
         sessionTitle,
       })
@@ -150,17 +199,23 @@ function normalizeGraphNodes({ session, graph, previousNodes = [] }) {
         parentId,
         parentIds: parentIds.length > 0 ? parentIds : parentId ? [parentId] : [],
         parentMessageId:
-          forkMessageByNodeId.get(branchId) ?? node.fork_from_message_id ?? node.parentMessageId ?? null,
+          forkMessageByNodeId.get(branchId) ??
+          branch?.fork_from_message_id ??
+          node.fork_from_message_id ??
+          node.parentMessageId ??
+          null,
         title,
         tags: normalizeNodeTags(node.tags ?? node.tag_list ?? node.tagList),
         description: node.summary ?? `${sessionTitle}의 ${title} 흐름이다.`,
         sessionId: `messages-${branchId}`,
         apiSessionId,
-        createdAt: formatDisplayTime(node.created_at ?? node.createdAt),
+        createdAt: formatDisplayTime(branch?.created_at ?? node.created_at ?? node.createdAt),
         isActive: status === 'active',
         isHidden: false,
         status,
-        isCollapsed: Boolean(node.is_collapsed ?? node.isCollapsed),
+        isCollapsed: Boolean(branch?.is_collapsed ?? node.is_collapsed ?? node.isCollapsed),
+        isMain: Boolean(branch?.is_main ?? node.is_main ?? node.isMain),
+        isMerge: Boolean(branch?.is_merge ?? node.is_merge ?? node.isMerge),
         messageCount: node.message_count ?? node.messageCount ?? 0,
       }
     })
@@ -216,6 +271,15 @@ function buildMainTargetMap(nodes, previousMap = {}) {
   return nodes
     .filter((node) => node.parentId === null)
     .reduce((map, rootNode) => {
+      const apiMainTarget = getDeepestMainNode(nodes, rootNode.id)
+
+      if (apiMainTarget) {
+        return {
+          ...map,
+          [rootNode.id]: apiMainTarget.id,
+        }
+      }
+
       const previousTargetId = previousMap[rootNode.id]
       const hasPreviousTarget = nodes.some(
         (node) => node.id === previousTargetId && node.rootId === rootNode.id && !node.isHidden,
@@ -230,6 +294,29 @@ function buildMainTargetMap(nodes, previousMap = {}) {
         [rootNode.id]: previousTargetId,
       }
     }, {})
+}
+
+function getDeepestMainNode(nodes, rootId) {
+  return nodes
+    .filter((node) => node.rootId === rootId && node.isMain && !node.isHidden)
+    .sort((firstNode, secondNode) => (
+      getPathDepth(nodes, secondNode.id) - getPathDepth(nodes, firstNode.id)
+    ))[0]
+}
+
+function getPathDepth(nodes, nodeId) {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]))
+  const visitedNodeIds = new Set()
+  let depth = 0
+  let currentNode = nodeById.get(nodeId)
+
+  while (currentNode?.parentId && !visitedNodeIds.has(currentNode.id)) {
+    visitedNodeIds.add(currentNode.id)
+    depth += 1
+    currentNode = nodeById.get(currentNode.parentId)
+  }
+
+  return depth
 }
 
 function groupMessagesByBranch(apiMessages, fallbackBranchId) {

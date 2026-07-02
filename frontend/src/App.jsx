@@ -81,7 +81,11 @@ function App() {
       setIsLoading(true)
 
       try {
-        let apiSessions = await branchGraphApi.listSessions()
+        const [activeSessions, trashSessions] = await Promise.all([
+          branchGraphApi.listSessions(),
+          branchGraphApi.listTrashSessions(),
+        ])
+        let apiSessions = activeSessions
 
         if (apiSessions.length === 0) {
           apiSessions = [await branchGraphApi.createSession()]
@@ -90,17 +94,19 @@ function App() {
         const graphResponses = await Promise.all(
           apiSessions.map(async (session) => {
             const sessionId = readSessionId(session)
-            const [graph, branches] = await Promise.all([
+            const [graph, branches, branchTrash] = await Promise.all([
               branchGraphApi.getSessionGraph(sessionId, true),
               branchGraphApi.listBranches(sessionId),
+              branchGraphApi.listBranchTrash(sessionId),
             ])
 
-            return { session, graph, branches }
+            return { session, graph, branches, branchTrash }
           }),
         )
         let nextState = buildGraphStateFromApi({
           apiSessions,
           graphResponses,
+          trashSessions,
           previousState: graphStateRef.current,
           activeNodeId,
           selectedRootNodeId,
@@ -182,8 +188,18 @@ function App() {
     handleSelectNode(nodeId)
   }
 
-  const handleSetMainTarget = (nodeId) => {
-    setGraphState((currentState) => setMainTargetNode(currentState, nodeId))
+  const handleSetMainTarget = async (nodeId) => {
+    setPendingAction('main 경로 저장 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.selectMainBranch(nodeId)
+      setGraphState((currentState) => setMainTargetNode(currentState, nodeId))
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
   }
 
   const handleRenameNode = async (nodeId, title) => {
@@ -273,20 +289,9 @@ function App() {
     setErrorMessage('')
 
     try {
-      const mergeParentMessages = await branchGraphApi.getBranchMessages(mergeNodes[0].id, false)
-      const forkFromMessage = [...mergeParentMessages]
-        .reverse()
-        .find((message) => message.role === 'assistant') ?? mergeParentMessages.at(-1)
-
-      if (!forkFromMessage?.id) {
-        throw new Error('합치기 기준으로 사용할 부모 노드 메시지가 없습니다.')
-      }
-
       const mergedBranch = await branchGraphApi.mergeBranches({
         sessionId: mergeNodes[0].apiSessionId,
         branchIds: mergeNodes.map((node) => node.id),
-        parentBranchId: mergeNodes[0].id,
-        forkFromMessageId: forkFromMessage.id,
         name: `병합: ${mergeNodes.map((node) => node.title).join(' + ')}`,
       })
       const mergedBranchId = readBranchId(mergedBranch)
@@ -516,9 +521,7 @@ function App() {
     setPendingAction('세션 휴지통 이동 중')
 
     try {
-      await Promise.all(
-        branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'deleted' })),
-      )
+      await branchGraphApi.deleteSession(rootNode.apiSessionId)
       await loadGraphState({
         activeNodeId: isDeletingCurrentTree ? undefined : currentState.activeNodeId,
         selectedRootNodeId: isDeletingCurrentTree ? undefined : currentState.selectedRootNodeId,
@@ -547,9 +550,14 @@ function App() {
     setPendingAction('브랜치 복구 중')
 
     try {
-      await Promise.all(
-        branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'active' })),
-      )
+      if (node.trashType === 'session') {
+        await branchGraphApi.restoreSession(node.apiSessionId)
+        await loadGraphState({ loadMessages: false })
+        setIsLandingVisible(true)
+        return
+      }
+
+      await Promise.all(branchIds.map((branchId) => branchGraphApi.restoreBranch(branchId)))
       await loadGraphState({
         activeNodeId: nodeId,
         selectedRootNodeId: node.rootId,
@@ -573,7 +581,9 @@ function App() {
 
     const branchCount = getSubtreeNodeIds(trashNodes, nodeId).length
     const confirmed = window.confirm(
-      `“${node.title}”과 관련된 ${branchCount}개 브랜치를 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+      node.trashType === 'session'
+        ? `“${node.title}” 세션을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`
+        : `“${node.title}”과 관련된 ${branchCount}개 브랜치를 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
     )
 
     if (!confirmed) {
@@ -583,7 +593,11 @@ function App() {
     setPendingAction('영구 삭제 중')
 
     try {
-      await branchGraphApi.deleteBranch(nodeId)
+      if (node.trashType === 'session') {
+        await branchGraphApi.purgeSession(node.apiSessionId)
+      } else {
+        await branchGraphApi.deleteBranch(nodeId)
+      }
       await loadGraphState({ loadMessages: false })
     } catch (error) {
       setErrorMessage(getDisplayError(error))

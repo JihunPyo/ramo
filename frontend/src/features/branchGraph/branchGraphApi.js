@@ -20,8 +20,29 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
+    deleteSession(sessionId) {
+      return client.request(`/sessions/${sessionId}`, {
+        method: 'DELETE',
+      })
+    },
+    listTrashSessions() {
+      return client.request('/trash')
+    },
+    restoreSession(sessionId) {
+      return client.request(`/trash/${sessionId}/restore`, {
+        method: 'POST',
+      })
+    },
+    purgeSession(sessionId) {
+      return client.request(`/trash/${sessionId}`, {
+        method: 'DELETE',
+      })
+    },
     listBranches(sessionId) {
       return client.request(`/sessions/${sessionId}/branches`)
+    },
+    listBranchTrash(sessionId) {
+      return client.request(`/sessions/${sessionId}/branch-trash`)
     },
     getSessionGraph(sessionId, includeInactive = true) {
       return client.request(`/sessions/${sessionId}/graph`, {
@@ -59,27 +80,19 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
-    mergeBranches({
-      sessionId,
-      branchIds,
-      parentBranchId,
-      forkFromMessageId,
-      name,
-      modelProvider = 'chatkhu',
-      modelName = 'gpt-5.4-mini',
-    }) {
-      return client.request('/merge', {
+    mergeBranches({ sessionId, branchIds, name }) {
+      return client.request('/branches/merge', {
         method: 'POST',
         body: {
           session_id: sessionId,
-          branch_id_1: branchIds[0],
-          branch_id_2: branchIds[1],
-          parent_branch_id: parentBranchId,
-          fork_from_message_id: forkFromMessageId,
-          model_provider: modelProvider,
-          model_name: modelName,
+          parent_branch_ids: branchIds,
           ...(name ? { name } : {}),
         },
+      })
+    },
+    selectMainBranch(branchId) {
+      return client.request(`/branches/${branchId}/select-main`, {
+        method: 'POST',
       })
     },
     updateBranch(branchId, patch) {
@@ -95,6 +108,11 @@ export function createHttpBranchGraphApi(client = httpClient) {
       return client.request(`/branches/${branchId}`, {
         method: 'PATCH',
         body: patch,
+      })
+    },
+    restoreBranch(branchId) {
+      return client.request(`/branches/${branchId}/restore`, {
+        method: 'POST',
       })
     },
     deleteBranch(branchId) {

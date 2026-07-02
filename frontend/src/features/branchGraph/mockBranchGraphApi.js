@@ -7,7 +7,7 @@ export function createMockBranchGraphApi() {
   return {
     async listSessions() {
       await delay()
-      return [...store.sessions]
+      return store.sessions.filter((session) => session.status !== 'deleted')
     },
     async createSession(title = '새 대화') {
       await delay()
@@ -18,6 +18,8 @@ export function createMockBranchGraphApi() {
         id: sessionId,
         title,
         main_branch_id: branchId,
+        status: 'active',
+        deleted_at: null,
         created_at: createdAt,
         updated_at: createdAt,
       }
@@ -30,6 +32,9 @@ export function createMockBranchGraphApi() {
         tags: ['새 대화', '메인'],
         status: 'active',
         is_collapsed: false,
+        is_merge: false,
+        is_main: true,
+        merge_parent_ids: [],
         created_at: createdAt,
         updated_at: createdAt,
       }
@@ -69,18 +74,82 @@ export function createMockBranchGraphApi() {
 
       return updatedSession
     },
+    async deleteSession(sessionId) {
+      await delay()
+      const sessionIndex = store.sessions.findIndex((session) => session.id === sessionId)
+
+      if (sessionIndex < 0) {
+        throw new Error('session_id가 존재하지 않습니다.')
+      }
+
+      const now = new Date().toISOString()
+      store.sessions[sessionIndex] = {
+        ...store.sessions[sessionIndex],
+        status: 'deleted',
+        deleted_at: now,
+        updated_at: now,
+      }
+
+      return null
+    },
+    async listTrashSessions() {
+      await delay()
+      return store.sessions.filter((session) => session.status === 'deleted')
+    },
+    async restoreSession(sessionId) {
+      await delay()
+      const sessionIndex = store.sessions.findIndex((session) => session.id === sessionId)
+
+      if (sessionIndex < 0 || store.sessions[sessionIndex].status !== 'deleted') {
+        throw new Error('휴지통에서 해당 session을 찾을 수 없습니다.')
+      }
+
+      const restoredSession = {
+        ...store.sessions[sessionIndex],
+        status: 'active',
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      }
+
+      store.sessions[sessionIndex] = restoredSession
+
+      return restoredSession
+    },
+    async purgeSession(sessionId) {
+      await delay()
+      const session = store.sessions.find((candidate) => candidate.id === sessionId)
+
+      if (!session) {
+        throw new Error('session_id가 존재하지 않습니다.')
+      }
+
+      getBranchesBySession(store, sessionId).forEach((branch) => {
+        store.branches.delete(branch.id)
+        store.messagesByBranchId.delete(branch.id)
+      })
+      store.sessions = store.sessions.filter((candidate) => candidate.id !== sessionId)
+
+      return null
+    },
     async listBranches(sessionId) {
       await delay()
       return getBranchesBySession(store, sessionId)
     },
+    async listBranchTrash(sessionId) {
+      await delay()
+      return getBranchesBySession(store, sessionId)
+        .filter((branch) => branch.status === 'deleted')
+        .map((branch) => ({
+          id: branch.id,
+          name: branch.name,
+          session_id: branch.session_id,
+          deleted_at: branch.deleted_at,
+        }))
+    },
     async getSessionGraph(sessionId, includeInactive = true) {
       await delay()
       const branches = getBranchesBySession(store, sessionId).filter((branch) => {
-        if (branch.status === 'deleted') {
-          return false
-        }
-
-        return includeInactive || branch.status === 'active'
+        return includeInactive || branch.status !== 'deleted'
       })
 
       return {
@@ -92,17 +161,20 @@ export function createMockBranchGraphApi() {
           status: branch.status,
           message_count: store.messagesByBranchId.get(branch.id)?.length ?? 0,
           is_collapsed: branch.is_collapsed,
+          is_merge: branch.is_merge,
+          is_main: branch.is_main,
           parent_branch_id: branch.parent_branch_id,
-          merged_parent_branch_ids: branch.merged_parent_branch_ids,
+          merge_parent_ids: branch.merge_parent_ids,
         })),
         edges: branches.flatMap((branch) =>
-          (branch.merged_parent_branch_ids ?? [branch.parent_branch_id])
+          (branch.merge_parent_ids?.length ? branch.merge_parent_ids : [branch.parent_branch_id])
             .filter(Boolean)
             .map((parentBranchId) => ({
+              id: `${branch.is_merge ? 'merge' : 'edge'}-${branch.id}-${parentBranchId}`,
               source: parentBranchId,
               target: branch.id,
+              type: branch.is_merge ? 'merge' : 'fork',
               fork_from_message_id: branch.fork_from_message_id,
-              is_merge: Boolean(branch.merged_parent_branch_ids),
             })),
         ),
       }
@@ -187,6 +259,9 @@ export function createMockBranchGraphApi() {
         tags: ['새 분기', '대화'],
         status: 'active',
         is_collapsed: false,
+        is_merge: false,
+        is_main: false,
+        merge_parent_ids: [],
         created_at: createdAt,
         updated_at: createdAt,
       }
@@ -218,13 +293,15 @@ export function createMockBranchGraphApi() {
       const branch = {
         id: branchId,
         session_id: sessionId,
-        parent_branch_id: uniqueBranchIds[0],
-        merged_parent_branch_ids: uniqueBranchIds,
+        parent_branch_id: null,
+        merge_parent_ids: uniqueBranchIds,
         fork_from_message_id: null,
         name: name?.trim() || `병합: ${sourceBranches.map((branch) => branch.name).join(' + ')}`,
         tags: ['병합', '대화 흐름'],
         status: 'active',
         is_collapsed: false,
+        is_merge: true,
+        is_main: false,
         created_at: createdAt,
         updated_at: createdAt,
       }
@@ -253,6 +330,30 @@ export function createMockBranchGraphApi() {
 
       return branch
     },
+    async selectMainBranch(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch를 찾을 수 없습니다.')
+      }
+
+      const mainBranchIds = getBranchChain(store, branchId).map((candidate) => candidate.id)
+
+      Array.from(store.branches.values())
+        .filter((candidate) => candidate.session_id === branch.session_id)
+        .forEach((candidate) => {
+          store.branches.set(candidate.id, {
+            ...candidate,
+            is_main: mainBranchIds.includes(candidate.id),
+          })
+        })
+
+      return {
+        branch_id: branchId,
+        main_branch_ids: mainBranchIds,
+      }
+    },
     async updateBranch(branchId, patch) {
       await delay()
       const branch = store.branches.get(branchId)
@@ -261,14 +362,34 @@ export function createMockBranchGraphApi() {
         throw new Error('branch_id가 존재하지 않는다.')
       }
 
-      if (!branch.parent_branch_id && patch.status === 'inactive') {
-        throw new Error('root branch는 inactive로 변경할 수 없다.')
+      if (!branch.parent_branch_id && !branch.is_merge && ['inactive', 'deleted'].includes(patch.status)) {
+        throw new Error('root branch는 비활성화하거나 삭제할 수 없다.')
+      }
+
+      if (patch.status === 'deleted') {
+        const deletedAt = new Date().toISOString()
+
+        collectBranchIds(store, branchId).forEach((id) => {
+          const targetBranch = store.branches.get(id)
+
+          if (targetBranch) {
+            store.branches.set(id, {
+              ...targetBranch,
+              status: 'deleted',
+              deleted_at: deletedAt,
+              updated_at: deletedAt,
+            })
+          }
+        })
+
+        return store.branches.get(branchId)
       }
 
       const updatedBranch = {
         ...branch,
         name: patch.name?.trim() || branch.name,
         status: patch.status ?? branch.status,
+        deleted_at: patch.status === 'active' ? null : branch.deleted_at,
         is_collapsed: patch.is_collapsed ?? branch.is_collapsed,
         updated_at: new Date().toISOString(),
       }
@@ -276,6 +397,25 @@ export function createMockBranchGraphApi() {
       store.branches.set(branchId, updatedBranch)
 
       return updatedBranch
+    },
+    async restoreBranch(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch || branch.status !== 'deleted') {
+        throw new Error('휴지통에서 해당 branch를 찾을 수 없습니다.')
+      }
+
+      const restoredBranch = {
+        ...branch,
+        status: 'active',
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      }
+
+      store.branches.set(branchId, restoredBranch)
+
+      return restoredBranch
     },
     async deleteBranch(branchId) {
       await delay()
@@ -289,7 +429,7 @@ export function createMockBranchGraphApi() {
         store.branches.delete(id)
         store.messagesByBranchId.delete(id)
       })
-      if (!branch.parent_branch_id) {
+      if (!branch.parent_branch_id && !branch.is_merge) {
         store.sessions = store.sessions.filter((session) => session.id !== branch.session_id)
       }
 
@@ -305,7 +445,7 @@ function collectBranchIds(store, branchId) {
     const parentId = ids[index]
     Array.from(store.branches.values())
       .filter((branch) =>
-        branch.parent_branch_id === parentId || branch.merged_parent_branch_ids?.includes(parentId),
+        branch.parent_branch_id === parentId || branch.merge_parent_ids?.includes(parentId),
       )
       .forEach((branch) => {
         if (!ids.includes(branch.id)) {
@@ -364,7 +504,7 @@ function getShortestBranchIdPath(store, branchId) {
 
 function getParentBranchIds(branch) {
   return [
-    ...new Set([branch.parent_branch_id, ...(branch.merged_parent_branch_ids ?? [])].filter(Boolean)),
+    ...new Set([branch.parent_branch_id, ...(branch.merge_parent_ids ?? [])].filter(Boolean)),
   ]
 }
 
@@ -381,6 +521,8 @@ function createMockStore() {
     id: apiSessionIdByRootId.get(node.id),
     title: node.title,
     main_branch_id: node.id,
+    status: 'active',
+    deleted_at: null,
     created_at: createIsoDate(node.createdAt),
     updated_at: createIsoDate(node.createdAt),
   }))
@@ -396,7 +538,11 @@ function createMockStore() {
         summary: node.description,
         tags: createMockTags(node),
         status: node.isActive ? 'active' : 'inactive',
+        deleted_at: null,
         is_collapsed: node.isHidden,
+        is_merge: node.parentIds?.length > 1,
+        is_main: false,
+        merge_parent_ids: node.parentIds?.length > 1 ? node.parentIds : [],
         created_at: createIsoDate(node.createdAt),
         updated_at: createIsoDate(node.createdAt),
       },
