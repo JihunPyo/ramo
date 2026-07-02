@@ -30,8 +30,8 @@ import {
   setNodeCollapsed,
 } from './features/branchGraph/branchGraphModel.js'
 
-const DEFAULT_MODEL_PROVIDER = 'chatkhu'
-const DEFAULT_MODEL_NAME = 'gpt-5.4-mini'
+const DEFAULT_MODEL_PROVIDER = 'openai'
+const DEFAULT_MODEL_NAME = 'gpt-4o-mini'
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
 function App() {
