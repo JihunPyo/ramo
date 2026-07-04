@@ -295,7 +295,6 @@ export function StartNodeSidebar({
                   disabled={isBusy}
                 >
                   <span>{node.title}</span>
-                  <small>{node.description}</small>
                 </button>
               )
             })}
