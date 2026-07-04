@@ -30,8 +30,13 @@ import {
   setNodeCollapsed,
 } from './features/branchGraph/branchGraphModel.js'
 
-const DEFAULT_MODEL_PROVIDER = 'openai'
-const DEFAULT_MODEL_NAME = 'gpt-4o-mini'
+const CHAT_MODEL_OPTIONS = [
+  { provider: 'openai', name: 'gpt-4o-mini', label: 'GPT-4o mini' },
+  { provider: 'openai', name: 'gpt-4o', label: 'GPT-4o' },
+  { provider: 'anthropic', name: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
+  { provider: 'google', name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { provider: 'deepseek', name: 'deepseek-chat', label: 'DeepSeek Chat' },
+]
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
 function App() {
@@ -48,6 +53,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [pendingAction, setPendingAction] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedChatModel, setSelectedChatModel] = useState(() => CHAT_MODEL_OPTIONS[0])
+  const [pendingUserMessage, setPendingUserMessage] = useState('')
   const graphStateRef = useRef(graphState)
 
   useEffect(() => {
@@ -375,14 +382,15 @@ function App() {
     }
 
     setPendingAction('메시지 전송 중')
+    setPendingUserMessage(messageText)
     setIsLandingVisible(false)
 
     try {
       await branchGraphApi.sendChatMessage({
         branchId,
         message: messageText,
-        modelProvider: DEFAULT_MODEL_PROVIDER,
-        modelName: DEFAULT_MODEL_NAME,
+        modelProvider: selectedChatModel.provider,
+        modelName: selectedChatModel.name,
       })
       await loadGraphState({
         activeNodeId: branchId,
@@ -392,6 +400,7 @@ function App() {
     } catch (error) {
       setErrorMessage(getDisplayError(error))
     } finally {
+      setPendingUserMessage('')
       setPendingAction('')
     }
   }
@@ -702,6 +711,10 @@ function App() {
                 nodeNavigationKey={nodeNavigationKey}
                 isBusy={isBusy}
                 isAwaitingResponse={pendingAction === '메시지 전송 중'}
+                pendingUserMessage={pendingUserMessage}
+                modelOptions={CHAT_MODEL_OPTIONS}
+                selectedModel={selectedChatModel}
+                onChangeModel={setSelectedChatModel}
                 onSendMessage={handleSendMessage}
                 onCreateBranch={handleCreateBranch}
                 onRenameSession={handleRenameSession}

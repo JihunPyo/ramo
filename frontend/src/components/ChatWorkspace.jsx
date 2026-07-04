@@ -14,6 +14,10 @@ export function ChatWorkspace({
   nodeNavigationKey = 0,
   isBusy = false,
   isAwaitingResponse = false,
+  pendingUserMessage = '',
+  modelOptions = [],
+  selectedModel,
+  onChangeModel,
   onSendMessage,
   onCreateBranch,
   onRenameSession,
@@ -24,6 +28,8 @@ export function ChatWorkspace({
   const [comparisonNodeId, setComparisonNodeId] = useState(null)
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
+  const messageListRef = useRef(null)
+  const previousConversationStateRef = useRef(null)
   const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
@@ -33,6 +39,10 @@ export function ChatWorkspace({
   const comparisonNode = branchPath.find((node) => node.id === comparisonNodeId)
   const hasActiveStartMessage = contextSections.some(
     (section) => section.node.id === activeNode?.id && section.session.messages.length > 0,
+  )
+  const visibleMessageCount = contextSections.reduce(
+    (count, section) => count + section.session.messages.filter(isVisibleMessage).length,
+    0,
   )
 
   useEffect(() => {
@@ -58,6 +68,35 @@ export function ChatWorkspace({
       window.cancelAnimationFrame(scrollAnimationFrameId)
     }
   }, [hasActiveStartMessage, nodeNavigationKey])
+
+  useEffect(() => {
+    const previousState = previousConversationStateRef.current
+    const currentState = {
+      nodeId: activeNode?.id,
+      messageCount: visibleMessageCount,
+      isAwaitingResponse,
+    }
+
+    previousConversationStateRef.current = currentState
+
+    const shouldScrollToBottom =
+      previousState?.nodeId === currentState.nodeId &&
+      (currentState.messageCount > previousState.messageCount ||
+        (!previousState.isAwaitingResponse && currentState.isAwaitingResponse))
+
+    if (!shouldScrollToBottom) {
+      return undefined
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      messageListRef.current?.scrollTo({
+        top: messageListRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+    })
+
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [activeNode?.id, isAwaitingResponse, visibleMessageCount])
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -162,7 +201,7 @@ export function ChatWorkspace({
           onClose={() => setComparisonNodeId(null)}
         />
       ) : (
-      <section className="message-list" aria-label="메시지 목록">
+      <section ref={messageListRef} className="message-list" aria-label="메시지 목록">
         {contextSections.map((section) => (
           <section
             key={section.node.id}
@@ -198,6 +237,14 @@ export function ChatWorkspace({
             ))}
           </section>
         ))}
+        {isAwaitingResponse && pendingUserMessage ? (
+          <article className="message-row user pending-user-message" aria-label="방금 보낸 질문">
+            <div className="message-bubble">
+              <span className="message-role">User</span>
+              <RichMessageContent content={pendingUserMessage} />
+            </div>
+          </article>
+        ) : null}
         {isAwaitingResponse ? <PendingAssistantMessage /> : null}
       </section>
       )}
@@ -214,6 +261,26 @@ export function ChatWorkspace({
           rows={1}
           placeholder="현재 대화에서 이어서 질문하세요."
         />
+        <label className="composer-model-label" htmlFor="chat-model-select">현재 모델</label>
+        <select
+          id="chat-model-select"
+          className="composer-model-select"
+          value={selectedModel?.name ?? ''}
+          onChange={(event) => {
+            const nextModel = modelOptions.find((model) => model.name === event.target.value)
+            if (nextModel) {
+              onChangeModel?.(nextModel)
+            }
+          }}
+          disabled={isBusy}
+          aria-label="사용 모델 선택"
+        >
+          {modelOptions.map((model) => (
+            <option key={`${model.provider}:${model.name}`} value={model.name}>
+              {model.label}
+            </option>
+          ))}
+        </select>
         <button type="submit" className="send-button" aria-label="메시지 전송" disabled={isBusy || !draft.trim()}>
           <span aria-hidden="true">↑</span>
         </button>
