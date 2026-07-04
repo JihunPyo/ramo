@@ -185,7 +185,7 @@
 .merge-summary-card { display: grid; align-content: start; gap: 9px; min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); padding: 14px; }
 .merge-source-label { color: var(--color-accent); font-size: 10px; font-weight: 850; letter-spacing: .04em; }
 .merge-summary-card h2 { margin: 0; color: var(--color-text); font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
-.merge-summary-message { min-width: 0; border-radius: 4px; background: #eef4f0; color: var(--color-text); padding: 13px 14px; }
+.merge-summary-message { min-width: 0; color: var(--color-text); padding: 4px 0 0; }
 .merge-summary-message .rich-message-content { gap: 8px; font-size: 13px; line-height: 1.65; }
 .merge-summary-message .rich-message-content p,
 .merge-summary-message .rich-message-content li { color: var(--color-text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
