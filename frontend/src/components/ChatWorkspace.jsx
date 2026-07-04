@@ -18,6 +18,7 @@ export function ChatWorkspace({
   modelOptions = [],
   selectedModel,
   onChangeModel,
+  onOpenModelComparison,
   onSendMessage,
   onCreateBranch,
   onRenameSession,
@@ -281,6 +282,14 @@ export function ChatWorkspace({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="composer-compare-button"
+          disabled={isBusy}
+          onClick={() => onOpenModelComparison?.(draft.trim())}
+        >
+          모델 비교
+        </button>
         <button type="submit" className="send-button" aria-label="메시지 전송" disabled={isBusy || !draft.trim()}>
           <span aria-hidden="true">↑</span>
         </button>

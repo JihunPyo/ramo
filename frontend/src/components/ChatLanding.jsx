@@ -100,7 +100,7 @@ function getOptionLabel(options, value) {
   return options.find((option) => option.value === value)?.label ?? ''
 }
 
-export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
+export function ChatLanding({ activeNode, isBusy = false, onSendMessage, onOpenModelComparison }) {
   const [draft, setDraft] = useState('')
   const [activeMenu, setActiveMenu] = useState(null)
   const [webSearch, setWebSearch] = useState('off')
@@ -233,6 +233,15 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
               <span>챗봇 비교</span>
               <small>{selectedModels.length}개 모델</small>
               <span aria-hidden="true">⌄</span>
+            </button>
+            <button
+              type="button"
+              className="option-chip model-compare-launch"
+              disabled={isBusy}
+              onClick={() => onOpenModelComparison?.(draft.trim())}
+            >
+              <span>모델 비교</span>
+              <small>답변 나란히 보기</small>
             </button>
           </div>
 

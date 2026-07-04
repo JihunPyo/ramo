@@ -4,6 +4,7 @@ import './Modern.css'
 import { ChatLanding } from './components/ChatLanding.jsx'
 import { ChatWorkspace } from './components/ChatWorkspace.jsx'
 import { FullscreenGraphModal } from './components/FullscreenGraphModal.jsx'
+import { ModelComparisonFlow } from './components/ModelComparisonFlow.jsx'
 import { StartNodeSidebar } from './components/StartNodeSidebar.jsx'
 import { TopMiniGraph } from './components/TopMiniGraph.jsx'
 import {
@@ -36,6 +37,29 @@ const CHAT_MODEL_OPTIONS = [
   { provider: 'anthropic', name: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
   { provider: 'google', name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   { provider: 'deepseek', name: 'deepseek-chat', label: 'DeepSeek Chat' },
+]
+const OPENAI_COMPARISON_MODEL_OPTIONS = [
+  { provider: 'openai', name: 'gpt-5.5', label: 'GPT-5.5' },
+  { provider: 'openai', name: 'gpt-5.4', label: 'GPT-5.4' },
+  { provider: 'openai', name: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
+  { provider: 'openai', name: 'gpt-5.4-nano', label: 'GPT-5.4 nano' },
+  { provider: 'openai', name: 'gpt-5.2', label: 'GPT-5.2' },
+  { provider: 'openai', name: 'gpt-5.2-chat-latest', label: 'GPT-5.2 Chat' },
+  { provider: 'openai', name: 'gpt-5.1', label: 'GPT-5.1' },
+  { provider: 'openai', name: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
+  { provider: 'openai', name: 'gpt-5', label: 'GPT-5' },
+  { provider: 'openai', name: 'gpt-5-chat-latest', label: 'GPT-5 Chat' },
+  { provider: 'openai', name: 'gpt-5-mini', label: 'GPT-5 mini' },
+  { provider: 'openai', name: 'gpt-5-nano', label: 'GPT-5 nano' },
+  { provider: 'openai', name: 'gpt-4.1', label: 'GPT-4.1' },
+  { provider: 'openai', name: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
+  { provider: 'openai', name: 'gpt-4.1-nano', label: 'GPT-4.1 nano' },
+  { provider: 'openai', name: 'gpt-4o', label: 'GPT-4o' },
+  { provider: 'openai', name: 'gpt-4o-mini', label: 'GPT-4o mini' },
+]
+const COMPARISON_MODEL_OPTIONS = [
+  ...OPENAI_COMPARISON_MODEL_OPTIONS,
+  ...CHAT_MODEL_OPTIONS.filter((model) => model.provider !== 'openai'),
 ]
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
@@ -89,6 +113,8 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedChatModel, setSelectedChatModel] = useState(() => CHAT_MODEL_OPTIONS[0])
   const [pendingUserMessage, setPendingUserMessage] = useState('')
+  const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
+  const [comparisonResetKey, setComparisonResetKey] = useState(0)
   const graphStateRef = useRef(graphState)
 
   useEffect(() => {
@@ -454,6 +480,139 @@ function App() {
     }
   }
 
+  const handleOpenModelComparison = (messageText) => {
+    setErrorMessage('')
+    setModelComparisonFlow({ prompt: messageText ?? '', comparison: null, analysis: null })
+  }
+
+  const handleStartModelComparison = async (prompt, models) => {
+    const branchId = graphStateRef.current.activeNodeId
+    const currentFlow = modelComparisonFlow
+
+    if (!branchId || !currentFlow || !prompt || models.length !== 2) {
+      return
+    }
+
+    setPendingAction('모델 답변 비교 중')
+    setErrorMessage('')
+    setModelComparisonFlow((flow) => flow ? { ...flow, prompt } : flow)
+
+    try {
+      const response = await branchGraphApi.compareModels({
+        branchId,
+        message: prompt,
+        modelA: models[0],
+        modelB: models[1],
+      })
+      const comparisonId = response?.comparison_id ?? response?.comparisonId
+
+      if (!comparisonId) {
+        throw new Error('모델 비교 ID를 확인할 수 없습니다.')
+      }
+
+      setModelComparisonFlow((flow) => flow ? {
+        ...flow,
+        comparison: {
+          id: comparisonId,
+          modelA: models[0],
+          modelB: models[1],
+          responseA: readComparisonContent(response?.response_a ?? response?.responseA),
+          responseB: readComparisonContent(response?.response_b ?? response?.responseB),
+        },
+      } : flow)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleAnalyzeModelComparison = async () => {
+    const comparisonId = modelComparisonFlow?.comparison?.id
+
+    if (!comparisonId) {
+      return
+    }
+
+    setPendingAction('답변 분석 중')
+    setErrorMessage('')
+
+    try {
+      const analysis = await branchGraphApi.analyzeComparison(comparisonId)
+      setModelComparisonFlow((flow) => flow ? { ...flow, analysis } : flow)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleSelectComparedAnswer = async (selected, model) => {
+    const comparisonId = modelComparisonFlow?.comparison?.id
+    const branchId = graphStateRef.current.activeNodeId
+
+    if (!comparisonId || !branchId) {
+      return
+    }
+
+    setPendingAction('선택한 답변 적용 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.selectComparison(comparisonId, selected)
+      setSelectedChatModel(model)
+      setComparisonResetKey((key) => key + 1)
+      setModelComparisonFlow(null)
+      setIsLandingVisible(false)
+      await loadGraphState({
+        activeNodeId: branchId,
+        selectedRootNodeId: graphStateRef.current.selectedRootNodeId,
+        loadMessages: true,
+      })
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleMergeComparedAnswers = async (instruction) => {
+    const comparisonId = modelComparisonFlow?.comparison?.id
+    const branchId = graphStateRef.current.activeNodeId
+
+    if (!comparisonId || !branchId) {
+      return
+    }
+
+    const mergeModel = ['openai', 'anthropic'].includes(selectedChatModel.provider)
+      ? selectedChatModel
+      : COMPARISON_MODEL_OPTIONS[0]
+
+    setPendingAction('답변 융합 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.mergeComparison(comparisonId, {
+        instruction,
+        modelProvider: mergeModel.provider,
+        modelName: mergeModel.name,
+      })
+      setSelectedChatModel(mergeModel)
+      setComparisonResetKey((key) => key + 1)
+      setModelComparisonFlow(null)
+      setIsLandingVisible(false)
+      await loadGraphState({
+        activeNodeId: branchId,
+        selectedRootNodeId: graphStateRef.current.selectedRootNodeId,
+        loadMessages: true,
+      })
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
+  }
+
   const handleCreateBranch = async (messageId, parentNodeId) => {
     const parentNode = getNodeById(graphStateRef.current.nodes, parentNodeId)
 
@@ -752,9 +911,15 @@ function App() {
                 <h1>세션과 브랜치 정보를 불러오는 중이다.</h1>
               </section>
             ) : isLandingVisible ? (
-              <ChatLanding activeNode={activeNode} isBusy={isBusy} onSendMessage={handleSendMessage} />
+              <ChatLanding
+                activeNode={activeNode}
+                isBusy={isBusy}
+                onSendMessage={handleSendMessage}
+                onOpenModelComparison={handleOpenModelComparison}
+              />
             ) : (
                 <ChatWorkspace
+                  key={`${activeNode?.id ?? 'chat'}:${comparisonResetKey}`}
                   activeNode={activeNode}
                   graphState={graphState}
                 nodeNavigationKey={nodeNavigationKey}
@@ -764,6 +929,7 @@ function App() {
                 modelOptions={CHAT_MODEL_OPTIONS}
                 selectedModel={selectedChatModel}
                 onChangeModel={setSelectedChatModel}
+                onOpenModelComparison={handleOpenModelComparison}
                 onSendMessage={handleSendMessage}
                 onCreateBranch={handleCreateBranch}
                 onRenameSession={handleRenameSession}
@@ -811,12 +977,39 @@ function App() {
           mergeRecommendationError={mergeRecommendationError}
         />
       ) : null}
+
+      {modelComparisonFlow ? (
+        <ModelComparisonFlow
+          prompt={modelComparisonFlow.prompt}
+          modelOptions={COMPARISON_MODEL_OPTIONS}
+          comparison={modelComparisonFlow.comparison}
+          analysis={modelComparisonFlow.analysis}
+          isBusy={Boolean(pendingAction)}
+          onStartComparison={handleStartModelComparison}
+          onAnalyze={handleAnalyzeModelComparison}
+          onSelectAnswer={handleSelectComparedAnswer}
+          onMerge={handleMergeComparedAnswers}
+          onClose={() => {
+            if (!pendingAction) {
+              setModelComparisonFlow(null)
+            }
+          }}
+        />
+      ) : null}
     </main>
   )
 }
 
 function getDisplayError(error) {
   return error?.message ?? '알 수 없는 오류가 발생했다.'
+}
+
+function readComparisonContent(response) {
+  if (typeof response === 'string') {
+    return response
+  }
+
+  return response?.content ?? response?.reply ?? response?.response ?? '응답 내용을 확인할 수 없습니다.'
 }
 
 async function loadSessionGraphResponse(session) {

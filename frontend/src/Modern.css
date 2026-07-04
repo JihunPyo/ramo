@@ -377,11 +377,13 @@
 .message-row:hover .message-actions button, .message-row:focus-within .message-actions button { opacity: 1; }
 .message-actions button:hover { background: var(--color-surface-soft); color: var(--color-accent); }
 
-.composer { position: relative; bottom: auto; z-index: 6; grid-template-columns: minmax(0, 1fr) 42px; grid-template-areas: "input input" "model send"; align-items: end; gap: 5px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 16px; }
+.composer { position: relative; bottom: auto; z-index: 6; grid-template-columns: auto auto minmax(0, 1fr) 42px; grid-template-areas: "input input input input" "model compare spacer send"; align-items: end; gap: 5px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 16px; }
 .composer textarea { grid-area: input; resize: none; border: 0; outline: 0; background: transparent; min-height: 26px; max-height: 180px; padding: 8px 4px; line-height: 1.55; overflow-y: hidden; }
 .composer-model-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .composer-model-select { grid-area: model; justify-self: start; max-width: min(230px, 100%); border: 0; border-radius: 999px; outline: 0; background: var(--color-surface-soft); color: var(--color-text-muted); font: inherit; font-size: 12px; padding: 7px 28px 7px 10px; cursor: pointer; }
 .composer-model-select:hover, .composer-model-select:focus-visible { background: #e8ebe6; color: var(--color-text); }
+.composer-compare-button { grid-area: compare; border: 0; border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); cursor: pointer; font-size: 12px; font-weight: 850; padding: 7px 12px; }
+.composer-compare-button:hover { background: #dcebe3; }
 .send-button { grid-area: send; display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 20px; padding: 0; }
 
 .top-graph-panel { position: sticky; top: 74px; right: auto; align-self: start; justify-self: end; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; width: auto; height: calc(100vh - 90px); min-width: 0; min-height: 0; max-width: none; max-height: none; border: 0; border-left: 1px solid #d8e1d8; border-radius: 0; background: #e9eee9; box-shadow: none; margin-right: 24px; padding: 18px 16px; overflow: visible; z-index: 8; }

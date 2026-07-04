@@ -229,6 +229,70 @@ export function createMockBranchGraphApi() {
         assistant_message: assistantMessage,
       }
     },
+    async compareModels({ branchId, message, modelA, modelB }) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch || branch.status !== 'active') {
+        throw new Error('활성 브랜치에서만 모델 답변을 비교할 수 있다.')
+      }
+
+      const comparisonId = `mock-comparison-${Date.now()}`
+      const responseA = createMockComparisonContent(message, modelA, 'A')
+      const responseB = createMockComparisonContent(message, modelB, 'B')
+
+      store.comparisons.set(comparisonId, {
+        id: comparisonId,
+        branchId,
+        message,
+        modelA,
+        modelB,
+        responseA,
+        responseB,
+        status: 'pending',
+      })
+
+      return {
+        comparison_id: comparisonId,
+        response_a: { content: responseA, provider: modelA.provider, name: modelA.name },
+        response_b: { content: responseB, provider: modelB.provider, name: modelB.name },
+      }
+    },
+    async analyzeComparison(comparisonId) {
+      await delay()
+      const comparison = getPendingComparison(store, comparisonId, false)
+
+      return {
+        comparison_id: comparisonId,
+        similarities: '- 두 답변 모두 질문의 핵심 목표를 먼저 정리합니다.\n- 실행 가능한 다음 단계를 제안합니다.',
+        differences: `- ${comparison.modelA.name}은 구조와 우선순위를 강조합니다.\n- ${comparison.modelB.name}은 예시와 대안의 폭을 더 넓게 다룹니다.`,
+      }
+    },
+    async selectComparison(comparisonId, selected) {
+      await delay()
+      const comparison = getPendingComparison(store, comparisonId)
+      const isA = selected === 'a'
+      const model = isA ? comparison.modelA : comparison.modelB
+      const content = isA ? comparison.responseA : comparison.responseB
+      const assistantMessage = saveComparisonMessages(store, comparison, content, model)
+
+      comparison.status = 'done'
+      return { message_id: assistantMessage.id, branch_id: comparison.branchId, content }
+    },
+    async mergeComparison(comparisonId, { instruction, modelProvider, modelName }) {
+      await delay()
+      const comparison = getPendingComparison(store, comparisonId)
+      const content = `## 융합 답변\n\n${instruction}\n\n두 모델의 공통 결론을 유지하면서, A의 구조적인 판단과 B의 구체적인 예시를 하나의 실행안으로 정리했습니다.`
+      const assistantMessage = saveComparisonMessages(
+        store,
+        comparison,
+        content,
+        { provider: modelProvider, name: modelName },
+      )
+
+      comparison.status = 'done'
+      return { comparison_id: comparisonId, merged_content: content, message_id: assistantMessage.id }
+    },
     async createBranch({ sessionId, parentBranchId, forkFromMessageId, name }) {
       await delay()
       const parentBranch = store.branches.get(parentBranchId)
@@ -607,6 +671,7 @@ function createMockStore() {
     sessions,
     branches,
     messagesByBranchId,
+    comparisons: new Map(),
     messageSequence: 1000,
   }
 }
@@ -663,6 +728,46 @@ function stripMarkdown(value) {
     .replace(/[#>*`|_-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function createMockComparisonContent(message, model, answerLabel) {
+  return `## ${model.name}의 답변 ${answerLabel}\n\n**질문:** ${message}\n\n- 핵심 목표를 먼저 정리합니다.\n- ${answerLabel === 'A' ? '우선순위와 실행 단계를 구조적으로 제안합니다.' : '구체적인 예시와 대안을 중심으로 설명합니다.'}\n- 마지막에는 바로 적용할 수 있는 다음 행동을 제시합니다.`
+}
+
+function getPendingComparison(store, comparisonId, requirePending = true) {
+  const comparison = store.comparisons.get(comparisonId)
+
+  if (!comparison) {
+    throw new Error('comparison을 찾을 수 없습니다.')
+  }
+
+  if (requirePending && comparison.status !== 'pending') {
+    throw new Error('이미 완료된 comparison입니다.')
+  }
+
+  return comparison
+}
+
+function saveComparisonMessages(store, comparison, content, model) {
+  const branch = store.branches.get(comparison.branchId)
+  const messages = store.messagesByBranchId.get(comparison.branchId) ?? []
+  const userMessage = createApiMessage({
+    branch,
+    role: 'user',
+    content: comparison.message,
+    modelProvider: model.provider,
+    modelName: model.name,
+  })
+  const assistantMessage = createApiMessage({
+    branch,
+    role: 'assistant',
+    content,
+    modelProvider: model.provider,
+    modelName: model.name,
+  })
+
+  store.messagesByBranchId.set(comparison.branchId, [...messages, userMessage, assistantMessage])
+  return assistantMessage
 }
 
 function getBranchesBySession(store, sessionId) {

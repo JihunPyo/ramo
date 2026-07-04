@@ -80,6 +80,36 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
+    compareModels({ branchId, message, modelA, modelB }) {
+      return client.request('/compare', {
+        method: 'POST',
+        body: {
+          branch_id: branchId,
+          message,
+          model_a: { provider: modelA.provider, name: modelA.name },
+          model_b: { provider: modelB.provider, name: modelB.name },
+        },
+      })
+    },
+    analyzeComparison(comparisonId) {
+      return client.request(`/compare/${comparisonId}/analyze`, { method: 'POST' })
+    },
+    selectComparison(comparisonId, selected) {
+      return client.request(`/compare/${comparisonId}/select`, {
+        method: 'POST',
+        body: { selected },
+      })
+    },
+    mergeComparison(comparisonId, { instruction, modelProvider, modelName }) {
+      return client.request(`/compare/${comparisonId}/merge`, {
+        method: 'POST',
+        body: {
+          instruction,
+          model_provider: modelProvider,
+          model_name: modelName,
+        },
+      })
+    },
     getMergeCandidates(branchId) {
       return client.request(`/branches/${branchId}/merge-candidates`)
     },
