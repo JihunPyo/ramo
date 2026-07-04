@@ -216,6 +216,9 @@
 .session-main-state { flex: 0 0 auto; border-radius: 999px; background: var(--color-surface-soft); color: var(--color-text-muted); font-size: 11px; font-weight: 800; margin-left: auto; padding: 6px 9px; }
 .session-main-state.included { background: var(--color-accent-soft); color: var(--color-accent); }
 .message-list { gap: 26px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px 0 22px; scrollbar-gutter: stable; }
+.previous-context-toggle { justify-self: start; display: inline-grid; place-items: center; min-width: 34px; height: 26px; border: 0; border-radius: 999px; background: var(--color-surface-soft); color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 15px; font-weight: 850; line-height: 1; margin: -6px 0 -8px 4px; padding: 0 10px 4px; }
+.previous-context-toggle:hover, .previous-context-toggle.active { background: var(--color-accent-soft); color: var(--color-accent); }
+.context-section.previous { opacity: .92; }
 .merge-summary-panel { display: grid; gap: 12px; padding: 0 4px 4px; scroll-margin-top: 150px; }
 .merge-summary-header { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--color-text-muted); }
 .merge-summary-header span { border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 10px; font-weight: 850; padding: 4px 8px; }

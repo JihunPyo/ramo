@@ -30,6 +30,7 @@ export function ChatWorkspace({
   const [isRenamingSession, setIsRenamingSession] = useState(false)
   const [sessionNameDraft, setSessionNameDraft] = useState('')
   const [comparisonNodeId, setComparisonNodeId] = useState(null)
+  const [previousContextState, setPreviousContextState] = useState({ nodeId: null, isOpen: false })
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
   const messageListRef = useRef(null)
@@ -44,20 +45,31 @@ export function ChatWorkspace({
   const mergeSourceSummaries = getMergeSourceSummaries(graphState, activeNode?.id ?? '')
   const shouldHideMergeResultMessage = isActiveMergeNode && mergeSourceSummaries.length > 0
   const comparisonNode = branchPath.find((node) => node.id === comparisonNodeId)
-  const hasActiveStartMessage = contextSections.some(
-    (section) => section.node.id === activeNode?.id && section.session.messages.length > 0,
+  const isPreviousContextOpen = previousContextState.nodeId === activeNode?.id && previousContextState.isOpen
+  const contextSectionsWithMessages = contextSections.map((section) => ({
+    ...section,
+    visibleMessages: section.session.messages.filter((message) =>
+      isVisibleMessage(message, {
+        hideMergeSeed: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
+        sectionMessages: section.session.messages,
+      }),
+    ),
+  }))
+  const activeSectionIndex = contextSectionsWithMessages.findIndex((section) => section.node.id === activeNode?.id)
+  const previousContextSections = activeSectionIndex > 0
+    ? contextSectionsWithMessages.slice(0, activeSectionIndex)
+    : []
+  const currentContextSections = activeSectionIndex >= 0
+    ? contextSectionsWithMessages.slice(activeSectionIndex)
+    : contextSectionsWithMessages
+  const renderedContextSections = isPreviousContextOpen
+    ? [...previousContextSections, ...currentContextSections]
+    : currentContextSections
+  const hasActiveStartMessage = contextSectionsWithMessages.some(
+    (section) => section.node.id === activeNode?.id && section.visibleMessages.length > 0,
   )
-  const visibleMessageCount = contextSections.reduce(
-    (count, section) => {
-      const sectionMessages = section.session.messages.filter((message) =>
-        isVisibleMessage(message, {
-          hideMergeSeed: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
-          sectionMessages: section.session.messages,
-        }),
-      )
-
-      return count + sectionMessages.length
-    },
+  const visibleMessageCount = renderedContextSections.reduce(
+    (count, section) => count + section.visibleMessages.length,
     0,
   )
 
@@ -226,14 +238,23 @@ export function ChatWorkspace({
         />
       ) : (
       <section ref={messageListRef} className="message-list" aria-label="메시지 목록">
-        {contextSections.map((section) => {
-          const visibleMessages = section.session.messages.filter((message) =>
-            isVisibleMessage(message, {
-              hideMergeSeed: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
-              sectionMessages: section.session.messages,
-            }),
-          )
-
+        {previousContextSections.length > 0 ? (
+          <button
+            type="button"
+            className={isPreviousContextOpen ? 'previous-context-toggle active' : 'previous-context-toggle'}
+            aria-expanded={isPreviousContextOpen}
+            aria-label={isPreviousContextOpen ? '이전 대화 숨기기' : '이전 대화 보기'}
+            onClick={() => {
+              setPreviousContextState((currentState) => ({
+                nodeId: activeNode?.id ?? null,
+                isOpen: currentState.nodeId === activeNode?.id ? !currentState.isOpen : true,
+              }))
+            }}
+          >
+            <span aria-hidden="true">...</span>
+          </button>
+        ) : null}
+        {renderedContextSections.map((section) => {
           return (
             <Fragment key={section.node.id}>
               {shouldHideMergeResultMessage && section.node.id === activeNode?.id ? (
@@ -241,9 +262,9 @@ export function ChatWorkspace({
               ) : null}
               <section
                 ref={section.node.id === activeNode?.id ? activeSectionRef : undefined}
-                className="context-section"
+                className={section.node.id === activeNode?.id ? 'context-section current' : 'context-section previous'}
               >
-                {visibleMessages.map((message, messageIndex) => (
+                {section.visibleMessages.map((message, messageIndex) => (
                   <article
                     key={message.id}
                     ref={
