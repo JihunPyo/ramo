@@ -166,15 +166,22 @@ export function StartNodeSidebar({
     const updateToggleTooltip = () => {
       setToggleTooltip(getToggleTooltipPosition())
     }
+    const closeToggleTooltip = () => {
+      setToggleTooltip(null)
+    }
     const timerId = window.setTimeout(updateToggleTooltip, 0)
 
     window.addEventListener('resize', updateToggleTooltip)
-    window.addEventListener('scroll', updateToggleTooltip, true)
+    window.addEventListener('scroll', closeToggleTooltip, true)
+    window.addEventListener('blur', closeToggleTooltip)
+    document.addEventListener('pointerdown', closeToggleTooltip)
 
     return () => {
       window.clearTimeout(timerId)
       window.removeEventListener('resize', updateToggleTooltip)
-      window.removeEventListener('scroll', updateToggleTooltip, true)
+      window.removeEventListener('scroll', closeToggleTooltip, true)
+      window.removeEventListener('blur', closeToggleTooltip)
+      document.removeEventListener('pointerdown', closeToggleTooltip)
     }
   }, [getToggleTooltipPosition, toggleTooltip])
 
@@ -194,6 +201,7 @@ export function StartNodeSidebar({
 
   const handleToggleCollapse = () => {
     hideToggleTooltip()
+    toggleButtonRef.current?.blur()
     onToggleCollapse()
   }
 
@@ -249,6 +257,7 @@ export function StartNodeSidebar({
           aria-expanded={isContentVisible}
           onBlur={hideToggleTooltip}
           onClick={handleToggleCollapse}
+          onPointerDown={hideToggleTooltip}
           onFocus={showToggleTooltipOnFocus}
           onMouseEnter={showToggleTooltip}
           onMouseLeave={hideToggleTooltip}
@@ -328,6 +337,13 @@ export function StartNodeSidebar({
           <div className="sidebar-account-copy">
             <strong>{userProfile.name}</strong>
           </div>
+          <button type="button" className="sidebar-download-button" aria-label="다운로드">
+            <svg className="sidebar-download-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 4v10" />
+              <path d="m8 10 4 4 4-4" />
+              <path d="M5 19h14" />
+            </svg>
+          </button>
         </footer>
         <div className="sidebar-trash" ref={trashMenuRef}>
           <button
