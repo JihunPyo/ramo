@@ -1,4 +1,6 @@
 const TABLE_SEPARATOR_PATTERN = /^\s*\|?[\s:-]+\|[\s|:-]*$/
+const ORDERED_LIST_ITEM_PATTERN = /^(\s*)(\d+)[.)]\s+(.+)$/
+const UNORDERED_LIST_ITEM_PATTERN = /^(\s*)[-*]\s+(.+)$/
 
 export function RichMessageContent({ content }) {
   const blocks = parseMessageBlocks(content)
@@ -71,41 +73,19 @@ function parseMessageBlocks(content) {
       continue
     }
 
-    const unorderedMatch = trimmedLine.match(/^[-*]\s+(.+)$/)
-    if (unorderedMatch) {
-      const items = []
+    if (matchUnorderedListItem(line)) {
+      const { block, nextIndex } = parseListBlock(lines, index, false)
 
-      while (index < lines.length) {
-        const itemMatch = lines[index].trim().match(/^[-*]\s+(.+)$/)
-
-        if (!itemMatch) {
-          break
-        }
-
-        items.push(itemMatch[1])
-        index += 1
-      }
-
-      blocks.push({ type: 'list', ordered: false, items })
+      blocks.push(block)
+      index = nextIndex
       continue
     }
 
-    const orderedMatch = trimmedLine.match(/^\d+[.)]\s+(.+)$/)
-    if (orderedMatch) {
-      const items = []
+    if (matchOrderedListItem(line)) {
+      const { block, nextIndex } = parseListBlock(lines, index, true)
 
-      while (index < lines.length) {
-        const itemMatch = lines[index].trim().match(/^\d+[.)]\s+(.+)$/)
-
-        if (!itemMatch) {
-          break
-        }
-
-        items.push(itemMatch[1])
-        index += 1
-      }
-
-      blocks.push({ type: 'list', ordered: true, items })
+      blocks.push(block)
+      index = nextIndex
       continue
     }
 
@@ -140,11 +120,197 @@ function startsSpecialBlock(lines, index) {
   return (
     trimmedLine.startsWith('```') ||
     /^#{2,4}\s+/.test(trimmedLine) ||
-    /^[-*]\s+/.test(trimmedLine) ||
-    /^\d+[.)]\s+/.test(trimmedLine) ||
+    Boolean(matchUnorderedListItem(lines[index])) ||
+    Boolean(matchOrderedListItem(lines[index])) ||
     trimmedLine.startsWith('>') ||
     isTableStart(lines, index)
   )
+}
+
+function parseListBlock(lines, startIndex, ordered) {
+  const firstItemMatch = matchListItem(lines[startIndex], ordered)
+  const baseIndent = firstItemMatch.indent
+  const items = []
+  let index = startIndex
+
+  while (index < lines.length) {
+    if (!lines[index].trim()) {
+      const nextItemIndex = findNextNonEmptyLineIndex(lines, index + 1)
+      const nextItemMatch =
+        nextItemIndex === -1 ? null : matchListItem(lines[nextItemIndex], ordered)
+
+      if (!nextItemMatch || nextItemMatch.indent !== baseIndent) {
+        break
+      }
+
+      index = nextItemIndex
+    }
+
+    const itemMatch = matchListItem(lines[index], ordered)
+
+    if (!itemMatch || itemMatch.indent !== baseIndent) {
+      break
+    }
+
+    const item = {
+      content: itemMatch.content,
+      children: [],
+      number: itemMatch.number,
+    }
+
+    index += 1
+
+    const childResult = parseListItemChildren(lines, index, {
+      parentIndent: itemMatch.indent,
+      parentContent: item.content,
+      parentOrdered: ordered,
+    })
+
+    item.children = childResult.children
+    index = childResult.nextIndex
+    items.push(item)
+  }
+
+  return {
+    block: {
+      type: 'list',
+      ordered,
+      start: ordered ? items[0]?.number ?? 1 : undefined,
+      items,
+    },
+    nextIndex: index,
+  }
+}
+
+function parseListItemChildren(
+  lines,
+  startIndex,
+  { parentIndent, parentContent, parentOrdered },
+) {
+  const children = []
+  let index = startIndex
+
+  while (index < lines.length) {
+    if (!lines[index].trim()) {
+      const nextItemIndex = findNextNonEmptyLineIndex(lines, index + 1)
+
+      if (
+        nextItemIndex === -1 ||
+        !canContinueListChild(lines[nextItemIndex], {
+          parentIndent,
+          parentContent,
+          parentOrdered,
+        })
+      ) {
+        break
+      }
+
+      index = nextItemIndex
+    }
+
+    const orderedItemMatch = matchOrderedListItem(lines[index])
+    const unorderedItemMatch = matchUnorderedListItem(lines[index])
+
+    if (orderedItemMatch?.indent > parentIndent) {
+      const { block, nextIndex } = parseListBlock(lines, index, true)
+
+      children.push(block)
+      index = nextIndex
+      continue
+    }
+
+    if (
+      unorderedItemMatch &&
+      (unorderedItemMatch.indent > parentIndent ||
+        shouldTreatSameIndentUnorderedAsChild(
+          unorderedItemMatch.indent,
+          parentIndent,
+          parentContent,
+          parentOrdered,
+        ))
+    ) {
+      const { block, nextIndex } = parseListBlock(lines, index, false)
+
+      children.push(block)
+      index = nextIndex
+      continue
+    }
+
+    break
+  }
+
+  return { children, nextIndex: index }
+}
+
+function canContinueListChild(line, { parentIndent, parentContent, parentOrdered }) {
+  const orderedItemMatch = matchOrderedListItem(line)
+  const unorderedItemMatch = matchUnorderedListItem(line)
+
+  return (
+    orderedItemMatch?.indent > parentIndent ||
+    (unorderedItemMatch &&
+      (unorderedItemMatch.indent > parentIndent ||
+        shouldTreatSameIndentUnorderedAsChild(
+          unorderedItemMatch.indent,
+          parentIndent,
+          parentContent,
+          parentOrdered,
+        )))
+  )
+}
+
+function shouldTreatSameIndentUnorderedAsChild(
+  itemIndent,
+  parentIndent,
+  parentContent,
+  parentOrdered,
+) {
+  return parentOrdered && itemIndent === parentIndent && /[:：]\s*$/.test(parentContent)
+}
+
+function findNextNonEmptyLineIndex(lines, startIndex) {
+  for (let index = startIndex; index < lines.length; index += 1) {
+    if (lines[index].trim()) {
+      return index
+    }
+  }
+
+  return -1
+}
+
+function matchListItem(line, ordered) {
+  return ordered ? matchOrderedListItem(line) : matchUnorderedListItem(line)
+}
+
+function matchOrderedListItem(line) {
+  const match = line.match(ORDERED_LIST_ITEM_PATTERN)
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    indent: getIndentSize(match[1]),
+    number: Number(match[2]),
+    content: match[3],
+  }
+}
+
+function matchUnorderedListItem(line) {
+  const match = line.match(UNORDERED_LIST_ITEM_PATTERN)
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    indent: getIndentSize(match[1]),
+    content: match[2],
+  }
+}
+
+function getIndentSize(indent) {
+  return indent.replace(/\t/g, '    ').length
 }
 
 function isTableStart(lines, index) {
@@ -182,15 +348,7 @@ function renderBlock(block, key) {
   }
 
   if (block.type === 'list') {
-    const ListTag = block.ordered ? 'ol' : 'ul'
-
-    return (
-      <ListTag key={key}>
-        {block.items.map((item, index) => (
-          <li key={`${key}-item-${index}`}>{renderInline(item, `${key}-item-${index}`)}</li>
-        ))}
-      </ListTag>
-    )
+    return renderListBlock(block, key)
   }
 
   if (block.type === 'quote') {
@@ -236,6 +394,28 @@ function renderBlock(block, key) {
   }
 
   return <p key={key}>{renderInline(block.content, key)}</p>
+}
+
+function renderListBlock(block, key) {
+  const ListTag = block.ordered ? 'ol' : 'ul'
+  const listProps = block.ordered ? { start: block.start ?? 1 } : {}
+
+  return (
+    <ListTag key={key} {...listProps}>
+      {block.items.map((item, index) => renderListItem(block, item, `${key}-item-${index}`))}
+    </ListTag>
+  )
+}
+
+function renderListItem(block, item, key) {
+  const listItemProps = block.ordered && Number.isFinite(item.number) ? { value: item.number } : {}
+
+  return (
+    <li key={key} {...listItemProps}>
+      {renderInline(item.content, key)}
+      {item.children.map((childBlock, index) => renderListBlock(childBlock, `${key}-child-${index}`))}
+    </li>
+  )
 }
 
 function renderInline(text, keyPrefix) {
