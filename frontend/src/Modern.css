@@ -177,6 +177,17 @@
 .session-main-state { flex: 0 0 auto; border-radius: 999px; background: var(--color-surface-soft); color: var(--color-text-muted); font-size: 11px; font-weight: 800; margin-left: auto; padding: 6px 9px; }
 .session-main-state.included { background: var(--color-accent-soft); color: var(--color-accent); }
 .message-list { gap: 26px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px 0 22px; scrollbar-gutter: stable; }
+.merge-summary-panel { display: grid; gap: 12px; padding: 0 4px 4px; scroll-margin-top: 150px; }
+.merge-summary-header { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--color-text-muted); }
+.merge-summary-header span { border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 10px; font-weight: 850; padding: 4px 8px; }
+.merge-summary-header strong { min-width: 0; color: #4b514a; font-size: 13px; overflow-wrap: anywhere; }
+.merge-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.merge-summary-card { display: grid; align-content: start; gap: 9px; min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); padding: 14px; }
+.merge-source-label { color: var(--color-accent); font-size: 10px; font-weight: 850; letter-spacing: .04em; }
+.merge-summary-card h2 { margin: 0; color: var(--color-text); font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.merge-summary-card p { margin: 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.merge-summary-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.merge-summary-tags span { border-radius: 999px; background: var(--color-surface-soft); color: var(--color-text-muted); font-size: 10px; font-weight: 750; padding: 4px 7px; }
 .node-comparison { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; padding: 18px 0 12px; }
 .node-comparison-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 4px 12px; }
 .node-comparison-header div { display: grid; gap: 3px; }
@@ -430,6 +441,7 @@
   .graph-toggle-button span { font-size: 18px; }
   .message-actions button { opacity: 1; }
   .message-row.user .message-bubble { max-width: 92%; }
+  .merge-summary-grid { grid-template-columns: 1fr; }
   .composer { bottom: auto; grid-template-columns: minmax(0, 1fr) 40px; }
   .top-graph-panel { top: 64px; right: 8px; bottom: 8px; width: calc(100vw - 16px); }
   .node-comparison-grid { grid-template-columns: 1fr; overflow-y: auto; }

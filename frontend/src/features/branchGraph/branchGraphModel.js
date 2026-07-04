@@ -60,10 +60,53 @@ export function getSessionByNodeId(state, nodeId) {
 }
 
 export function getContextSectionsForNode(state, nodeId) {
+  const node = getNodeById(state.nodes, nodeId)
+
+  if (isMergeNode(node)) {
+    return [{
+      node,
+      session: getSessionByNodeId(state, node.id),
+    }]
+  }
+
   return getBranchPath(state.nodes, nodeId).map((node) => ({
     node,
     session: getSessionByNodeId(state, node.id),
   }))
+}
+
+export function getMergeSourceSummaries(state, nodeId) {
+  const node = getNodeById(state.nodes, nodeId)
+
+  if (!isMergeNode(node)) {
+    return []
+  }
+
+  return getParentNodeIds(node)
+    .map((parentNodeId, index) => {
+      const parentNode = getNodeById(state.nodes, parentNodeId)
+
+      if (!parentNode) {
+        return null
+      }
+
+      return {
+        id: parentNode.id,
+        title: parentNode.title,
+        summary: resolveNodeSummary(state, parentNode),
+        tags: parentNode.tags ?? [],
+        index: index + 1,
+      }
+    })
+    .filter(Boolean)
+}
+
+export function isMergeNode(node) {
+  return Boolean(node?.isMerge || (node?.parentIds?.length ?? 0) > 1)
+}
+
+export function shouldUseInheritedMessagesForNode(node) {
+  return !isMergeNode(node)
 }
 
 export function getNodeById(nodes, nodeId) {
@@ -281,6 +324,7 @@ export function setMergedNodeParentLinks(state, nodeId, parentNodeIds) {
         ...candidate,
         parentId: uniqueParentNodeIds[0],
         parentIds: uniqueParentNodeIds,
+        isMerge: true,
         tags: mergeTags,
         description:
           sourceTitles.length > 0
@@ -555,6 +599,34 @@ function isChildOfNode(node, nodeId) {
 
 function getParentNodeIds(node) {
   return [...new Set([node.parentId, ...(node.parentIds ?? [])].filter(Boolean))]
+}
+
+function resolveNodeSummary(state, node) {
+  const session = getSessionByNodeId(state, node.id)
+  const latestAssistantMessage = [...session.messages]
+    .reverse()
+    .find((message) => (
+      message.role === 'assistant' &&
+      !message.isHidden &&
+      message.kind !== 'merge_result'
+    ))
+  const summary = node.description || latestAssistantMessage?.content || '요약 가능한 대화가 아직 없다.'
+
+  return compactSummaryText(summary)
+}
+
+function compactSummaryText(value, maxLength = 220) {
+  const summary = String(value ?? '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#>*`|_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (summary.length <= maxLength) {
+    return summary
+  }
+
+  return `${summary.slice(0, maxLength - 1).trim()}...`
 }
 
 function getGraphDepths(nodes, rootId) {

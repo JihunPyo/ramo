@@ -29,6 +29,7 @@ import {
   setMainTargetNode,
   setMergedNodeParentLinks,
   setNodeCollapsed,
+  shouldUseInheritedMessagesForNode,
 } from './features/branchGraph/branchGraphModel.js'
 
 const CHAT_MODEL_OPTIONS = [
@@ -148,7 +149,12 @@ function App() {
   const isBusy = isLoading || Boolean(pendingAction)
 
   const loadGraphState = useCallback(
-    async ({ activeNodeId, selectedRootNodeId, loadMessages = true } = {}) => {
+    async ({
+      activeNodeId,
+      selectedRootNodeId,
+      loadMessages = true,
+      includeInheritedMessages,
+    } = {}) => {
       setIsLoading(true)
 
       try {
@@ -180,7 +186,9 @@ function App() {
         const nextActiveNode = getNodeById(nextState.nodes, nextState.activeNodeId)
 
         if (loadMessages && nextActiveNode) {
-          const messages = await branchGraphApi.getBranchMessages(nextActiveNode.id, true)
+          const shouldIncludeInherited =
+            includeInheritedMessages ?? shouldUseInheritedMessagesForNode(nextActiveNode)
+          const messages = await branchGraphApi.getBranchMessages(nextActiveNode.id, shouldIncludeInherited)
           nextState = applyBranchMessages(nextState, nextActiveNode.id, messages)
         }
 
@@ -202,7 +210,11 @@ function App() {
     setPendingAction('메시지 동기화 중')
 
     try {
-      const messages = await branchGraphApi.getBranchMessages(branchId, true)
+      const node = getNodeById(graphStateRef.current.nodes, branchId)
+      const messages = await branchGraphApi.getBranchMessages(
+        branchId,
+        shouldUseInheritedMessagesForNode(node),
+      )
 
       setGraphState((currentState) => {
         const selectedState = selectNode(currentState, branchId)
@@ -380,6 +392,7 @@ function App() {
         activeNodeId: mergedBranchId,
         selectedRootNodeId: mergeNodes[0].rootId,
         loadMessages: true,
+        includeInheritedMessages: false,
       })
 
       if (nextState) {

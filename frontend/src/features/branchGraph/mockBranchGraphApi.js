@@ -775,6 +775,12 @@ function getBranchesBySession(store, sessionId) {
 }
 
 function getInheritedMessages(store, branchId) {
+  const targetBranch = store.branches.get(branchId)
+
+  if (targetBranch?.merge_parent_ids?.length > 1) {
+    return store.messagesByBranchId.get(branchId) ?? []
+  }
+
   const branchChain = getBranchChain(store, branchId)
 
   return branchChain.flatMap((branch, index) => {
