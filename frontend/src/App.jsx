@@ -158,6 +158,7 @@ function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isNarrowViewport, setIsNarrowViewport] = useState(false)
   const [isLandingVisible, setIsLandingVisible] = useState(true)
+  const [isNewChatDraft, setIsNewChatDraft] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingAction, setPendingAction] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -303,6 +304,7 @@ function App() {
     setIsMobileSidebarOpen(false)
 
     setNodeNavigationKey((currentKey) => currentKey + 1)
+    setIsNewChatDraft(false)
     setIsLandingVisible(false)
     void loadGraphState({
       activeNodeId: mainLeafNode?.id ?? rootId,
@@ -315,6 +317,7 @@ function App() {
     setNodeNavigationKey((currentKey) => currentKey + 1)
     setGraphState((currentState) => selectNode(currentState, nodeId))
     setIsMobileSidebarOpen(false)
+    setIsNewChatDraft(false)
     setIsLandingVisible(false)
     void loadBranchMessages(nodeId)
   }
@@ -486,6 +489,7 @@ function App() {
       setMergeNodeIds([])
       setMergeRecommendation(null)
       setIsFullscreenGraphOpen(false)
+      setIsNewChatDraft(false)
       setIsLandingVisible(false)
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -512,45 +516,65 @@ function App() {
     )
   }
 
-  const handleOpenLanding = async () => {
+  const createDraftSession = useCallback(async () => {
     const newRootTitle = createNewRootNodeTitle(getRootNodes(graphStateRef.current.nodes))
 
-    setIsMobileSidebarOpen(false)
-    setPendingAction('새 루트 노드 생성 중')
+    const session = await branchGraphApi.createSession(newRootTitle)
+    const mainBranchId = readMainBranchId(session)
 
-    try {
-      const session = await branchGraphApi.createSession(newRootTitle)
-      const mainBranchId = readMainBranchId(session)
-
-      if (!mainBranchId) {
-        throw new Error('새 루트 노드 ID를 세션 생성 응답에서 확인할 수 없다.')
-      }
-
-      await loadGraphState({
-        activeNodeId: mainBranchId,
-        selectedRootNodeId: mainBranchId,
-        loadMessages: false,
-      })
-      setIsLandingVisible(true)
-    } catch (error) {
-      setErrorMessage(getDisplayError(error))
-    } finally {
-      setPendingAction('')
+    if (!mainBranchId) {
+      throw new Error('새 루트 노드 ID를 세션 생성 응답에서 확인할 수 없다.')
     }
+
+    const nextState = await loadGraphState({
+      activeNodeId: mainBranchId,
+      selectedRootNodeId: mainBranchId,
+      loadMessages: false,
+    })
+
+    if (!nextState) {
+      throw new Error('새 대화 상태를 불러오지 못했습니다.')
+    }
+
+    setIsNewChatDraft(false)
+
+    return mainBranchId
+  }, [loadGraphState])
+
+  const handleOpenNewChatDraft = () => {
+    setIsMobileSidebarOpen(false)
+    setIsMiniGraphOpen(false)
+    setSplitNodeId(null)
+    setModelComparisonFlow(null)
+    setErrorMessage('')
+    setIsNewChatDraft(true)
+    setIsLandingVisible(true)
   }
 
   const handleSendMessage = async (messageText) => {
-    const branchId = graphStateRef.current.activeNodeId
+    let branchId = graphStateRef.current.activeNodeId
+    let selectedRootNodeId = graphStateRef.current.selectedRootNodeId
+    const shouldCreateDraftSession = isNewChatDraft || !branchId
 
-    if (!branchId) {
+    if (!branchId && !shouldCreateDraftSession) {
       return
     }
 
-    setPendingAction('메시지 전송 중')
+    setPendingAction(shouldCreateDraftSession ? '새 대화 생성 중' : '메시지 전송 중')
     setPendingUserMessage(messageText)
-    setIsLandingVisible(false)
+    if (!shouldCreateDraftSession) {
+      setIsLandingVisible(false)
+    }
 
     try {
+      if (shouldCreateDraftSession) {
+        branchId = await createDraftSession()
+        selectedRootNodeId = branchId
+        setIsNewChatDraft(false)
+        setIsLandingVisible(false)
+        setPendingAction('메시지 전송 중')
+      }
+
       await branchGraphApi.sendChatMessage({
         branchId,
         message: messageText,
@@ -559,7 +583,7 @@ function App() {
       })
       await loadGraphState({
         activeNodeId: branchId,
-        selectedRootNodeId: graphStateRef.current.selectedRootNodeId,
+        selectedRootNodeId,
         loadMessages: true,
       })
     } catch (error) {
@@ -604,10 +628,10 @@ function App() {
   }
 
   const handleStartModelComparison = async (prompt, models) => {
-    const branchId = graphStateRef.current.activeNodeId
+    let branchId = graphStateRef.current.activeNodeId
     const currentFlow = modelComparisonFlow
 
-    if (!branchId || !currentFlow || !prompt || models.length !== 2) {
+    if (!currentFlow || !prompt || models.length !== 2) {
       return
     }
 
@@ -616,6 +640,12 @@ function App() {
     setModelComparisonFlow((flow) => flow ? { ...flow, prompt } : flow)
 
     try {
+      if (isNewChatDraft || !branchId) {
+        branchId = await createDraftSession()
+        setIsNewChatDraft(false)
+        setIsLandingVisible(false)
+      }
+
       const response = await branchGraphApi.compareModels({
         branchId,
         message: prompt,
@@ -753,6 +783,7 @@ function App() {
         selectedRootNodeId: parentNode.rootId,
         loadMessages: true,
       })
+      setIsNewChatDraft(false)
       setIsLandingVisible(false)
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -762,8 +793,7 @@ function App() {
   }
 
   const handleOpenHome = () => {
-    setIsMobileSidebarOpen(false)
-    setIsLandingVisible(true)
+    handleOpenNewChatDraft()
   }
 
   const handleRenameSession = async (rootNodeId, title) => {
@@ -819,6 +849,7 @@ function App() {
         selectedRootNodeId: node.rootId,
         loadMessages: true,
       })
+      setIsNewChatDraft(false)
       setIsLandingVisible(false)
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -860,6 +891,7 @@ function App() {
         loadMessages: !isDeletingCurrentTree,
       })
       if (isDeletingCurrentTree) {
+        setIsNewChatDraft(true)
         setIsLandingVisible(true)
       }
       setErrorMessage('')
@@ -895,6 +927,7 @@ function App() {
         selectedRootNodeId: node.rootId,
         loadMessages: true,
       })
+      setIsNewChatDraft(false)
       setIsLandingVisible(false)
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -989,7 +1022,7 @@ function App() {
         isBusy={isBusy}
         onToggleCollapse={handleToggleSidebar}
         onOpenHome={handleOpenHome}
-        onNewChat={handleOpenLanding}
+        onNewChat={handleOpenNewChatDraft}
         onSelectRoot={handleSelectRoot}
         onMoveSessionToTrash={handleMoveSessionToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
@@ -1077,7 +1110,7 @@ function App() {
               </section>
             ) : isLandingVisible ? (
               <ChatLanding
-                activeNode={activeNode}
+                activeNode={isNewChatDraft ? null : activeNode}
                 isBusy={isBusy}
                 modelOptions={CHAT_MODEL_OPTIONS}
                 selectedModel={selectedChatModel}
