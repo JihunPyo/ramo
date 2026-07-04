@@ -37,8 +37,42 @@ import {
 const CHAT_MODEL_OPTIONS = [
   { provider: 'openai', name: 'gpt-4o-mini', label: 'GPT-4o mini' },
   { provider: 'openai', name: 'gpt-4o', label: 'GPT-4o' },
+  { provider: 'openai', name: 'gpt-5.3-chat', label: 'GPT-5.3 Chat' },
+  { provider: 'openai', name: 'chatgpt-auto', label: 'ChatGPT-Auto' },
+  { provider: 'openai', name: 'gpt-5.5', label: 'GPT-5.5' },
+  { provider: 'openai', name: 'gpt-5.4', label: 'GPT-5.4' },
+  { provider: 'openai', name: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
+  { provider: 'openai', name: 'gpt-5.4-nano', label: 'GPT-5.4 nano' },
+  { provider: 'openai', name: 'gpt-5.2-chat-latest', label: 'GPT-5.2 Chat' },
+  { provider: 'openai', name: 'gpt-5.2', label: 'GPT-5.2' },
+  { provider: 'openai', name: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
+  { provider: 'openai', name: 'gpt-5.1', label: 'GPT-5.1' },
+  { provider: 'openai', name: 'gpt-5-chat-latest', label: 'GPT-5 Chat' },
+  { provider: 'openai', name: 'gpt-5-thinking', label: 'GPT-5 Thinking' },
+  { provider: 'openai', name: 'gpt-5-mini', label: 'GPT-5 mini' },
+  { provider: 'openai', name: 'gpt-5-nano', label: 'GPT-5 nano', badge: '무제한' },
   { provider: 'anthropic', name: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
+  { provider: 'anthropic', name: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+  { provider: 'anthropic', name: 'claude-fable-5', label: 'Claude Fable 5' },
+  { provider: 'anthropic', name: 'claude-4-6-sonnet', label: 'Claude 4.6 Sonnet' },
+  { provider: 'anthropic', name: 'claude-4-5-sonnet', label: 'Claude 4.5 Sonnet' },
+  { provider: 'anthropic', name: 'claude-4-8-opus', label: 'Claude 4.8 Opus' },
+  { provider: 'anthropic', name: 'claude-4-7-opus', label: 'Claude 4.7 Opus' },
+  { provider: 'anthropic', name: 'claude-4-6-opus', label: 'Claude 4.6 Opus' },
+  { provider: 'anthropic', name: 'claude-4-5-opus', label: 'Claude 4.5 Opus' },
+  { provider: 'anthropic', name: 'claude-4-5-haiku', label: 'Claude 4.5 Haiku' },
   { provider: 'google', name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { provider: 'google', name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+  { provider: 'google', name: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+  { provider: 'google', name: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
+  { provider: 'google', name: 'gemini-3-flash', label: 'Gemini 3 Flash' },
+  { provider: 'google', name: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { provider: 'google', name: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { provider: 'xai', name: 'grok-4.1-fast', label: 'Grok 4.1 Fast' },
+  { provider: 'xai', name: 'grok-3-mini', label: 'Grok 3 Mini' },
+  { provider: 'xai', name: 'grok-4', label: 'Grok 4' },
+  { provider: 'meta', name: 'llama-4-maverick', label: 'Llama 4 Maverick' },
+  { provider: 'perplexity', name: 'sonar-pro', label: 'Sonar Pro' },
   { provider: 'deepseek', name: 'deepseek-chat', label: 'DeepSeek Chat' },
 ]
 const OPENAI_COMPARISON_MODEL_OPTIONS = [
@@ -1031,6 +1065,9 @@ function App() {
               <ChatLanding
                 activeNode={activeNode}
                 isBusy={isBusy}
+                modelOptions={CHAT_MODEL_OPTIONS}
+                selectedModel={selectedChatModel}
+                onChangeModel={setSelectedChatModel}
                 onSendMessage={handleSendMessage}
                 onOpenModelComparison={handleOpenModelComparison}
               />

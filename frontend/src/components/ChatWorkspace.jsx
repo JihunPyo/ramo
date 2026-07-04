@@ -8,6 +8,7 @@ import {
   getSessionByNodeId,
   isMergeNode,
 } from '../features/branchGraph/branchGraphModel.js'
+import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
 
 export function ChatWorkspace({
@@ -319,26 +320,14 @@ export function ChatWorkspace({
           rows={1}
           placeholder="현재 대화에서 이어서 질문하세요."
         />
-        <label className="composer-model-label" htmlFor="chat-model-select">현재 모델</label>
-        <select
-          id="chat-model-select"
-          className="composer-model-select"
-          value={selectedModel?.name ?? ''}
-          onChange={(event) => {
-            const nextModel = modelOptions.find((model) => model.name === event.target.value)
-            if (nextModel) {
-              onChangeModel?.(nextModel)
-            }
-          }}
+        <ModelSelector
+          modelOptions={modelOptions}
+          selectedModel={selectedModel}
+          onChangeModel={onChangeModel}
           disabled={isBusy}
-          aria-label="사용 모델 선택"
-        >
-          {modelOptions.map((model) => (
-            <option key={`${model.provider}:${model.name}`} value={model.name}>
-              {model.label}
-            </option>
-          ))}
-        </select>
+          placement="top"
+          className="composer-model-selector"
+        />
         <button
           type="button"
           className="composer-compare-button"
