@@ -53,9 +53,25 @@
 .sidebar-toggle-button, .mobile-sidebar-open-button { border: 0; background: transparent; }
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
 .new-chat-button { border: 0; border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: 0 1px 2px rgb(32 35 31 / 7%); }
-.root-card, .trash-panel { border-color: transparent; border-radius: var(--radius-sm); box-shadow: none; }
-.root-card { background: transparent; }
-.root-card:hover, .root-card.selected { border-color: transparent; background: #e2e6e1; }
+.root-card,
+.trash-panel {
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+}
+.root-card {
+  background: rgb(255 255 255 / 44%);
+  box-shadow:
+    0 1px 2px rgb(32 35 31 / 5%),
+    0 8px 18px rgb(32 35 31 / 4%);
+}
+.root-card:hover,
+.root-card.selected {
+  border-color: transparent;
+  background: #e2e6e1;
+  box-shadow:
+    0 2px 4px rgb(32 35 31 / 7%),
+    0 12px 24px rgb(32 35 31 / 6%);
+}
 
 .workspace {
   height: 100vh;
