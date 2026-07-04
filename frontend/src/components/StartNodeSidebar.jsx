@@ -239,6 +239,61 @@ export function StartNodeSidebar({
     setIsTrashOpen(true)
   }
 
+  const getTrashItemMeta = (node) => {
+    const subtreeCount = getSubtreeNodeIds(trashNodes, node.id).length
+    const isSession = node.trashType === 'session' || node.parentId === null
+    const childBranchCount = Math.max(0, subtreeCount - 1)
+
+    if (isSession) {
+      return {
+        typeClassName: 'session',
+        typeLabel: '세션',
+        detail: childBranchCount > 0
+          ? `하위 브랜치 ${childBranchCount}개 포함`
+          : '세션 단독 항목',
+      }
+    }
+
+    return {
+      typeClassName: 'branch',
+      typeLabel: '브랜치',
+      detail: subtreeCount > 1
+        ? `하위 브랜치 ${subtreeCount - 1}개 포함`
+        : '브랜치 단독 항목',
+    }
+  }
+
+  const renderTrashCard = (node) => {
+    const itemMeta = getTrashItemMeta(node)
+
+    return (
+      <article key={node.id} className={`trash-card ${itemMeta.typeClassName}`}>
+        <div>
+          <span className={`trash-type-badge ${itemMeta.typeClassName}`}>{itemMeta.typeLabel}</span>
+          <strong>{node.title}</strong>
+          <small>{itemMeta.detail}</small>
+        </div>
+        <div className="trash-actions">
+          <button
+            type="button"
+            onClick={() => onRestoreFromTrash(node.id)}
+            disabled={isBusy}
+          >
+            복구
+          </button>
+          <button
+            type="button"
+            className="danger-text-button"
+            onClick={() => onDeleteForever(node.id)}
+            disabled={isBusy}
+          >
+            영구 삭제
+          </button>
+        </div>
+      </article>
+    )
+  }
+
   return (
     <aside
       className={isCollapsed ? 'start-sidebar collapsed' : 'start-sidebar'}
@@ -307,35 +362,7 @@ export function StartNodeSidebar({
             </summary>
             {trashRoots.length > 0 ? (
               <div className="trash-list">
-                {trashRoots.map((node) => {
-                  const branchCount = getSubtreeNodeIds(trashNodes, node.id).length
-
-                  return (
-                    <article key={node.id} className="trash-card">
-                      <div>
-                        <strong>{node.title}</strong>
-                        <small>{branchCount}개 항목</small>
-                      </div>
-                      <div className="trash-actions">
-                        <button
-                          type="button"
-                          onClick={() => onRestoreFromTrash(node.id)}
-                          disabled={isBusy}
-                        >
-                          복구
-                        </button>
-                        <button
-                          type="button"
-                          className="danger-text-button"
-                          onClick={() => onDeleteForever(node.id)}
-                          disabled={isBusy}
-                        >
-                          영구 삭제
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
+                {trashRoots.map(renderTrashCard)}
               </div>
             ) : (
               <p className="trash-empty">삭제한 항목이 없습니다.</p>
@@ -374,35 +401,7 @@ export function StartNodeSidebar({
             <section className="trash-popover" aria-label="휴지통">
               {trashRoots.length > 0 ? (
                 <div className="trash-list">
-                  {trashRoots.map((node) => {
-                    const branchCount = getSubtreeNodeIds(trashNodes, node.id).length
-
-                    return (
-                      <article key={node.id} className="trash-card">
-                        <div>
-                          <strong>{node.title}</strong>
-                          <small>{branchCount}개 항목</small>
-                        </div>
-                        <div className="trash-actions">
-                          <button
-                            type="button"
-                            onClick={() => onRestoreFromTrash(node.id)}
-                            disabled={isBusy}
-                          >
-                            복구
-                          </button>
-                          <button
-                            type="button"
-                            className="danger-text-button"
-                            onClick={() => onDeleteForever(node.id)}
-                            disabled={isBusy}
-                          >
-                            영구 삭제
-                          </button>
-                        </div>
-                      </article>
-                    )
-                  })}
+                  {trashRoots.map(renderTrashCard)}
                 </div>
               ) : (
                 <p className="trash-empty">삭제한 항목이 없습니다.</p>

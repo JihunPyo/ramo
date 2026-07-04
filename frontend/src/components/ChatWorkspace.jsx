@@ -182,12 +182,7 @@ export function ChatWorkspace({
     >
       <header className="chat-header">
         <div className="chat-header-context">
-          {isSplitViewOpen ? (
-            <div className="chat-pane-title">
-              <span>{rootNode?.title}</span>
-              <strong>{activeNode?.title}</strong>
-            </div>
-          ) : isRenamingSession ? (
+          {isRenamingSession ? (
             <div className="session-name-editor">
               <input
                 value={sessionNameDraft}
@@ -207,7 +202,7 @@ export function ChatWorkspace({
               <span aria-hidden="true">✎</span>
             </button>
           )}
-          {!isSplitViewOpen ? <div className="path-line">
+          <div className="path-line">
             {branchPath.map((node) => (
               <button
                 key={node.id}
@@ -224,7 +219,7 @@ export function ChatWorkspace({
                 {node.title}
               </button>
             ))}
-          </div> : null}
+          </div>
         </div>
       </header>
 

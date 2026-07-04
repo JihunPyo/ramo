@@ -1240,12 +1240,42 @@
   gap: 10px;
   border: 1px solid #e5e8ed;
   border-radius: 7px;
+  background: #ffffff;
   padding: 10px;
+}
+
+.trash-card.session {
+  border-color: #c8ddd3;
+  background: #f7fbf9;
+}
+
+.trash-card.branch {
+  border-color: #e4dcc8;
+  background: #fffdf7;
 }
 
 .trash-card > div:first-child {
   display: grid;
   gap: 4px;
+}
+
+.trash-type-badge {
+  justify-self: start;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.trash-type-badge.session {
+  background: #dcefe8;
+  color: #2f735f;
+}
+
+.trash-type-badge.branch {
+  background: #f3ead5;
+  color: #8a6934;
 }
 
 .trash-card small,

@@ -21,6 +21,7 @@ import {
   canMergeNodes,
   createEmptyGraphState,
   getActiveNode,
+  getBranchPath,
   getMainLeafNodeForRoot,
   getMainPathNodeIds,
   getNodeById,
@@ -202,6 +203,7 @@ function App() {
   const isBusy = isLoading || Boolean(pendingAction)
   const isSplitViewOpen = Boolean(splitNode || isMiniGraphOpen)
   const activeRootNode = activeNode ? getNodeById(graphState.nodes, activeNode.rootId) : null
+  const activeBranchPath = activeNode ? getBranchPath(graphState.nodes, activeNode.id) : []
 
   const loadGraphState = useCallback(
     async ({
@@ -1009,19 +1011,29 @@ function App() {
           >
             <span className="mobile-sidebar-open-icon" aria-hidden="true" />
           </button>
-          {!isLandingVisible && activeNode && !isSplitViewOpen ? (
+          {!isLandingVisible && activeNode ? (
             <div className="topbar-conversation-title">
               <strong>{activeRootNode?.title ?? activeNode.title}</strong>
-              <span>{activeNode.title}</span>
+              <div className="path-line topbar-path-line" aria-label="현재 노드 경로">
+                {activeBranchPath.map((node) => (
+                  <span
+                    key={node.id}
+                    className={[
+                      activeMainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
+                      node.id === activeNode.id ? 'current-path-node' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    {node.title}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
-          {!isLandingVisible && activeNode && (!isSplitViewOpen || !isMiniGraphOpen) ? (
+          {!isLandingVisible && activeNode ? (
             <>
-              {!isSplitViewOpen ? (
-                <span className={isActiveNodeOnMainPath ? 'topbar-path-status main' : 'topbar-path-status branch'} aria-label="현재 경로 상태">
-                  {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
-                </span>
-              ) : null}
+              <span className={isActiveNodeOnMainPath ? 'topbar-path-status main' : 'topbar-path-status branch'} aria-label="현재 경로 상태">
+                {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
+              </span>
               {!isMiniGraphOpen ? (
                 <button
                   type="button"
