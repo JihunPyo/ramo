@@ -21,6 +21,7 @@ export function ChatWorkspace({
   selectedModel,
   onChangeModel,
   onOpenModelComparison,
+  isSplitViewOpen = false,
   onSendMessage,
   onCreateBranch,
   onRenameSession,
@@ -162,10 +163,18 @@ export function ChatWorkspace({
   }
 
   return (
-    <section className="chat-workspace" aria-label="현재 노드 채팅 세션">
+    <section
+      className={isSplitViewOpen ? 'chat-workspace with-chat-header' : 'chat-workspace'}
+      aria-label="현재 노드 채팅 세션"
+    >
       <header className="chat-header">
-        <div>
-          {isRenamingSession ? (
+        <div className="chat-header-context">
+          {isSplitViewOpen ? (
+            <div className="chat-pane-title">
+              <span>{rootNode?.title}</span>
+              <strong>{activeNode?.title}</strong>
+            </div>
+          ) : isRenamingSession ? (
             <div className="session-name-editor">
               <input
                 value={sessionNameDraft}
@@ -185,7 +194,7 @@ export function ChatWorkspace({
               <span aria-hidden="true">✎</span>
             </button>
           )}
-          <div className="path-line">
+          {!isSplitViewOpen ? <div className="path-line">
             {branchPath.map((node) => (
               <button
                 key={node.id}
@@ -202,11 +211,11 @@ export function ChatWorkspace({
                 {node.title}
               </button>
             ))}
-          </div>
+          </div> : null}
         </div>
       </header>
 
-      {comparisonNode ? (
+      {comparisonNode && !isSplitViewOpen ? (
         <NodeComparison
           activeNode={activeNode}
           activeSession={getSessionByNodeId(graphState, activeNode?.id ?? '')}

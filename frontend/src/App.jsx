@@ -5,6 +5,8 @@ import { ChatLanding } from './components/ChatLanding.jsx'
 import { ChatWorkspace } from './components/ChatWorkspace.jsx'
 import { FullscreenGraphModal } from './components/FullscreenGraphModal.jsx'
 import { ModelComparisonFlow } from './components/ModelComparisonFlow.jsx'
+import { SplitConversationPanel } from './components/SplitConversationPanel.jsx'
+import { SplitResizeHandle } from './components/SplitResizeHandle.jsx'
 import { StartNodeSidebar } from './components/StartNodeSidebar.jsx'
 import { TopMiniGraph } from './components/TopMiniGraph.jsx'
 import {
@@ -63,6 +65,13 @@ const COMPARISON_MODEL_OPTIONS = [
   ...CHAT_MODEL_OPTIONS.filter((model) => model.provider !== 'openai'),
 ]
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
+const DEFAULT_SPLIT_CHAT_SHARE = 0.5
+const MIN_CHAT_SPLIT_SHARE = 0.35
+const MAX_CHAT_SPLIT_SHARE = 0.65
+const MIN_CHAT_PANE_WIDTH = 260
+const DEFAULT_GRAPH_SPLIT_WIDTH = 332
+const MIN_GRAPH_SPLIT_WIDTH = 332
+const SPLIT_HANDLE_WIDTH = 9
 
 function formatMergeRecommendation(reasons = []) {
   if (!Array.isArray(reasons) || reasons.length === 0) {
@@ -102,7 +111,10 @@ function App() {
   const [mergeRecommendation, setMergeRecommendation] = useState(null)
   const [isMergeRecommendationLoading, setIsMergeRecommendationLoading] = useState(false)
   const [mergeRecommendationError, setMergeRecommendationError] = useState('')
-  const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
+  const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(false)
+  const [splitNodeId, setSplitNodeId] = useState(null)
+  const [splitChatShare, setSplitChatShare] = useState(DEFAULT_SPLIT_CHAT_SHARE)
+  const [graphSplitWidth, setGraphSplitWidth] = useState(DEFAULT_GRAPH_SPLIT_WIDTH)
   const [graphLayoutDirection, setGraphLayoutDirection] = useState('vertical')
   const [nodeNavigationKey, setNodeNavigationKey] = useState(0)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -113,10 +125,13 @@ function App() {
   const [pendingAction, setPendingAction] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedChatModel, setSelectedChatModel] = useState(() => CHAT_MODEL_OPTIONS[0])
+  const [selectedSplitChatModel, setSelectedSplitChatModel] = useState(() => CHAT_MODEL_OPTIONS[0])
   const [pendingUserMessage, setPendingUserMessage] = useState('')
+  const [pendingSplitUserMessage, setPendingSplitUserMessage] = useState('')
   const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
   const [comparisonResetKey, setComparisonResetKey] = useState(0)
   const graphStateRef = useRef(graphState)
+  const splitWorkspaceRef = useRef(null)
 
   useEffect(() => {
     graphStateRef.current = graphState
@@ -142,11 +157,17 @@ function App() {
 
   const rootNodes = useMemo(() => getRootNodes(graphState.nodes), [graphState.nodes])
   const activeNode = getActiveNode(graphState)
+  const splitNodeCandidate = getNodeById(graphState.nodes, splitNodeId)
+  const splitNode = splitNodeCandidate?.id !== graphState.activeNodeId && !splitNodeCandidate?.isHidden
+    ? splitNodeCandidate
+    : null
   const activeMainPathNodeIds = activeNode
     ? getMainPathNodeIds(graphState, activeNode.rootId)
     : new Set()
   const isActiveNodeOnMainPath = activeNode ? activeMainPathNodeIds.has(activeNode.id) : false
   const isBusy = isLoading || Boolean(pendingAction)
+  const isSplitViewOpen = Boolean(splitNode || isMiniGraphOpen)
+  const activeRootNode = activeNode ? getNodeById(graphState.nodes, activeNode.rootId) : null
 
   const loadGraphState = useCallback(
     async ({
@@ -262,6 +283,25 @@ function App() {
 
   const handleSelectTopGraphNode = (nodeId) => {
     handleSelectNode(nodeId)
+  }
+
+  const handleOpenSplitNode = async (nodeId) => {
+    if (!nodeId || nodeId === graphStateRef.current.activeNodeId) {
+      return
+    }
+
+    setPendingAction('스플릿 대화 불러오는 중')
+    setErrorMessage('')
+
+    try {
+      const messages = await branchGraphApi.getBranchMessages(nodeId, true)
+      setGraphState((currentState) => applyBranchMessages(currentState, nodeId, messages))
+      setSplitNodeId(nodeId)
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingAction('')
+    }
   }
 
   const handleSetMainTarget = async (nodeId) => {
@@ -488,6 +528,34 @@ function App() {
       setErrorMessage(getDisplayError(error))
     } finally {
       setPendingUserMessage('')
+      setPendingAction('')
+    }
+  }
+
+  const handleSendSplitMessage = async (messageText) => {
+    const branchId = splitNodeId
+
+    if (!branchId) {
+      return
+    }
+
+    setPendingAction('스플릿 메시지 전송 중')
+    setPendingSplitUserMessage(messageText)
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.sendChatMessage({
+        branchId,
+        message: messageText,
+        modelProvider: selectedSplitChatModel.provider,
+        modelName: selectedSplitChatModel.name,
+      })
+      const messages = await branchGraphApi.getBranchMessages(branchId, true)
+      setGraphState((currentState) => applyBranchMessages(currentState, branchId, messages))
+    } catch (error) {
+      setErrorMessage(getDisplayError(error))
+    } finally {
+      setPendingSplitUserMessage('')
       setPendingAction('')
     }
   }
@@ -907,21 +975,31 @@ function App() {
           >
             <span className="mobile-sidebar-open-icon" aria-hidden="true" />
           </button>
-          {!isLandingVisible && activeNode ? (
-            <span className={isActiveNodeOnMainPath ? 'topbar-path-status main' : 'topbar-path-status branch'}>
-              {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
-            </span>
+          {!isLandingVisible && activeNode && !isSplitViewOpen ? (
+            <div className="topbar-conversation-title">
+              <strong>{activeRootNode?.title ?? activeNode.title}</strong>
+              <span>{activeNode.title}</span>
+            </div>
           ) : null}
-          {!isLandingVisible && activeNode ? (
-            <button
-              type="button"
-              className={isMiniGraphOpen ? 'graph-toggle-button active' : 'graph-toggle-button'}
-              aria-expanded={isMiniGraphOpen}
-              onClick={() => setIsMiniGraphOpen((currentValue) => !currentValue)}
-            >
-              <span aria-hidden="true">◇</span>
-              {isMiniGraphOpen ? '시각화 닫기' : '시각화 열기'}
-            </button>
+          {!isLandingVisible && activeNode && (!isSplitViewOpen || !isMiniGraphOpen) ? (
+            <>
+              {!isSplitViewOpen ? (
+                <span className={isActiveNodeOnMainPath ? 'topbar-path-status main' : 'topbar-path-status branch'} aria-label="현재 경로 상태">
+                  {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
+                </span>
+              ) : null}
+              {!isMiniGraphOpen ? (
+                <button
+                  type="button"
+                  className={isSplitViewOpen ? 'topbar-graph-button standalone' : 'topbar-graph-button'}
+                  aria-pressed={false}
+                  onClick={() => setIsMiniGraphOpen(true)}
+                >
+                  브랜치 시각화
+                </button>
+              ) : null}
+              <span className="topbar-action-divider" aria-hidden="true" />
+            </>
           ) : null}
           <div className="topbar-actions" aria-label="작업 도구">
             <span>알림</span>
@@ -936,10 +1014,14 @@ function App() {
           className={[
             'workspace-content',
             isLandingVisible ? 'landing-visible' : 'chat-visible',
-            isMiniGraphOpen && !isLandingVisible ? 'graph-panel-open' : '',
+            !isLandingVisible && (splitNode || isMiniGraphOpen) ? 'split-view-open' : '',
           ].filter(Boolean).join(' ')}
         >
-          <div className="workspace-primary">
+          <div ref={splitWorkspaceRef} className="split-workspace">
+          <div
+            className="workspace-primary split-pane"
+            style={splitNode ? { flexGrow: 1 - splitChatShare } : undefined}
+          >
             {isLoading && !activeNode ? (
               <section className="empty-state" aria-label="초기 데이터 동기화">
                 <p className="eyebrow">API 동기화</p>
@@ -965,6 +1047,7 @@ function App() {
                 selectedModel={selectedChatModel}
                 onChangeModel={setSelectedChatModel}
                 onOpenModelComparison={handleOpenModelComparison}
+                isSplitViewOpen={isSplitViewOpen}
                 onSendMessage={handleSendMessage}
                 onCreateBranch={handleCreateBranch}
                 onRenameSession={handleRenameSession}
@@ -972,22 +1055,82 @@ function App() {
             )}
           </div>
 
-          {!isLandingVisible && isMiniGraphOpen ? (
-            <TopMiniGraph
-              graphState={graphState}
-              activeNode={activeNode}
-              onSelectNode={handleSelectTopGraphNode}
-              onSetMainTarget={handleSetMainTarget}
-              onRenameNode={handleRenameNode}
-              onToggleNodeCollapse={handleToggleNodeCollapse}
-              onStartNodeMerge={handleStartNodeMerge}
-              onMoveToTrash={handleMoveToTrash}
-              onOpenFullscreen={handleOpenFullscreenGraph}
-              onClose={() => setIsMiniGraphOpen(false)}
-              layoutDirection={graphLayoutDirection}
-              onToggleLayout={handleToggleGraphLayout}
-            />
+          {!isLandingVisible && splitNode ? (
+            <>
+              <SplitResizeHandle
+                label="선택 노드 대화창 크기 조절"
+                onResize={(deltaX) => {
+                  const workspaceWidth = (splitWorkspaceRef.current?.clientWidth ?? window.innerWidth) - 16
+                  const graphSpace = isMiniGraphOpen ? graphSplitWidth + SPLIT_HANDLE_WIDTH : 0
+                  const availableChatWidth = Math.max(1, workspaceWidth - graphSpace - SPLIT_HANDLE_WIDTH)
+
+                  setSplitChatShare((share) => Math.min(
+                    MAX_CHAT_SPLIT_SHARE,
+                    Math.max(MIN_CHAT_SPLIT_SHARE, share - deltaX / availableChatWidth),
+                  ))
+                }}
+              />
+              <div
+                className="split-pane split-chat-pane"
+                style={{ flexGrow: splitChatShare }}
+              >
+                <SplitConversationPanel
+                  graphState={graphState}
+                  node={splitNode}
+                  isBusy={isBusy}
+                  isAwaitingResponse={pendingAction === '스플릿 메시지 전송 중'}
+                  pendingUserMessage={pendingSplitUserMessage}
+                  modelOptions={CHAT_MODEL_OPTIONS}
+                  selectedModel={selectedSplitChatModel}
+                  onChangeModel={setSelectedSplitChatModel}
+                  onOpenModelComparison={handleOpenModelComparison}
+                  onSendMessage={handleSendSplitMessage}
+                  onCreateBranch={handleCreateBranch}
+                  onClose={() => setSplitNodeId(null)}
+                />
+              </div>
+            </>
           ) : null}
+
+          {!isLandingVisible && isMiniGraphOpen ? (
+            <>
+              <SplitResizeHandle
+                label="브랜치 시각화 창 크기 조절"
+                onResize={(deltaX) => {
+                  const workspaceWidth = (splitWorkspaceRef.current?.clientWidth ?? window.innerWidth) - 16
+                  const chatPaneCount = splitNode ? 2 : 1
+                  const handleSpace = SPLIT_HANDLE_WIDTH * (splitNode ? 2 : 1)
+                  const maxGraphWidth = Math.max(
+                    MIN_GRAPH_SPLIT_WIDTH,
+                    workspaceWidth - MIN_CHAT_PANE_WIDTH * chatPaneCount - handleSpace,
+                  )
+
+                  setGraphSplitWidth((width) => Math.min(
+                    maxGraphWidth,
+                    Math.max(MIN_GRAPH_SPLIT_WIDTH, width - deltaX),
+                  ))
+                }}
+              />
+              <div className="split-pane graph-split-pane" style={{ width: `${graphSplitWidth}px` }}>
+                <TopMiniGraph
+                  graphState={graphState}
+                  activeNode={activeNode}
+                  onSelectNode={handleSelectTopGraphNode}
+                  onSetMainTarget={handleSetMainTarget}
+                  onRenameNode={handleRenameNode}
+                  onToggleNodeCollapse={handleToggleNodeCollapse}
+                  onStartNodeMerge={handleStartNodeMerge}
+                  onMoveToTrash={handleMoveToTrash}
+                  onOpenFullscreen={handleOpenFullscreenGraph}
+                  onOpenSplitNode={handleOpenSplitNode}
+                  onClose={() => setIsMiniGraphOpen(false)}
+                  layoutDirection={graphLayoutDirection}
+                  onToggleLayout={handleToggleGraphLayout}
+                />
+              </div>
+            </>
+          ) : null}
+          </div>
         </div>
       </section>
 

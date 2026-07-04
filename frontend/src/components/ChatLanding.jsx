@@ -107,7 +107,7 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage, onOpenM
   const [thinkingLevel, setThinkingLevel] = useState('medium')
   const [selectedModels, setSelectedModels] = useState(['chatgpt-auto', 'claude-sonnet-4-6'])
   const optionAreaRef = useRef(null)
-  const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
+  const textareaRef = useAutoResizeTextarea(draft, { minHeight: 26, maxHeight: 180 })
 
   useEffect(() => {
     const handlePointerDown = (event) => {

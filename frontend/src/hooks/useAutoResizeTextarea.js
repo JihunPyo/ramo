@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 
-export function useAutoResizeTextarea(value, { maxHeight = 180 } = {}) {
+export function useAutoResizeTextarea(value, { minHeight = 42, maxHeight = 180 } = {}) {
   const textareaRef = useRef(null)
 
   useLayoutEffect(() => {
@@ -10,11 +10,24 @@ export function useAutoResizeTextarea(value, { maxHeight = 180 } = {}) {
       return
     }
 
-    textarea.style.height = 'auto'
-    const nextHeight = Math.min(textarea.scrollHeight, maxHeight)
-    textarea.style.height = `${nextHeight}px`
-    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
-  }, [maxHeight, value])
+    const resizeTextarea = () => {
+      textarea.style.height = `${minHeight}px`
+      const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight)
+      textarea.style.height = `${nextHeight}px`
+      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
+    }
+
+    resizeTextarea()
+
+    if (typeof ResizeObserver === 'undefined' || !textarea.parentElement) {
+      return undefined
+    }
+
+    const resizeObserver = new ResizeObserver(resizeTextarea)
+    resizeObserver.observe(textarea.parentElement)
+
+    return () => resizeObserver.disconnect()
+  }, [maxHeight, minHeight, value])
 
   return textareaRef
 }

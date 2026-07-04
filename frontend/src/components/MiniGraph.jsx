@@ -33,6 +33,8 @@ export function MiniGraph({
   tooltipHideDelay = 0,
   renderTooltip = true,
   onTooltipNodeChange,
+  toolbarLeadingAction = null,
+  selectionActionLabel = '',
   mergeSelectedNodeIds = [],
   isNodeSelectionDisabled,
 }) {
@@ -341,6 +343,7 @@ export function MiniGraph({
         <button type="button" onClick={() => updateZoom(zoomRef.current + 0.15)} aria-label="확대">
           +
         </button>
+        {toolbarLeadingAction}
         {allowLayoutToggle ? (
           <button
             type="button"
@@ -438,7 +441,7 @@ export function MiniGraph({
                 tabIndex={isSelectionDisabled ? -1 : 0}
                 role="button"
                 aria-disabled={isSelectionDisabled}
-                aria-label={`${layoutNode.title} 노드로 이동${
+                aria-label={`${layoutNode.title} 노드${selectionActionLabel || '로 이동'}${
                   collapsedDescendantCount > 0
                     ? `, 하위 노드 ${collapsedDescendantCount}개 접힘`
                     : ''

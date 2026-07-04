@@ -6,7 +6,7 @@ function getTagLabel(tag) {
   return tag?.name ?? tag?.label ?? tag?.title ?? tag?.value ?? ''
 }
 
-export function GraphNodeTooltip({ node, className = '' }) {
+export function GraphNodeTooltip({ node, className = '', showTags = true }) {
   const tags = (Array.isArray(node?.tags) ? node.tags : [])
     .map(getTagLabel)
     .map((tag) => tag.trim().replace(/^#+/, ''))
@@ -15,7 +15,7 @@ export function GraphNodeTooltip({ node, className = '' }) {
   return (
     <div className={`graph-tooltip ${className}`.trim()} role="status">
       <strong>{node.title}</strong>
-      {tags.length > 0 ? (
+      {showTags && tags.length > 0 ? (
         <div className="graph-tooltip-tags" aria-label="태그">
           {tags.map((tag, index) => (
             <span key={`${tag}-${index}`}>#{tag}</span>

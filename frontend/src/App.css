@@ -1689,14 +1689,16 @@
 
 .graph-tooltip.top-graph-external-tooltip {
   position: absolute;
-  top: calc(100% + 8px);
-  right: auto;
-  bottom: auto;
-  left: -1px;
-  width: inherit;
-  max-height: min(180px, calc(100vh - 24px));
+  top: auto;
+  right: 24px;
+  bottom: 26px;
+  left: 24px;
+  width: auto;
+  max-height: min(180px, 42%);
   overflow: auto;
-  z-index: 3;
+  box-shadow: 0 16px 38px rgb(32 35 31 / 18%);
+  animation: graph-tooltip-in 160ms ease-out;
+  z-index: 12;
 }
 
 .graph-resize-handle {
