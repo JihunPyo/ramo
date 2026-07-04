@@ -180,7 +180,7 @@ export function ChatWorkspace({
                 className={`message-row ${message.role}`}
               >
                 <div className="message-bubble">
-                  <span className="message-role">{message.role === 'user' ? 'User' : 'Ramo'}</span>
+                  <span className="message-role">{getMessageRoleLabel(message)}</span>
                   <RichMessageContent content={message.content} />
                   {message.role === 'assistant' ? (
                     <div className="message-actions">
@@ -259,7 +259,7 @@ function ComparisonColumn({ node, session, isCurrent = false, isAwaitingResponse
       <div className="comparison-messages">
         {messages.length > 0 ? messages.map((message) => (
           <div key={message.id} className={`comparison-message ${message.role}`}>
-            <span>{message.role === 'user' ? 'User' : 'Ramo'}</span>
+            <span>{getMessageRoleLabel(message)}</span>
             <RichMessageContent content={message.content} />
           </div>
         )) : <p className="comparison-empty">이 노드에는 아직 표시할 대화가 없습니다.</p>}
@@ -297,4 +297,12 @@ function PendingAssistantMessage() {
 
 function isVisibleMessage(message) {
   return !message.isHidden && message.role !== 'system'
+}
+
+function getMessageRoleLabel(message) {
+  if (message.role === 'user') {
+    return 'User'
+  }
+
+  return message.modelName || message.modelProvider || 'Ramo'
 }

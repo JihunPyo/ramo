@@ -339,6 +339,7 @@ function groupMessagesByBranch(apiMessages, fallbackBranchId) {
 function normalizeMessage(message) {
   const status = message.status ?? 'active'
   const metadata = message.metadata ?? message.meta ?? {}
+  const model = message.model ?? metadata.model ?? {}
 
   return {
     id: message.id ?? message.message_id,
@@ -346,6 +347,20 @@ function normalizeMessage(message) {
     content: message.content,
     status,
     kind: message.kind ?? metadata.kind ?? '',
+    modelProvider:
+      message.model_provider ??
+      message.modelProvider ??
+      model.provider ??
+      metadata.model_provider ??
+      metadata.modelProvider ??
+      '',
+    modelName:
+      message.model_name ??
+      message.modelName ??
+      model.name ??
+      metadata.model_name ??
+      metadata.modelName ??
+      '',
     isHidden:
       status === 'hidden' ||
       message.visible === false ||
