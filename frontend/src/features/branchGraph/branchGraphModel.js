@@ -127,6 +127,28 @@ export function areNodesOnSameShortestRootPath(nodes, firstNodeId, secondNodeId)
   return firstPathIds.has(secondNodeId) || secondPathIds.has(firstNodeId)
 }
 
+export function canMergeNodes(nodes, firstNodeId, secondNodeId) {
+  const firstNode = getNodeById(nodes, firstNodeId)
+  const secondNode = getNodeById(nodes, secondNodeId)
+
+  if (!firstNode || !secondNode || firstNode.id === secondNode.id) {
+    return false
+  }
+
+  if (firstNode.rootId !== secondNode.rootId || isStartNode(firstNode) || isStartNode(secondNode)) {
+    return false
+  }
+
+  const firstSubtreeIds = new Set(getSubtreeNodeIds(nodes, firstNode.id))
+  const secondSubtreeIds = new Set(getSubtreeNodeIds(nodes, secondNode.id))
+
+  return !firstSubtreeIds.has(secondNode.id) && !secondSubtreeIds.has(firstNode.id)
+}
+
+export function isStartNode(node) {
+  return Boolean(node) && node.parentId === null && (node.parentIds?.length ?? 0) === 0
+}
+
 export function getMainPathNodeIds(state, rootId) {
   const mainLeafNode = getMainLeafNodeForRoot(state, rootId)
   const path = getBranchPath(state.nodes, mainLeafNode?.id ?? MAIN_TARGET_FALLBACK)

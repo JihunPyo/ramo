@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MiniGraph } from './MiniGraph.jsx'
 import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
+import { canMergeNodes } from '../features/branchGraph/branchGraphModel.js'
 
 export function FullscreenGraphModal({
   graphState,
@@ -17,12 +18,19 @@ export function FullscreenGraphModal({
   onSelectMergeNode,
   onConfirmMerge,
   isMerging = false,
+  mergeRecommendation,
+  isMergeRecommendationLoading = false,
+  mergeRecommendationError = '',
 }) {
   const [tooltipNode, setTooltipNode] = useState(null)
   const mergeNodes = mergeNodeIds
     .map((nodeId) => graphState.nodes.find((node) => node.id === nodeId))
     .filter(Boolean)
   const isMergeMode = mergeNodes.length > 0
+  const sourceNode = mergeNodes[0]
+  const recommendationNode = mergeRecommendation
+    ? graphState.nodes.find((node) => node.id === mergeRecommendation.branchId)
+    : null
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -34,8 +42,8 @@ export function FullscreenGraphModal({
       >
         <header className="graph-modal-header">
           <div>
-            <p className="eyebrow">전체 그래프</p>
-            <h2>현재 루트 흐름</h2>
+            <p className="eyebrow">{isMergeMode ? '노드 합치기' : '전체 그래프'}</p>
+            <h2>{isMergeMode ? `현재노드: ${sourceNode?.title ?? ''}` : '현재 루트 흐름'}</h2>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="닫기">
             ×
@@ -43,17 +51,31 @@ export function FullscreenGraphModal({
         </header>
 
         {isMergeMode ? (
-          <div className="merge-mode-banner" role="status">
-            <div>
-              <strong>노드 합치기</strong>
-              <span>합칠 두 번째 노드를 그래프에서 선택하세요.</span>
+          <div className="merge-mode-banner" role="status" aria-label="병합 노드 추천">
+            <div className="merge-recommendation-copy">
+              <span className="merge-recommendation-label">병합 노드 추천</span>
+              <div className="merge-recommendation-nodes">
+                <span>
+                  <b>추천노드:</b>{' '}
+                  {isMergeRecommendationLoading
+                    ? '찾는 중...'
+                    : recommendationNode?.title ?? '추천 노드 없음'}
+                </span>
+              </div>
+              {!isMergeRecommendationLoading && recommendationNode ? (
+                <span className="merge-recommendation-reason">{mergeRecommendation.reason}</span>
+              ) : null}
+              {!isMergeRecommendationLoading && !recommendationNode ? (
+                <span className="merge-recommendation-reason">
+                  {mergeRecommendationError || '추천할 수 있는 노드가 없습니다.'}
+                </span>
+              ) : null}
             </div>
-            <div className="merge-node-chips" aria-label="합치기 선택 노드">
-              {mergeNodes.map((node, index) => (
-                <span key={node.id}>{index + 1}. {node.title}</span>
-              ))}
-              {mergeNodes.length < 2 ? <span className="empty">2. 노드를 선택하세요</span> : null}
-            </div>
+            {recommendationNode && mergeNodes.length < 2 ? (
+              <button type="button" onClick={() => onSelectMergeNode(recommendationNode.id)}>
+                추천 노드 선택
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -75,6 +97,7 @@ export function FullscreenGraphModal({
           renderTooltip={false}
           onTooltipNodeChange={setTooltipNode}
           mergeSelectedNodeIds={mergeNodeIds}
+          isNodeSelectionDisabled={(nodeId) => !canMergeNodes(graphState.nodes, sourceNode?.id, nodeId)}
         />
 
         <div className="fullscreen-graph-footer">

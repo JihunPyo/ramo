@@ -80,6 +80,9 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
+    getMergeCandidates(branchId) {
+      return client.request(`/branches/${branchId}/merge-candidates`)
+    },
     mergeBranches({ sessionId, branchIds, name }) {
       return client.request('/branches/merge', {
         method: 'POST',

@@ -2270,17 +2270,60 @@ textarea:disabled {
 
 .merge-mode-banner > div:first-child {
   display: grid;
-  gap: 3px;
+  gap: 5px;
 }
 
 .merge-mode-banner strong {
   color: #5639a6;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .merge-mode-banner span {
   color: #685d84;
   font-size: 12px;
+}
+
+.merge-mode-banner .merge-recommendation-label {
+  justify-self: start;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #7658c7;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
+.merge-recommendation-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.merge-mode-banner .merge-recommendation-nodes span {
+  color: #5639a6;
+  font-size: 14px;
+}
+
+.merge-recommendation-nodes b {
+  font-weight: 900;
+}
+
+.merge-mode-banner .merge-recommendation-reason {
+  line-height: 1.5;
+}
+
+.merge-mode-banner > button {
+  flex: 0 0 auto;
+  border: 1px solid #7658c7;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #6041b5;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
 }
 
 .merge-node-chips {
@@ -2311,16 +2354,25 @@ textarea:disabled {
 }
 
 .merge-confirm-button {
-  align-self: stretch;
-  min-width: 132px;
+  align-self: center;
+  min-width: 82px;
   border: 0;
   border-radius: 8px;
   background: #7658c7;
   color: #ffffff;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
-  padding: 0 24px;
+  padding: 9px 14px;
+}
+
+.graph-node.selection-disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.graph-node.selection-disabled circle {
+  stroke-dasharray: 4 3;
 }
 
 .merge-confirm-button:hover:not(:disabled) {

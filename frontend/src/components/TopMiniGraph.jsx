@@ -29,6 +29,11 @@ export function TopMiniGraph({
   const [panelPosition, setPanelPosition] = useState(null)
   const [externalTooltipNode, setExternalTooltipNode] = useState(null)
   const rootId = activeNode?.rootId ?? graphState.selectedRootNodeId
+  const activeSession = graphState.apiSessions?.find((session) => (
+    (session.id ?? session.session_id) === activeNode?.apiSessionId
+  ))
+  const rootNode = graphState.nodes.find((node) => node.id === rootId)
+  const sessionTitle = activeSession?.title ?? rootNode?.title ?? '세션'
 
   const handleTooltipNodeChange = useCallback((node) => {
     window.clearTimeout(tooltipHideTimerRef.current)
@@ -233,7 +238,7 @@ export function TopMiniGraph({
     >
       <header className="top-graph-header" onPointerDown={handleDragStart}>
         <div className="top-graph-heading">
-          <p className="eyebrow">흐름</p>
+          <p className="eyebrow">{sessionTitle}</p>
           <strong>{activeNode?.title}</strong>
         </div>
         <div className="top-graph-actions">

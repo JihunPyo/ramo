@@ -4,6 +4,7 @@ import {
   getBranchPath,
   getMainPathNodeIds,
   getSubtreeNodeIds,
+  isStartNode,
 } from '../features/branchGraph/branchGraphModel.js'
 import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
@@ -33,6 +34,7 @@ export function MiniGraph({
   renderTooltip = true,
   onTooltipNodeChange,
   mergeSelectedNodeIds = [],
+  isNodeSelectionDisabled,
 }) {
   const viewportRef = useRef(null)
   const graphRef = useRef(null)
@@ -71,6 +73,7 @@ export function MiniGraph({
   const contextNodeHasChildren = contextNode
     ? graphState.nodes.some((node) => node.parentId === contextNode.id && !node.isHidden)
     : false
+  const contextNodeCanMerge = contextNode ? !isStartNode(contextNode) : false
 
   const showTooltipNode = (nodeId) => {
     window.clearTimeout(tooltipHideTimerRef.current)
@@ -409,6 +412,7 @@ export function MiniGraph({
             const isHoveredPathNode = hoveredPathNodeIds?.has(layoutNode.id)
             const isMergeSelected = mergeSelectedNodeIds.includes(layoutNode.id)
             const isMergedNode = (layoutNode.parentIds?.length ?? 0) > 1
+            const isSelectionDisabled = Boolean(isNodeSelectionDisabled?.(layoutNode.id))
             const collapsedDescendantCount = layoutNode.isCollapsed
               ? Math.max(0, getSubtreeNodeIds(graphState.nodes, layoutNode.id).length - 1)
               : 0
@@ -418,6 +422,7 @@ export function MiniGraph({
               isMain ? 'main' : '',
               isMergeSelected ? 'merge-selected' : '',
               isMergedNode ? 'merged' : '',
+              isSelectionDisabled ? 'selection-disabled' : '',
               collapsedDescendantCount > 0 ? 'collapsed' : '',
               layoutNode.isActive ? '' : 'inactive',
               isHoveredPathNode ? 'hover-path' : '',
@@ -430,8 +435,9 @@ export function MiniGraph({
               <g
                 key={layoutNode.id}
                 className={nodeClass}
-                tabIndex="0"
+                tabIndex={isSelectionDisabled ? -1 : 0}
                 role="button"
+                aria-disabled={isSelectionDisabled}
                 aria-label={`${layoutNode.title} 노드로 이동${
                   collapsedDescendantCount > 0
                     ? `, 하위 노드 ${collapsedDescendantCount}개 접힘`
@@ -457,6 +463,9 @@ export function MiniGraph({
                 }}
                 onClick={(event) => {
                   event.stopPropagation()
+                  if (isSelectionDisabled) {
+                    return
+                  }
                   if (suppressClickRef.current) {
                     suppressClickRef.current = false
                     return
@@ -473,6 +482,9 @@ export function MiniGraph({
 
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
+                    if (isSelectionDisabled) {
+                      return
+                    }
                     onSelectNode(layoutNode.id)
                   }
                 }}
@@ -573,7 +585,7 @@ export function MiniGraph({
           <button type="button" role="menuitem" onClick={() => onSetMainTarget(contextNode.id)}>
             main 지정
           </button>
-          {onStartNodeMerge ? (
+          {onStartNodeMerge && contextNodeCanMerge ? (
             <button
               type="button"
               role="menuitem"

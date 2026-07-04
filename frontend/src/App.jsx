@@ -15,7 +15,7 @@ import {
 } from './features/branchGraph/branchGraphAdapter.js'
 import { branchGraphApi } from './features/branchGraph/branchGraphApi.js'
 import {
-  areNodesOnSameShortestRootPath,
+  canMergeNodes,
   createEmptyGraphState,
   getActiveNode,
   getMainLeafNodeForRoot,
@@ -39,10 +39,44 @@ const CHAT_MODEL_OPTIONS = [
 ]
 const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 921px)'
 
+function formatMergeRecommendation(reasons = []) {
+  if (!Array.isArray(reasons) || reasons.length === 0) {
+    return '현재 노드와 연결해 함께 이어가기 좋은 대화 흐름입니다.'
+  }
+
+  return reasons
+    .map((reason) => {
+      if (typeof reason === 'string') {
+        return reason
+      }
+
+      if (reason?.type === 'content') {
+        const score = Number(reason.score)
+        return Number.isFinite(score)
+          ? `대화 내용의 유사도가 ${Math.round(score * 100)}%로 높습니다.`
+          : '대화 내용과 주제가 유사합니다.'
+      }
+
+      if (reason?.type === 'role') {
+        const labels = reason.tags ?? reason.roles ?? reason.shared_roles ?? []
+        return labels.length > 0
+          ? `공통 태그 ${labels.join(', ')}를 공유합니다.`
+          : '대화에서 수행하는 역할이 유사합니다.'
+      }
+
+      return reason?.description ?? reason?.message ?? ''
+    })
+    .filter(Boolean)
+    .join(' ')
+}
+
 function App() {
   const [graphState, setGraphState] = useState(() => createEmptyGraphState())
   const [isFullscreenGraphOpen, setIsFullscreenGraphOpen] = useState(false)
   const [mergeNodeIds, setMergeNodeIds] = useState([])
+  const [mergeRecommendation, setMergeRecommendation] = useState(null)
+  const [isMergeRecommendationLoading, setIsMergeRecommendationLoading] = useState(false)
+  const [mergeRecommendationError, setMergeRecommendationError] = useState('')
   const [isMiniGraphOpen, setIsMiniGraphOpen] = useState(true)
   const [graphLayoutDirection, setGraphLayoutDirection] = useState('vertical')
   const [nodeNavigationKey, setNodeNavigationKey] = useState(0)
@@ -242,7 +276,7 @@ function App() {
     }
   }
 
-  const handleStartNodeMerge = (nodeId) => {
+  const handleStartNodeMerge = async (nodeId) => {
     const node = getNodeById(graphStateRef.current.nodes, nodeId)
 
     if (!node) {
@@ -254,7 +288,26 @@ function App() {
       selectedRootNodeId: node.rootId,
     }))
     setMergeNodeIds([nodeId])
+    setMergeRecommendation(null)
+    setMergeRecommendationError('')
+    setIsMergeRecommendationLoading(true)
     setIsFullscreenGraphOpen(true)
+
+    try {
+      const response = await branchGraphApi.getMergeCandidates(nodeId)
+      const candidate = response?.candidates?.[0]
+
+      if (candidate) {
+        setMergeRecommendation({
+          branchId: candidate.branch_id ?? candidate.branchId,
+          reason: formatMergeRecommendation(candidate.reasons),
+        })
+      }
+    } catch (error) {
+      setMergeRecommendationError(getDisplayError(error))
+    } finally {
+      setIsMergeRecommendationLoading(false)
+    }
   }
 
   const handleSelectMergeNode = (nodeId) => {
@@ -262,12 +315,7 @@ function App() {
     const firstNode = getNodeById(nodes, mergeNodeIds[0])
     const nextNode = getNodeById(nodes, nodeId)
 
-    if (!firstNode || !nextNode || firstNode.rootId !== nextNode.rootId || firstNode.id === nextNode.id) {
-      return
-    }
-
-    if (areNodesOnSameShortestRootPath(nodes, firstNode.id, nextNode.id)) {
-      setErrorMessage('같은 가지에 있는 노드는 합칠 수 없습니다.')
+    if (!firstNode || !nextNode || !canMergeNodes(nodes, firstNode.id, nextNode.id)) {
       return
     }
 
@@ -280,12 +328,10 @@ function App() {
       .map((nodeId) => getNodeById(graphStateRef.current.nodes, nodeId))
       .filter(Boolean)
 
-    if (mergeNodes.length !== 2 || mergeNodes[0].rootId !== mergeNodes[1].rootId) {
-      return
-    }
-
-    if (areNodesOnSameShortestRootPath(graphStateRef.current.nodes, mergeNodes[0].id, mergeNodes[1].id)) {
-      setErrorMessage('같은 가지에 있는 노드는 합칠 수 없습니다.')
+    if (
+      mergeNodes.length !== 2 ||
+      !canMergeNodes(graphStateRef.current.nodes, mergeNodes[0].id, mergeNodes[1].id)
+    ) {
       return
     }
 
@@ -322,6 +368,7 @@ function App() {
 
       setNodeNavigationKey((currentKey) => currentKey + 1)
       setMergeNodeIds([])
+      setMergeRecommendation(null)
       setIsFullscreenGraphOpen(false)
       setIsLandingVisible(false)
     } catch (error) {
@@ -333,11 +380,13 @@ function App() {
 
   const handleOpenFullscreenGraph = () => {
     setMergeNodeIds([])
+    setMergeRecommendation(null)
     setIsFullscreenGraphOpen(true)
   }
 
   const handleCloseFullscreenGraph = () => {
     setMergeNodeIds([])
+    setMergeRecommendation(null)
     setIsFullscreenGraphOpen(false)
   }
 
@@ -757,6 +806,9 @@ function App() {
           onSelectMergeNode={handleSelectMergeNode}
           onConfirmMerge={handleConfirmMerge}
           isMerging={pendingAction === '노드 합치는 중'}
+          mergeRecommendation={mergeRecommendation}
+          isMergeRecommendationLoading={isMergeRecommendationLoading}
+          mergeRecommendationError={mergeRecommendationError}
         />
       ) : null}
     </main>
