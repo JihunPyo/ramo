@@ -19,6 +19,7 @@ import {
   createEmptyGraphState,
   getActiveNode,
   getMainLeafNodeForRoot,
+  getMainPathNodeIds,
   getNodeById,
   getRootNodes,
   getSubtreeNodeIds,
@@ -74,6 +75,10 @@ function App() {
 
   const rootNodes = useMemo(() => getRootNodes(graphState.nodes), [graphState.nodes])
   const activeNode = getActiveNode(graphState)
+  const activeMainPathNodeIds = activeNode
+    ? getMainPathNodeIds(graphState, activeNode.rootId)
+    : new Set()
+  const isActiveNodeOnMainPath = activeNode ? activeMainPathNodeIds.has(activeNode.id) : false
   const isBusy = isLoading || Boolean(pendingAction)
 
   const loadGraphState = useCallback(
@@ -658,7 +663,11 @@ function App() {
           >
             <span className="mobile-sidebar-open-icon" aria-hidden="true" />
           </button>
-          <span className="api-status">{pendingAction || (isLoading ? '동기화 중' : 'API 계약 모드')}</span>
+          {!isLandingVisible && activeNode ? (
+            <span className={isActiveNodeOnMainPath ? 'topbar-path-status main' : 'topbar-path-status branch'}>
+              {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
+            </span>
+          ) : null}
           {!isLandingVisible && activeNode ? (
             <button
               type="button"
@@ -679,7 +688,13 @@ function App() {
 
         {errorMessage ? <div className="api-error">{errorMessage}</div> : null}
 
-        <div className={isMiniGraphOpen && !isLandingVisible ? 'workspace-content graph-panel-open' : 'workspace-content'}>
+        <div
+          className={[
+            'workspace-content',
+            isLandingVisible ? 'landing-visible' : 'chat-visible',
+            isMiniGraphOpen && !isLandingVisible ? 'graph-panel-open' : '',
+          ].filter(Boolean).join(' ')}
+        >
           <div className="workspace-primary">
             {isLoading && !activeNode ? (
               <section className="empty-state" aria-label="초기 데이터 동기화">

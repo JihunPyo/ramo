@@ -4,6 +4,7 @@ import {
   getBranchPath,
   getContextSectionsForNode,
   getMainPathNodeIds,
+  getSessionByNodeId,
 } from '../features/branchGraph/branchGraphModel.js'
 import { RichMessageContent } from './RichMessageContent.jsx'
 
@@ -20,6 +21,7 @@ export function ChatWorkspace({
   const [draft, setDraft] = useState('')
   const [isRenamingSession, setIsRenamingSession] = useState(false)
   const [sessionNameDraft, setSessionNameDraft] = useState('')
+  const [comparisonNodeId, setComparisonNodeId] = useState(null)
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
   const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
@@ -27,8 +29,8 @@ export function ChatWorkspace({
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
   const rootNode = branchPath[0]
   const mainPathNodeIds = getMainPathNodeIds(graphState, activeNode?.rootId ?? '')
-  const isActiveNodeOnMainPath = activeNode ? mainPathNodeIds.has(activeNode.id) : false
   const contextSections = getContextSectionsForNode(graphState, activeNode?.id ?? '')
+  const comparisonNode = branchPath.find((node) => node.id === comparisonNodeId)
   const hasActiveStartMessage = contextSections.some(
     (section) => section.node.id === activeNode?.id && section.session.messages.length > 0,
   )
@@ -129,32 +131,44 @@ export function ChatWorkspace({
               <span aria-hidden="true">✎</span>
             </button>
           )}
-          <h1>{activeNode?.title}</h1>
           <div className="path-line">
             {branchPath.map((node) => (
-              <span key={node.id} className={mainPathNodeIds.has(node.id) ? 'main-path-pill' : ''}>
+              <button
+                key={node.id}
+                type="button"
+                className={[
+                  mainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
+                  node.id === comparisonNodeId ? 'comparison-selected' : '',
+                  node.id === activeNode?.id ? 'current-path-node' : '',
+                ].filter(Boolean).join(' ')}
+                aria-pressed={node.id === comparisonNodeId}
+                title={node.id === activeNode?.id ? '비교 화면 닫기' : `${node.title} 노드와 비교`}
+                onClick={() => setComparisonNodeId(node.id === activeNode?.id ? null : node.id)}
+              >
                 {node.title}
-              </span>
+              </button>
             ))}
           </div>
         </div>
-        <span className={isActiveNodeOnMainPath ? 'session-main-state included' : 'session-main-state'}>
-          {isActiveNodeOnMainPath ? 'main 경로' : '분기 경로'}
-        </span>
       </header>
 
+      {comparisonNode ? (
+        <NodeComparison
+          activeNode={activeNode}
+          activeSession={getSessionByNodeId(graphState, activeNode?.id ?? '')}
+          comparisonNode={comparisonNode}
+          comparisonSession={getSessionByNodeId(graphState, comparisonNode.id)}
+          isAwaitingResponse={isAwaitingResponse}
+          onClose={() => setComparisonNodeId(null)}
+        />
+      ) : (
       <section className="message-list" aria-label="메시지 목록">
-        {contextSections.map((section, sectionIndex) => (
+        {contextSections.map((section) => (
           <section
             key={section.node.id}
             ref={section.node.id === activeNode?.id ? activeSectionRef : undefined}
             className="context-section"
           >
-            <header className="context-section-header">
-              <span>{sectionIndex === contextSections.length - 1 ? '현재 노드' : '상위 노드'}</span>
-              <strong>{section.node.title}</strong>
-            </header>
-
             {section.session.messages.filter(isVisibleMessage).map((message, messageIndex) => (
               <article
                 key={message.id}
@@ -168,9 +182,8 @@ export function ChatWorkspace({
                 <div className="message-bubble">
                   <span className="message-role">{message.role === 'user' ? 'User' : 'Ramo'}</span>
                   <RichMessageContent content={message.content} />
-                  <div className="message-actions">
-                    <time>{message.createdAt}</time>
-                    {message.role === 'assistant' ? (
+                  {message.role === 'assistant' ? (
+                    <div className="message-actions">
                       <button
                         type="button"
                         onClick={() => onCreateBranch(message.id, section.node.id)}
@@ -178,8 +191,8 @@ export function ChatWorkspace({
                       >
                         브랜치 생성
                       </button>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             ))}
@@ -187,6 +200,7 @@ export function ChatWorkspace({
         ))}
         {isAwaitingResponse ? <PendingAssistantMessage /> : null}
       </section>
+      )}
 
       <form className="composer" onSubmit={handleSubmit}>
         <label htmlFor="message-input">메시지</label>
@@ -205,6 +219,53 @@ export function ChatWorkspace({
         </button>
       </form>
     </section>
+  )
+}
+
+function NodeComparison({
+  activeNode,
+  activeSession,
+  comparisonNode,
+  comparisonSession,
+  isAwaitingResponse,
+  onClose,
+}) {
+  return (
+    <section className="node-comparison" aria-label="노드 답변 비교">
+      <header className="node-comparison-header">
+        <div>
+          <strong>노드 답변 비교</strong>
+          <span>두 흐름의 질문과 답변을 한 화면에서 확인합니다.</span>
+        </div>
+        <button type="button" onClick={onClose}>비교 닫기</button>
+      </header>
+      <div className="node-comparison-grid">
+        <ComparisonColumn node={comparisonNode} session={comparisonSession} />
+        <ComparisonColumn node={activeNode} session={activeSession} isCurrent isAwaitingResponse={isAwaitingResponse} />
+      </div>
+    </section>
+  )
+}
+
+function ComparisonColumn({ node, session, isCurrent = false, isAwaitingResponse = false }) {
+  const messages = session.messages.filter(isVisibleMessage)
+
+  return (
+    <article className={isCurrent ? 'comparison-column current' : 'comparison-column'}>
+      <header>
+        <span>{isCurrent ? '현재 노드' : '비교 노드'}</span>
+        <h2>{node?.title}</h2>
+      </header>
+      <div className="comparison-messages">
+        {messages.length > 0 ? messages.map((message) => (
+          <div key={message.id} className={`comparison-message ${message.role}`}>
+            <span>{message.role === 'user' ? 'User' : 'Ramo'}</span>
+            <RichMessageContent content={message.content} />
+          </div>
+        )) : <p className="comparison-empty">이 노드에는 아직 표시할 대화가 없습니다.</p>}
+        {isCurrent && isAwaitingResponse ? <PendingAssistantMessage /> : null}
+      </div>
+    </article>
   )
 }
 
