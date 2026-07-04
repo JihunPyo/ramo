@@ -24,7 +24,6 @@ import {
   getRootNodes,
   getSubtreeNodeIds,
   selectNode,
-  selectRoot,
   renameNode,
   setMainTargetNode,
   setMergedNodeParentLinks,
@@ -96,18 +95,13 @@ function App() {
           apiSessions = [await branchGraphApi.createSession()]
         }
 
-        const graphResponses = await Promise.all(
-          apiSessions.map(async (session) => {
-            const sessionId = readSessionId(session)
-            const [graph, branches, branchTrash] = await Promise.all([
-              branchGraphApi.getSessionGraph(sessionId, true),
-              branchGraphApi.listBranches(sessionId),
-              branchGraphApi.listBranchTrash(sessionId),
-            ])
-
-            return { session, graph, branches, branchTrash }
-          }),
-        )
+        const sessionToLoad = resolveSessionToLoad({
+          apiSessions,
+          currentState: graphStateRef.current,
+          activeNodeId,
+          selectedRootNodeId,
+        })
+        const graphResponses = sessionToLoad ? [await loadSessionGraphResponse(sessionToLoad)] : []
         let nextState = buildGraphStateFromApi({
           apiSessions,
           graphResponses,
@@ -168,17 +162,15 @@ function App() {
   const handleSelectRoot = (rootId) => {
     const mainLeafNode = getMainLeafNodeForRoot(graphStateRef.current, rootId)
 
-    setGraphState((currentState) => selectRoot(currentState, rootId))
     setIsMobileSidebarOpen(false)
-
-    if (!mainLeafNode) {
-      setIsLandingVisible(true)
-      return
-    }
 
     setNodeNavigationKey((currentKey) => currentKey + 1)
     setIsLandingVisible(false)
-    void loadBranchMessages(mainLeafNode.id)
+    void loadGraphState({
+      activeNodeId: mainLeafNode?.id ?? rootId,
+      selectedRootNodeId: rootId,
+      loadMessages: true,
+    })
   }
 
   const handleSelectNode = (nodeId) => {
@@ -760,6 +752,31 @@ function App() {
 
 function getDisplayError(error) {
   return error?.message ?? '알 수 없는 오류가 발생했다.'
+}
+
+async function loadSessionGraphResponse(session) {
+  const sessionId = readSessionId(session)
+  const [graph, branches, branchTrash] = await Promise.all([
+    branchGraphApi.getSessionGraph(sessionId, true),
+    branchGraphApi.listBranches(sessionId),
+    branchGraphApi.listBranchTrash(sessionId),
+  ])
+
+  return { session, graph, branches, branchTrash }
+}
+
+function resolveSessionToLoad({ apiSessions, currentState, activeNodeId, selectedRootNodeId }) {
+  const activeNode = getNodeById(currentState.nodes, activeNodeId ?? currentState.activeNodeId)
+  const selectedRootId = selectedRootNodeId ?? activeNode?.rootId ?? currentState.selectedRootNodeId
+  const selectedRootNode = getNodeById(currentState.nodes, selectedRootId)
+  const selectedApiSessionId = activeNode?.apiSessionId ?? selectedRootNode?.apiSessionId
+
+  return (
+    apiSessions.find((session) => readMainBranchId(session) === selectedRootId) ??
+    apiSessions.find((session) => readSessionId(session) === selectedApiSessionId) ??
+    apiSessions[0] ??
+    null
+  )
 }
 
 function createNewRootNodeTitle(rootNodes) {

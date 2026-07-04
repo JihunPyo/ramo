@@ -18,7 +18,8 @@ export function buildGraphStateFromApi({
   activeNodeId,
   selectedRootNodeId,
 }) {
-  const nodes = graphResponses.flatMap(({ session, graph, branches = [] }) =>
+  const loadedApiSessionIds = new Set(graphResponses.map(({ session }) => readSessionId(session)))
+  const loadedNodes = graphResponses.flatMap(({ session, graph, branches = [] }) =>
     normalizeGraphNodes({
       session,
       graph,
@@ -26,6 +27,11 @@ export function buildGraphStateFromApi({
       previousNodes: previousState.nodes,
     }),
   )
+  const unloadedNodes = apiSessions
+    .filter((session) => !loadedApiSessionIds.has(readSessionId(session)))
+    .map((session) => normalizeSessionPlaceholderNode(session, previousState.nodes))
+    .filter(Boolean)
+  const nodes = [...loadedNodes, ...unloadedNodes]
   const nodeIds = new Set(nodes.map((node) => node.id))
   const fallbackRootId = nodes.find((node) => node.parentId === null)?.id ?? ''
   const resolvedActiveNodeId = nodeIds.has(activeNodeId)
@@ -56,6 +62,39 @@ export function buildGraphStateFromApi({
       ),
     ],
     events: previousState.events,
+  }
+}
+
+function normalizeSessionPlaceholderNode(session, previousNodes = []) {
+  const apiSessionId = readSessionId(session)
+  const branchId = readMainBranchId(session)
+
+  if (!apiSessionId || !branchId) {
+    return null
+  }
+
+  const previousNode = previousNodes.find((node) => node.id === branchId)
+  const title = session?.title ?? previousNode?.title ?? '새 대화'
+
+  return {
+    id: branchId,
+    rootId: branchId,
+    parentId: null,
+    parentIds: [],
+    parentMessageId: null,
+    title,
+    tags: previousNode?.tags ?? [],
+    description: previousNode?.description ?? '선택하면 브랜치 정보를 불러오는 세션이다.',
+    sessionId: `messages-${branchId}`,
+    apiSessionId,
+    createdAt: formatDisplayTime(session?.created_at ?? session?.createdAt),
+    isActive: true,
+    isHidden: false,
+    status: 'active',
+    isCollapsed: false,
+    isMain: true,
+    isMerge: false,
+    messageCount: previousNode?.messageCount ?? 0,
   }
 }
 
