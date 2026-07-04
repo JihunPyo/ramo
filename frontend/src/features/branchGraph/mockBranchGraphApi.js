@@ -778,7 +778,7 @@ function getInheritedMessages(store, branchId) {
   const targetBranch = store.branches.get(branchId)
 
   if (targetBranch?.merge_parent_ids?.length > 1) {
-    return store.messagesByBranchId.get(branchId) ?? []
+    return getMergeInheritedMessages(store, targetBranch)
   }
 
   const branchChain = getBranchChain(store, branchId)
@@ -797,6 +797,45 @@ function getInheritedMessages(store, branchId) {
 
     return forkMessageIndex >= 0 ? messages.slice(0, forkMessageIndex + 1) : messages
   })
+}
+
+function getMergeInheritedMessages(store, mergeBranch) {
+  const inheritedMessages = []
+  const inheritedBranchIds = new Set()
+
+  mergeBranch.merge_parent_ids.forEach((sourceBranchId) => {
+    const sourceChain = getBranchChain(store, sourceBranchId)
+
+    sourceChain.slice(0, -1).forEach((branch, index) => {
+      if (inheritedBranchIds.has(branch.id)) {
+        return
+      }
+
+      inheritedBranchIds.add(branch.id)
+      inheritedMessages.push(...getInheritedBranchMessages(store, sourceChain, index))
+    })
+  })
+
+  return [
+    ...inheritedMessages,
+    ...(store.messagesByBranchId.get(mergeBranch.id) ?? []),
+  ]
+}
+
+function getInheritedBranchMessages(store, branchChain, index) {
+  const branch = branchChain[index]
+  const messages = store.messagesByBranchId.get(branch.id) ?? []
+  const nextBranch = branchChain[index + 1]
+
+  if (!nextBranch) {
+    return messages
+  }
+
+  const forkMessageIndex = messages.findIndex(
+    (message) => String(message.id) === String(nextBranch.fork_from_message_id),
+  )
+
+  return forkMessageIndex >= 0 ? messages.slice(0, forkMessageIndex + 1) : messages
 }
 
 function getBranchChain(store, branchId) {

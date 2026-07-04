@@ -392,7 +392,6 @@ function App() {
         activeNodeId: mergedBranchId,
         selectedRootNodeId: mergeNodes[0].rootId,
         loadMessages: true,
-        includeInheritedMessages: false,
       })
 
       if (nextState) {

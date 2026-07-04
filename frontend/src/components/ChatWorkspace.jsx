@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import {
   getBranchPath,
@@ -50,7 +50,8 @@ export function ChatWorkspace({
     (count, section) => {
       const sectionMessages = section.session.messages.filter((message) =>
         isVisibleMessage(message, {
-          hideMergeResult: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
+          hideMergeSeed: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
+          sectionMessages: section.session.messages,
         }),
       )
 
@@ -216,50 +217,52 @@ export function ChatWorkspace({
         />
       ) : (
       <section ref={messageListRef} className="message-list" aria-label="메시지 목록">
-        {shouldHideMergeResultMessage ? (
-          <MergeSummaryPanel summaries={mergeSourceSummaries} />
-        ) : null}
         {contextSections.map((section) => {
           const visibleMessages = section.session.messages.filter((message) =>
             isVisibleMessage(message, {
-              hideMergeResult: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
+              hideMergeSeed: shouldHideMergeResultMessage && section.node.id === activeNode?.id,
+              sectionMessages: section.session.messages,
             }),
           )
 
           return (
-            <section
-              key={section.node.id}
-              ref={section.node.id === activeNode?.id ? activeSectionRef : undefined}
-              className="context-section"
-            >
-              {visibleMessages.map((message, messageIndex) => (
-                <article
-                  key={message.id}
-                  ref={
-                    section.node.id === activeNode?.id && messageIndex === 0
-                      ? activeStartMessageRef
-                      : undefined
-                  }
-                  className={`message-row ${message.role}`}
-                >
-                  <div className="message-bubble">
-                    <span className="message-role">{getMessageRoleLabel(message)}</span>
-                    <RichMessageContent content={message.content} />
-                    {message.role === 'assistant' ? (
-                      <div className="message-actions">
-                        <button
-                          type="button"
-                          onClick={() => onCreateBranch(message.id, section.node.id)}
-                          disabled={isBusy}
-                        >
-                          브랜치 생성
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </section>
+            <Fragment key={section.node.id}>
+              {shouldHideMergeResultMessage && section.node.id === activeNode?.id ? (
+                <MergeSummaryPanel summaries={mergeSourceSummaries} />
+              ) : null}
+              <section
+                ref={section.node.id === activeNode?.id ? activeSectionRef : undefined}
+                className="context-section"
+              >
+                {visibleMessages.map((message, messageIndex) => (
+                  <article
+                    key={message.id}
+                    ref={
+                      section.node.id === activeNode?.id && messageIndex === 0
+                        ? activeStartMessageRef
+                        : undefined
+                    }
+                    className={`message-row ${message.role}`}
+                  >
+                    <div className="message-bubble">
+                      <span className="message-role">{getMessageRoleLabel(message)}</span>
+                      <RichMessageContent content={message.content} />
+                      {message.role === 'assistant' ? (
+                        <div className="message-actions">
+                          <button
+                            type="button"
+                            onClick={() => onCreateBranch(message.id, section.node.id)}
+                            disabled={isBusy}
+                          >
+                            브랜치 생성
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            </Fragment>
           )
         })}
         {isAwaitingResponse && pendingUserMessage ? (
@@ -422,8 +425,26 @@ function PendingAssistantMessage() {
   )
 }
 
-function isVisibleMessage(message, { hideMergeResult = false } = {}) {
-  return !message.isHidden && message.role !== 'system' && !(hideMergeResult && message.kind === 'merge_result')
+function isVisibleMessage(message, { hideMergeSeed = false, sectionMessages = [] } = {}) {
+  return (
+    !message.isHidden &&
+    message.role !== 'system' &&
+    !(hideMergeSeed && isInitialMergeSeedMessage(message, sectionMessages))
+  )
+}
+
+function isInitialMergeSeedMessage(message, sectionMessages) {
+  if (message.role !== 'assistant') {
+    return false
+  }
+
+  const messageIndex = sectionMessages.findIndex((candidate) => candidate.id === message.id)
+  const firstUserMessageIndex = sectionMessages.findIndex((candidate) => (
+    candidate.role === 'user' &&
+    !candidate.isHidden
+  ))
+
+  return firstUserMessageIndex < 0 || (messageIndex >= 0 && messageIndex < firstUserMessageIndex)
 }
 
 function getMessageRoleLabel(message) {

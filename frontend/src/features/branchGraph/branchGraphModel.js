@@ -63,10 +63,10 @@ export function getContextSectionsForNode(state, nodeId) {
   const node = getNodeById(state.nodes, nodeId)
 
   if (isMergeNode(node)) {
-    return [{
-      node,
-      session: getSessionByNodeId(state, node.id),
-    }]
+    return getMergeContextNodes(state.nodes, node).map((contextNode) => ({
+      node: contextNode,
+      session: getSessionByNodeId(state, contextNode.id),
+    }))
   }
 
   return getBranchPath(state.nodes, nodeId).map((node) => ({
@@ -106,7 +106,7 @@ export function isMergeNode(node) {
 }
 
 export function shouldUseInheritedMessagesForNode(node) {
-  return !isMergeNode(node)
+  return Boolean(node)
 }
 
 export function getNodeById(nodes, nodeId) {
@@ -601,7 +601,37 @@ function getParentNodeIds(node) {
   return [...new Set([node.parentId, ...(node.parentIds ?? [])].filter(Boolean))]
 }
 
+function getMergeContextNodes(nodes, mergeNode) {
+  const contextNodeIds = []
+  const sourceNodeIds = getParentNodeIds(mergeNode)
+
+  sourceNodeIds.forEach((sourceNodeId) => {
+    const path = getShortestBranchPath(nodes, sourceNodeId)
+    const previousNodes = path.length > 0
+      ? path.slice(0, -1)
+      : getBranchPath(nodes, sourceNodeId).slice(0, -1)
+
+    previousNodes.forEach((node) => {
+      if (!node.isHidden && !contextNodeIds.includes(node.id)) {
+        contextNodeIds.push(node.id)
+      }
+    })
+  })
+
+  if (!contextNodeIds.includes(mergeNode.id)) {
+    contextNodeIds.push(mergeNode.id)
+  }
+
+  return contextNodeIds
+    .map((contextNodeId) => getNodeById(nodes, contextNodeId))
+    .filter(Boolean)
+}
+
 function resolveNodeSummary(state, node) {
+  const mergeNode = getActiveNode(state)
+  const mergeSummary = isMergeNode(mergeNode)
+    ? findMergeSeedSummaryForNode(getSessionByNodeId(state, mergeNode.id).messages, node)
+    : ''
   const session = getSessionByNodeId(state, node.id)
   const latestAssistantMessage = [...session.messages]
     .reverse()
@@ -610,9 +640,47 @@ function resolveNodeSummary(state, node) {
       !message.isHidden &&
       message.kind !== 'merge_result'
     ))
-  const summary = node.description || latestAssistantMessage?.content || '요약 가능한 대화가 아직 없다.'
+  const summary =
+    mergeSummary ||
+    latestAssistantMessage?.content ||
+    node.description ||
+    '요약 가능한 대화가 아직 없다.'
 
   return compactSummaryText(summary)
+}
+
+function findMergeSeedSummaryForNode(messages, node) {
+  const seedMessages = getMergeSeedMessages(messages)
+  const normalizedNodeTitle = normalizeSummaryText(node.title)
+  const matchedMessage = seedMessages.find((message) => {
+    const normalizedContent = normalizeSummaryText(message.content)
+
+    return normalizedNodeTitle && normalizedContent.includes(normalizedNodeTitle)
+  })
+
+  return stripMergeSeedHeading(matchedMessage?.content ?? '')
+}
+
+function getMergeSeedMessages(messages) {
+  const firstUserMessageIndex = messages.findIndex((message) => (
+    message.role === 'user' &&
+    !message.isHidden
+  ))
+  const seedRange = firstUserMessageIndex >= 0
+    ? messages.slice(0, firstUserMessageIndex)
+    : messages
+
+  return seedRange.filter((message) => (
+    message.role === 'assistant' &&
+    !message.isHidden &&
+    message.kind !== 'merge_result'
+  ))
+}
+
+function stripMergeSeedHeading(value) {
+  return String(value ?? '')
+    .replace(/^\s*\[브랜치[^\]]*요약[^\]]*\]\s*/u, '')
+    .trim()
 }
 
 function compactSummaryText(value, maxLength = 220) {
@@ -627,6 +695,13 @@ function compactSummaryText(value, maxLength = 220) {
   }
 
   return `${summary.slice(0, maxLength - 1).trim()}...`
+}
+
+function normalizeSummaryText(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
 }
 
 function getGraphDepths(nodes, rootId) {
