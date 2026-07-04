@@ -662,19 +662,41 @@ function findMergeSeedSummaryForNode(messages, node) {
 }
 
 function getMergeSeedMessages(messages) {
-  const firstUserMessageIndex = messages.findIndex((message) => (
-    message.role === 'user' &&
-    !message.isHidden
-  ))
-  const seedRange = firstUserMessageIndex >= 0
-    ? messages.slice(0, firstUserMessageIndex)
-    : messages
+  return getInitialMergeSeedMessages(messages).filter(isBranchSummarySeedMessage)
+}
 
-  return seedRange.filter((message) => (
-    message.role === 'assistant' &&
-    !message.isHidden &&
-    message.kind !== 'merge_result'
-  ))
+function getInitialMergeSeedMessages(messages) {
+  const seedMessages = []
+  let hasBranchSummarySeed = false
+
+  for (const message of messages) {
+    if (message.isHidden || message.role === 'system') {
+      continue
+    }
+
+    if (isBranchSummarySeedMessage(message)) {
+      seedMessages.push(message)
+      hasBranchSummarySeed = true
+      continue
+    }
+
+    if (message.kind === 'merge_result' || (hasBranchSummarySeed && isMergeSeedAckMessage(message))) {
+      seedMessages.push(message)
+      continue
+    }
+
+    break
+  }
+
+  return seedMessages
+}
+
+function isBranchSummarySeedMessage(message) {
+  return /^\s*\[브랜치[^\]]*요약[^\]]*\]/u.test(String(message.content ?? ''))
+}
+
+function isMergeSeedAckMessage(message) {
+  return message.role === 'assistant' && String(message.content ?? '').trim() === '확인했습니다.'
 }
 
 function stripMergeSeedHeading(value) {
