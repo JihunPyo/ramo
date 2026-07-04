@@ -52,7 +52,27 @@
 .sidebar-header h2, .chat-header h1, .graph-modal-header h2 { color: var(--color-text); }
 .sidebar-toggle-button, .mobile-sidebar-open-button { border: 0; background: transparent; }
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
-.new-chat-button { border: 0; border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: 0 1px 2px rgb(32 35 31 / 7%); }
+.new-chat-button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-accent);
+  box-shadow: 0 1px 2px rgb(32 35 31 / 7%);
+}
+.new-chat-button:hover,
+.new-chat-button.selected {
+  background: #e2e6e1;
+  color: var(--color-accent);
+  box-shadow:
+    0 2px 4px rgb(32 35 31 / 7%),
+    0 12px 24px rgb(32 35 31 / 6%);
+}
+.new-chat-button.selected {
+  box-shadow:
+    inset 4px 0 0 #2f735f,
+    0 2px 4px rgb(32 35 31 / 7%),
+    0 12px 24px rgb(32 35 31 / 6%);
+}
 .root-card,
 .trash-panel {
   border-color: transparent;

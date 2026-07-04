@@ -879,6 +879,7 @@ function App() {
         isCollapsed={isSidebarCollapsed}
         isDrawerMode={isNarrowViewport}
         isMobileDrawerOpen={isMobileSidebarOpen}
+        isLandingActive={isLandingVisible}
         isBusy={isBusy}
         onToggleCollapse={handleToggleSidebar}
         onOpenHome={handleOpenHome}

@@ -19,6 +19,7 @@ export function StartNodeSidebar({
   isCollapsed = false,
   isDrawerMode = false,
   isMobileDrawerOpen = false,
+  isLandingActive = false,
   isBusy = false,
   onToggleCollapse,
   onOpenHome,
@@ -267,26 +268,37 @@ export function StartNodeSidebar({
       </header>
 
       <div className="sidebar-content">
-        <button type="button" className="new-chat-button" onClick={onNewChat} disabled={isBusy}>
+        <button
+          type="button"
+          className={isLandingActive ? 'new-chat-button selected' : 'new-chat-button'}
+          aria-current={isLandingActive ? 'page' : undefined}
+          onClick={onNewChat}
+          disabled={isBusy}
+        >
           새 채팅
         </button>
 
         <div className="sidebar-scroll-area" aria-hidden={!isContentVisible}>
           <nav className="root-list" aria-label="루트 노드 목록">
-            {rootNodes.map((node) => (
-              <button
-                key={node.id}
-                type="button"
-                className={node.id === graphState.selectedRootNodeId ? 'root-card selected' : 'root-card'}
-                aria-haspopup="menu"
-                onClick={() => handleSelectRoot(node.id)}
-                onContextMenu={(event) => openContextMenu(event, node.id)}
-                disabled={isBusy}
-              >
-                <span>{node.title}</span>
-                <small>{node.description}</small>
-              </button>
-            ))}
+            {rootNodes.map((node) => {
+              const isSelected = !isLandingActive && node.id === graphState.selectedRootNodeId
+
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  className={isSelected ? 'root-card selected' : 'root-card'}
+                  aria-current={isSelected ? 'page' : undefined}
+                  aria-haspopup="menu"
+                  onClick={() => handleSelectRoot(node.id)}
+                  onContextMenu={(event) => openContextMenu(event, node.id)}
+                  disabled={isBusy}
+                >
+                  <span>{node.title}</span>
+                  <small>{node.description}</small>
+                </button>
+              )
+            })}
           </nav>
 
           <details className="trash-panel">
