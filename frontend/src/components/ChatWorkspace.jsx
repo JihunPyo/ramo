@@ -166,7 +166,7 @@ export function ChatWorkspace({
                 className={`message-row ${message.role}`}
               >
                 <div className="message-bubble">
-                  <span className="message-role">{message.role === 'user' ? 'User' : 'AI'}</span>
+                  <span className="message-role">{message.role === 'user' ? 'User' : 'Ramo'}</span>
                   <RichMessageContent content={message.content} />
                   <div className="message-actions">
                     <time>{message.createdAt}</time>
@@ -212,7 +212,7 @@ function PendingAssistantMessage() {
   return (
     <article className="message-row assistant pending-response" aria-live="polite" aria-label="답변 생성 대기">
       <div className="message-bubble pending-response-bubble">
-        <span className="message-role">AI</span>
+        <span className="message-role">Ramo</span>
         <div className="pending-response-card">
           <span className="pending-response-dots" aria-hidden="true">
             <i />

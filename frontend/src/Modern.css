@@ -16,6 +16,16 @@
 .sidebar-home-button { display: block; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; padding: 0; text-align: left; }
 .sidebar-home-button:hover h2 { color: var(--color-accent); }
 .sidebar-home-button:focus-visible { border-radius: 7px; outline: 2px solid var(--color-accent); outline-offset: 4px; }
+.ramo-logo { display: inline-flex; align-items: center; color: #70523e; line-height: 1; }
+.ramo-logo-text { font-size: 36px; font-weight: 850; letter-spacing: -.07em; }
+.ramo-logo-mark { width: 42px; height: 42px; margin-left: 2px; overflow: visible; }
+.ramo-logo-ring, .ramo-logo-node { fill: #55ad77; }
+.ramo-logo-center { fill: #f0f1ee; }
+.ramo-logo-slice { fill: #55ad77; }
+.ramo-logo-branch { fill: none; stroke: #55ad77; stroke-linecap: round; stroke-width: 3; }
+.ramo-logo-node.hollow { fill: #f0f1ee; stroke: #55ad77; stroke-width: 3; }
+.ramo-logo.compact .ramo-logo-text { font-size: 26px; }
+.ramo-logo.compact .ramo-logo-mark { width: 32px; height: 32px; }
 .sidebar-header h2, .chat-header h1, .graph-modal-header h2 { color: var(--color-text); }
 .sidebar-toggle-button, .mobile-sidebar-open-button { border: 0; background: transparent; }
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
