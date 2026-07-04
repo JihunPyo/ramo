@@ -280,6 +280,7 @@ function getModelKey(model) {
 function getProviderLabel(provider) {
   const labels = {
     anthropic: 'Anthropic',
+    chatkhu: 'ChatKHU',
     deepseek: 'DeepSeek',
     google: 'Google',
     openai: 'OpenAI',

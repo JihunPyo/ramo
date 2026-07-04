@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 const PROVIDER_LABELS = {
   openai: 'OPENAI',
+  chatkhu: 'CHATKHU',
   anthropic: 'CLAUDE',
   google: 'GEMINI',
   xai: 'X-AI',
@@ -12,6 +13,7 @@ const PROVIDER_LABELS = {
 
 const PROVIDER_MARKS = {
   openai: '◎',
+  chatkhu: 'K',
   anthropic: '✺',
   google: '◆',
   xai: '𝕏',

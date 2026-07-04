@@ -52,6 +52,8 @@ const CHAT_MODEL_OPTIONS = [
   { provider: 'openai', name: 'gpt-5-thinking', label: 'GPT-5 Thinking' },
   { provider: 'openai', name: 'gpt-5-mini', label: 'GPT-5 mini' },
   { provider: 'openai', name: 'gpt-5-nano', label: 'GPT-5 nano', badge: '무제한' },
+  { provider: 'chatkhu', name: 'gpt-4o-mini', label: 'GPT-4o mini (ChatKHU)' },
+  { provider: 'chatkhu', name: 'gpt-4o', label: 'GPT-4o (ChatKHU)' },
   { provider: 'anthropic', name: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
   { provider: 'anthropic', name: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
   { provider: 'anthropic', name: 'claude-fable-5', label: 'Claude Fable 5' },
@@ -700,7 +702,7 @@ function App() {
       return
     }
 
-    const mergeModel = ['openai', 'anthropic'].includes(selectedChatModel.provider)
+    const mergeModel = ['openai', 'anthropic', 'chatkhu'].includes(selectedChatModel.provider)
       ? selectedChatModel
       : COMPARISON_MODEL_OPTIONS[0]
 
