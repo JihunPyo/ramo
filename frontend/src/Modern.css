@@ -298,7 +298,7 @@
 .composer textarea { resize: none; border: 0; outline: 0; background: transparent; min-height: 26px; max-height: 180px; padding: 8px 4px; line-height: 1.55; overflow-y: hidden; }
 .send-button { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 20px; padding: 0; }
 
-.top-graph-panel { position: sticky; top: 74px; right: auto; align-self: start; justify-self: end; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; width: auto; height: calc(100vh - 90px); min-width: 0; min-height: 0; max-width: none; max-height: none; border: 0; border-left: 1px solid var(--color-border); border-radius: 0; background: #ffffff; box-shadow: none; margin-right: 24px; padding: 18px 16px; overflow: visible; z-index: 8; }
+.top-graph-panel { position: sticky; top: 74px; right: auto; align-self: start; justify-self: end; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; width: auto; height: calc(100vh - 90px); min-width: 0; min-height: 0; max-width: none; max-height: none; border: 0; border-left: 1px solid #d8e1d8; border-radius: 0; background: #e9eee9; box-shadow: none; margin-right: 24px; padding: 18px 16px; overflow: visible; z-index: 8; }
 .top-graph-panel.user-positioned { position: fixed; align-self: auto; justify-self: auto; margin-right: 0; }
 .top-graph-close-row { display: flex; justify-content: flex-end; margin-bottom: -8px; }
 .top-graph-header { cursor: default; }
@@ -313,7 +313,7 @@
 .graph-panel-actions button { border-radius: var(--radius-sm); font-size: 12px; padding: 9px 8px; }
 .graph-panel-canvas { min-height: 280px; border-radius: var(--radius-md); background: var(--color-surface); overflow: hidden; padding: 10px; }
 .top-graph-panel .mini-graph { display: grid; grid-template-rows: auto minmax(0, 1fr); height: auto; min-height: 0; overflow: hidden; }
-.top-graph-panel .graph-viewport { height: auto; min-height: 0; border: 0; background-color: #ffffff; }
+.top-graph-panel .graph-viewport { height: auto; min-height: 0; border: 1px solid #d8e1d8; background-color: #ffffff; }
 .top-graph-panel .graph-canvas svg { transform: translate(3px, -3px); }
 .top-graph-panel .graph-toolbar { gap: 5px; }
 .top-graph-panel .graph-toolbar button,

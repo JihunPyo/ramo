@@ -330,6 +330,39 @@ export function createMockBranchGraphApi() {
 
       return branch
     },
+    async getMergeCandidates(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch를 찾을 수 없습니다.')
+      }
+
+      const sourceTags = new Set((branch.tags ?? []).map((tag) => tag.name ?? tag))
+      const candidates = Array.from(store.branches.values())
+        .filter((candidate) => (
+          candidate.id !== branchId &&
+          candidate.session_id === branch.session_id &&
+          candidate.status === 'active' &&
+          !areBranchesOnSameShortestRootPath(store, branchId, candidate.id)
+        ))
+        .map((candidate, index) => {
+          const sharedTags = (candidate.tags ?? [])
+            .map((tag) => tag.name ?? tag)
+            .filter((tag) => sourceTags.has(tag))
+
+          return {
+            branch_id: candidate.id,
+            name: candidate.name,
+            reasons: [
+              { type: 'content', score: Math.max(0.76, 0.88 - index * 0.03) },
+              ...(sharedTags.length > 0 ? [{ type: 'role', tags: sharedTags }] : []),
+            ],
+          }
+        })
+
+      return { branch_id: branchId, candidates }
+    },
     async selectMainBranch(branchId) {
       await delay()
       const branch = store.branches.get(branchId)
