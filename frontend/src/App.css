@@ -2435,6 +2435,7 @@ textarea:disabled {
 }
 
 .model-flow-close,
+.model-flow-minimize,
 .comparison-side-panel > header button {
   display: inline-grid;
   flex: 0 0 auto;
@@ -2447,6 +2448,72 @@ textarea:disabled {
   color: #536158;
   cursor: pointer;
   font-size: 22px;
+}
+
+.model-flow-window-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.model-flow-minimize {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.model-comparison-minimized-bar {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: calc(100vw - 56px);
+  box-sizing: border-box;
+  border: 1px solid #cfdad2;
+  border-radius: 18px;
+  background: #f3f5f1;
+  box-shadow: 0 18px 48px rgb(24 31 27 / 22%);
+  padding: 14px 16px;
+}
+
+.model-comparison-minimized-bar > div {
+  display: grid;
+  gap: 3px;
+}
+
+.model-comparison-minimized-bar span {
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.model-comparison-minimized-bar strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.model-comparison-minimized-bar button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.model-comparison-is-minimized button:not(.model-comparison-minimized-bar button),
+.model-comparison-is-minimized a,
+.model-comparison-is-minimized input,
+.model-comparison-is-minimized textarea,
+.model-comparison-is-minimized select,
+.model-comparison-is-minimized [role="button"] {
+  cursor: not-allowed;
 }
 
 .comparison-prompt-preview,

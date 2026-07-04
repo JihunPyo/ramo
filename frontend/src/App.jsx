@@ -482,7 +482,7 @@ function App() {
 
   const handleOpenModelComparison = (messageText) => {
     setErrorMessage('')
-    setModelComparisonFlow({ prompt: messageText ?? '', comparison: null, analysis: null })
+    setModelComparisonFlow({ prompt: messageText ?? '', comparison: null, analysis: null, minimized: false })
   }
 
   const handleStartModelComparison = async (prompt, models) => {
@@ -833,12 +833,34 @@ function App() {
     'app-shell',
     isSidebarCollapsed ? 'sidebar-collapsed' : '',
     isMobileSidebarOpen ? 'mobile-sidebar-open' : '',
+    modelComparisonFlow?.minimized ? 'model-comparison-is-minimized' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   return (
-    <main className={appShellClassName}>
+    <main
+      className={appShellClassName}
+      onClickCapture={(event) => {
+        if (
+          modelComparisonFlow?.minimized
+          && !event.target.closest('.model-comparison-minimized-bar')
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+      onKeyDownCapture={(event) => {
+        if (
+          modelComparisonFlow?.minimized
+          && ['Enter', ' '].includes(event.key)
+          && !event.target.closest('.model-comparison-minimized-bar')
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+    >
       <StartNodeSidebar
         graphState={graphState}
         rootNodes={rootNodes}
@@ -984,11 +1006,17 @@ function App() {
           modelOptions={COMPARISON_MODEL_OPTIONS}
           comparison={modelComparisonFlow.comparison}
           analysis={modelComparisonFlow.analysis}
+          isMinimized={Boolean(modelComparisonFlow.minimized)}
           isBusy={Boolean(pendingAction)}
           onStartComparison={handleStartModelComparison}
           onAnalyze={handleAnalyzeModelComparison}
           onSelectAnswer={handleSelectComparedAnswer}
           onMerge={handleMergeComparedAnswers}
+          onToggleMinimize={() => {
+            if (!pendingAction) {
+              setModelComparisonFlow((flow) => flow ? { ...flow, minimized: !flow.minimized } : flow)
+            }
+          }}
           onClose={() => {
             if (!pendingAction) {
               setModelComparisonFlow(null)

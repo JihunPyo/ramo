@@ -6,11 +6,13 @@ export function ModelComparisonFlow({
   modelOptions,
   comparison,
   analysis,
+  isMinimized = false,
   isBusy = false,
   onStartComparison,
   onAnalyze,
   onSelectAnswer,
   onMerge,
+  onToggleMinimize,
   onClose,
 }) {
   const sortedModelOptions = useMemo(() => sortModelsByProvider(modelOptions), [modelOptions])
@@ -106,6 +108,20 @@ export function ModelComparisonFlow({
   const showAnalysis = sidePanel === 'analysis'
   const showMerge = sidePanel === 'merge'
 
+  if (isMinimized) {
+    return (
+      <section className="model-comparison-minimized-bar" role="status" aria-label="최소화된 모델 답변 비교">
+        <div>
+          <span>모델 비교</span>
+          <strong>답변 비교창이 접혀 있습니다</strong>
+        </div>
+        <button type="button" onClick={onToggleMinimize} aria-label="모델 답변 비교 창 다시 펼치기">
+          다시 펼치기
+        </button>
+      </section>
+    )
+  }
+
   return (
     <div className="model-flow-backdrop" role="presentation">
       <div className={sidePanel ? 'model-comparison-shell with-side-panel' : 'model-comparison-shell'}>
@@ -115,7 +131,18 @@ export function ModelComparisonFlow({
               <span>모델 비교</span>
               <h2>모델 답변 비교</h2>
             </div>
-            <button type="button" className="model-flow-close" onClick={onClose} aria-label="모델 답변 비교 창 닫기">×</button>
+            <div className="model-flow-window-actions">
+              <button
+                type="button"
+                className="model-flow-minimize"
+                onClick={onToggleMinimize}
+                disabled={isBusy}
+                aria-label="모델 답변 비교 창 최소화"
+              >
+                −
+              </button>
+              <button type="button" className="model-flow-close" onClick={onClose} aria-label="모델 답변 비교 창 닫기">×</button>
+            </div>
           </header>
 
           <div className="model-answer-grid">
