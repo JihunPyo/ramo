@@ -29,8 +29,10 @@ export function StartNodeSidebar({
   onDeleteForever,
 }) {
   const [contextMenu, setContextMenu] = useState(null)
+  const [isTrashOpen, setIsTrashOpen] = useState(false)
   const [toggleTooltip, setToggleTooltip] = useState(null)
   const contextMenuRef = useRef(null)
+  const trashMenuRef = useRef(null)
   const toggleButtonRef = useRef(null)
   const trashNodes = graphState.trashNodes ?? []
   const trashNodeIds = new Set(trashNodes.map((node) => node.id))
@@ -127,6 +129,36 @@ export function StartNodeSidebar({
   }, [contextMenu, isContentVisible])
 
   useEffect(() => {
+    if (!isTrashOpen) {
+      return undefined
+    }
+
+    const closeTrashMenu = () => {
+      setIsTrashOpen(false)
+    }
+
+    const handlePointerDown = (event) => {
+      if (!trashMenuRef.current?.contains(event.target)) {
+        closeTrashMenu()
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeTrashMenu()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isTrashOpen])
+
+  useEffect(() => {
     if (!toggleTooltip) {
       return undefined
     }
@@ -152,6 +184,17 @@ export function StartNodeSidebar({
 
   const hideToggleTooltip = () => {
     setToggleTooltip(null)
+  }
+
+  const showToggleTooltipOnFocus = (event) => {
+    if (event.currentTarget.matches(':focus-visible')) {
+      showToggleTooltip()
+    }
+  }
+
+  const handleToggleCollapse = () => {
+    hideToggleTooltip()
+    onToggleCollapse()
   }
 
   const openContextMenu = (event, nodeId) => {
@@ -184,6 +227,7 @@ export function StartNodeSidebar({
     const nodeId = contextNode.id
     setContextMenu(null)
     onMoveSessionToTrash?.(nodeId)
+    setIsTrashOpen(true)
   }
 
   return (
@@ -204,8 +248,8 @@ export function StartNodeSidebar({
           aria-label={toggleLabel}
           aria-expanded={isContentVisible}
           onBlur={hideToggleTooltip}
-          onClick={onToggleCollapse}
-          onFocus={showToggleTooltip}
+          onClick={handleToggleCollapse}
+          onFocus={showToggleTooltipOnFocus}
           onMouseEnter={showToggleTooltip}
           onMouseLeave={hideToggleTooltip}
         >
@@ -285,6 +329,60 @@ export function StartNodeSidebar({
             <strong>{userProfile.name}</strong>
           </div>
         </footer>
+        <div className="sidebar-trash" ref={trashMenuRef}>
+          <button
+            type="button"
+            className="sidebar-trash-button"
+            aria-label={`휴지통 ${trashNodes.length}개`}
+            aria-expanded={isTrashOpen}
+            aria-haspopup="menu"
+            onClick={() => setIsTrashOpen((current) => !current)}
+          >
+            <span className="sidebar-trash-icon" aria-hidden="true" />
+            {trashNodes.length > 0 ? (
+              <strong className="sidebar-trash-count">{trashNodes.length}</strong>
+            ) : null}
+          </button>
+          {isTrashOpen ? (
+            <section className="trash-popover" aria-label="휴지통">
+              {trashRoots.length > 0 ? (
+                <div className="trash-list">
+                  {trashRoots.map((node) => {
+                    const branchCount = getSubtreeNodeIds(trashNodes, node.id).length
+
+                    return (
+                      <article key={node.id} className="trash-card">
+                        <div>
+                          <strong>{node.title}</strong>
+                          <small>{branchCount}개 항목</small>
+                        </div>
+                        <div className="trash-actions">
+                          <button
+                            type="button"
+                            onClick={() => onRestoreFromTrash(node.id)}
+                            disabled={isBusy}
+                          >
+                            복구
+                          </button>
+                          <button
+                            type="button"
+                            className="danger-text-button"
+                            onClick={() => onDeleteForever(node.id)}
+                            disabled={isBusy}
+                          >
+                            영구 삭제
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="trash-empty">삭제한 항목이 없습니다.</p>
+              )}
+            </section>
+          ) : null}
+        </div>
       </div>
 
       {contextNode && typeof document !== 'undefined' ? createPortal(

@@ -20,9 +20,35 @@
 .ramo-logo-mark { width: 150px; height: auto; overflow: visible; }
 .ramo-logo-text { fill: #6f4e37; font-family: 'Quicksand', 'Nunito', sans-serif; font-size: 66px; font-weight: 700; }
 .ramo-logo-ring { fill: none; stroke: #2fa86e; stroke-width: 11; }
-.ramo-logo-branch { fill: none; stroke: #3dba7d; stroke-linecap: round; stroke-width: 4.5; }
-.ramo-logo-node { fill: #2e8b57; }
+.ramo-logo-branch { fill: none; stroke: #3dba7d; stroke-linecap: round; stroke-width: 4.5; stroke-dasharray: 1; stroke-dashoffset: 1; animation: ramo-branch-grow 900ms ease forwards; }
+.ramo-logo-branch-side { stroke: #7ed9a8; animation-delay: 120ms; }
+.ramo-logo-branch-sprout { stroke: #2e8b57; stroke-width: 4; animation-delay: 240ms; }
+.ramo-logo-node,
+.ramo-logo-joint { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ramo-node-pop 420ms ease forwards; }
+.ramo-logo-node-top { fill: #2e8b57; animation-delay: 520ms; }
+.ramo-logo-node-side { fill: #3dba7d; animation-delay: 620ms; }
+.ramo-logo-joint { fill: #fff; stroke: #3dba7d; stroke-width: 2; animation-delay: 430ms; }
 .ramo-logo.compact .ramo-logo-mark { width: 112px; }
+
+@keyframes ramo-branch-grow {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes ramo-node-pop {
+  0% { opacity: 0; transform: scale(.3); }
+  65% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ramo-logo-branch,
+  .ramo-logo-node,
+  .ramo-logo-joint {
+    animation: none;
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
 .sidebar-header h2, .chat-header h1, .graph-modal-header h2 { color: var(--color-text); }
 .sidebar-toggle-button, .mobile-sidebar-open-button { border: 0; background: transparent; }
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
@@ -80,6 +106,14 @@
   width: min(var(--chat-width), calc(100% - 48px));
   min-height: 100%;
   padding: 36px 0 90px;
+}
+.landing-logo {
+  display: inline-flex;
+  justify-content: center;
+  margin: 0 0 18px;
+}
+.landing-logo .ramo-logo-mark {
+  width: min(210px, 62vw);
 }
 .landing-mark { width: 44px; height: 44px; border-radius: 14px; background: var(--color-accent); color: #fff; font-size: 18px; font-weight: 850; }
 .landing-model { margin-top: 16px; color: var(--color-accent); font-size: 12px; letter-spacing: .14em; }

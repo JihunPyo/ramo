@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "dev:mock": "VITE_USE_MOCK_API=true VITE_API_BASE_URL= vite --host 127.0.0.1 --port 5173",
+    "dev:mock": "vite --host 127.0.0.1 --port 5173 --mode mock",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

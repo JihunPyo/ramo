@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
+import { RamoLogo } from './RamoLogo.jsx'
 
 const webSearchOptions = [
   {
@@ -174,6 +175,9 @@ export function ChatLanding({ activeNode, isBusy = false, onSendMessage }) {
 
   return (
     <section className="chat-landing" aria-label="채팅 시작">
+      <div className="landing-logo" aria-hidden="true">
+        <RamoLogo />
+      </div>
       <h1>무엇을 도와드릴까요?</h1>
 
       <form className="landing-composer" onSubmit={handleSubmit}>
