@@ -337,14 +337,9 @@ function MergeSummaryPanel({ summaries }) {
           <article key={summary.id} className="merge-summary-card">
             <span className="merge-source-label">대상 {summary.index}</span>
             <h2>{summary.title}</h2>
-            <p>{summary.summary}</p>
-            {summary.tags.length > 0 ? (
-              <div className="merge-summary-tags" aria-label={`${summary.title} 태그`}>
-                {summary.tags.slice(0, 3).map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-            ) : null}
+            <div className="merge-summary-message">
+              <RichMessageContent content={summary.summary} />
+            </div>
           </article>
         ))}
       </div>

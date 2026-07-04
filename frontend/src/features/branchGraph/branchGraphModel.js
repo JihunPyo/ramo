@@ -93,7 +93,7 @@ export function getMergeSourceSummaries(state, nodeId) {
       return {
         id: parentNode.id,
         title: parentNode.title,
-        summary: resolveNodeSummary(state, parentNode),
+        summary: resolveNodeSummaryContent(state, parentNode),
         tags: parentNode.tags ?? [],
         index: index + 1,
       }
@@ -627,7 +627,7 @@ function getMergeContextNodes(nodes, mergeNode) {
     .filter(Boolean)
 }
 
-function resolveNodeSummary(state, node) {
+function resolveNodeSummaryContent(state, node) {
   const mergeNode = getActiveNode(state)
   const mergeSummary = isMergeNode(mergeNode)
     ? findMergeSeedSummaryForNode(getSessionByNodeId(state, mergeNode.id).messages, node)
@@ -646,7 +646,7 @@ function resolveNodeSummary(state, node) {
     node.description ||
     '요약 가능한 대화가 아직 없다.'
 
-  return compactSummaryText(summary)
+  return String(summary).trim()
 }
 
 function findMergeSeedSummaryForNode(messages, node) {
@@ -658,7 +658,7 @@ function findMergeSeedSummaryForNode(messages, node) {
     return normalizedNodeTitle && normalizedContent.includes(normalizedNodeTitle)
   })
 
-  return stripMergeSeedHeading(matchedMessage?.content ?? '')
+  return matchedMessage?.content ?? ''
 }
 
 function getMergeSeedMessages(messages) {
@@ -697,26 +697,6 @@ function isBranchSummarySeedMessage(message) {
 
 function isMergeSeedAckMessage(message) {
   return message.role === 'assistant' && String(message.content ?? '').trim() === '확인했습니다.'
-}
-
-function stripMergeSeedHeading(value) {
-  return String(value ?? '')
-    .replace(/^\s*\[브랜치[^\]]*요약[^\]]*\]\s*/u, '')
-    .trim()
-}
-
-function compactSummaryText(value, maxLength = 220) {
-  const summary = String(value ?? '')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/[#>*`|_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (summary.length <= maxLength) {
-    return summary
-  }
-
-  return `${summary.slice(0, maxLength - 1).trim()}...`
 }
 
 function normalizeSummaryText(value) {
