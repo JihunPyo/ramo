@@ -73,6 +73,13 @@
     0 12px 24px rgb(32 35 31 / 6%);
 }
 
+.root-card.selected {
+  box-shadow:
+    inset 4px 0 0 #2f735f,
+    0 2px 4px rgb(32 35 31 / 7%),
+    0 12px 24px rgb(32 35 31 / 6%);
+}
+
 .workspace {
   height: 100vh;
   height: 100dvh;
