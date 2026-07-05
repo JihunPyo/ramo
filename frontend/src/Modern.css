@@ -54,50 +54,40 @@
 .sidebar-toggle-button:hover, .mobile-sidebar-open-button:hover { border-color: transparent; background: #e4e6e1; }
 .new-chat-button {
   border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-accent);
-  box-shadow: 0 1px 2px rgb(32 35 31 / 7%);
+  border-radius: 10px;
+  background: transparent;
+  color: #111111;
+  box-shadow: none;
 }
 .new-chat-button:hover,
 .new-chat-button.selected {
-  background: #e2e6e1;
-  color: var(--color-accent);
-  box-shadow:
-    0 2px 4px rgb(32 35 31 / 7%),
-    0 12px 24px rgb(32 35 31 / 6%);
+  background: #e9e9e9;
+  color: #111111;
+  box-shadow: none;
 }
 .new-chat-button.selected {
-  box-shadow:
-    inset 4px 0 0 #2f735f,
-    0 2px 4px rgb(32 35 31 / 7%),
-    0 12px 24px rgb(32 35 31 / 6%);
+  box-shadow: none;
 }
 .root-card,
 .trash-panel {
   border-color: transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
 }
 .root-card {
-  background: rgb(255 255 255 / 44%);
-  box-shadow:
-    0 1px 2px rgb(32 35 31 / 5%),
-    0 8px 18px rgb(32 35 31 / 4%);
+  background: transparent;
+  color: #111111;
+  box-shadow: none;
 }
 .root-card:hover,
 .root-card.selected {
   border-color: transparent;
-  background: #e2e6e1;
-  box-shadow:
-    0 2px 4px rgb(32 35 31 / 7%),
-    0 12px 24px rgb(32 35 31 / 6%);
+  background: #e9e9e9;
+  color: #111111;
+  box-shadow: none;
 }
 
 .root-card.selected {
-  box-shadow:
-    inset 4px 0 0 #2f735f,
-    0 2px 4px rgb(32 35 31 / 7%),
-    0 12px 24px rgb(32 35 31 / 6%);
+  box-shadow: none;
 }
 
 .workspace {

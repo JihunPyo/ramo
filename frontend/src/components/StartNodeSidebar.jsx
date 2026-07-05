@@ -330,8 +330,37 @@ export function StartNodeSidebar({
           onClick={onNewChat}
           disabled={isBusy}
         >
+          <span className="new-chat-icon" aria-hidden="true" />
           새 채팅
         </button>
+
+        <div className="sidebar-trash" ref={trashMenuRef}>
+          <button
+            type="button"
+            className="sidebar-trash-button"
+            aria-label={`휴지통 ${trashNodes.length}개`}
+            aria-expanded={isTrashOpen}
+            aria-haspopup="menu"
+            onClick={() => setIsTrashOpen((current) => !current)}
+          >
+            <span className="sidebar-trash-icon" aria-hidden="true" />
+            <span className="sidebar-trash-label">휴지통</span>
+            {trashNodes.length > 0 ? (
+              <strong className="sidebar-trash-count">{trashNodes.length}</strong>
+            ) : null}
+          </button>
+          {isTrashOpen ? (
+            <section className="trash-popover" aria-label="휴지통">
+              {trashRoots.length > 0 ? (
+                <div className="trash-list">
+                  {trashRoots.map(renderTrashCard)}
+                </div>
+              ) : (
+                <p className="trash-empty">삭제한 항목이 없습니다.</p>
+              )}
+            </section>
+          ) : null}
+        </div>
 
         <div className="sidebar-scroll-area" aria-hidden={!isContentVisible}>
           <nav className="root-list" aria-label="루트 노드 목록">
@@ -383,32 +412,6 @@ export function StartNodeSidebar({
             </svg>
           </button>
         </footer>
-        <div className="sidebar-trash" ref={trashMenuRef}>
-          <button
-            type="button"
-            className="sidebar-trash-button"
-            aria-label={`휴지통 ${trashNodes.length}개`}
-            aria-expanded={isTrashOpen}
-            aria-haspopup="menu"
-            onClick={() => setIsTrashOpen((current) => !current)}
-          >
-            <span className="sidebar-trash-icon" aria-hidden="true" />
-            {trashNodes.length > 0 ? (
-              <strong className="sidebar-trash-count">{trashNodes.length}</strong>
-            ) : null}
-          </button>
-          {isTrashOpen ? (
-            <section className="trash-popover" aria-label="휴지통">
-              {trashRoots.length > 0 ? (
-                <div className="trash-list">
-                  {trashRoots.map(renderTrashCard)}
-                </div>
-              ) : (
-                <p className="trash-empty">삭제한 항목이 없습니다.</p>
-              )}
-            </section>
-          ) : null}
-        </div>
       </div>
 
       {contextNode && typeof document !== 'undefined' ? createPortal(
