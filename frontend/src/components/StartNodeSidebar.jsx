@@ -262,7 +262,6 @@ export function StartNodeSidebar({
     const nodeId = contextNode.id
     setContextMenu(null)
     onMoveSessionToTrash?.(nodeId)
-    setIsTrashOpen(true)
   }
 
   const handleRenameSession = async (event) => {
