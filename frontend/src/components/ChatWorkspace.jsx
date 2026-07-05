@@ -99,6 +99,18 @@ export function ChatWorkspace({
   }, [hasActiveStartMessage, nodeNavigationKey])
 
   useEffect(() => {
+    if (!isSplitViewOpen) {
+      return undefined
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      messageListRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    })
+
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [activeNode?.id, isSplitViewOpen])
+
+  useEffect(() => {
     const previousState = previousConversationStateRef.current
     const currentState = {
       nodeId: activeNode?.id,
