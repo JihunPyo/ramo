@@ -514,20 +514,16 @@
 .attachment-preview-dialog header button:hover,
 .attachment-preview-dialog header button:focus-visible { background: #e8ebe6; color: var(--color-text); outline: 0; }
 .attachment-preview-dialog img { display: block; width: auto; height: auto; max-width: 92vw; max-height: calc(92vh - 55px); background: #f7f9fb; object-fit: contain; }
-.easter-egg-modal { position: fixed; inset: 0; z-index: 1320; display: grid; place-items: center; padding: 28px; }
-.easter-egg-backdrop { position: absolute; inset: 0; border: 0; background: rgb(15 17 16 / 58%); cursor: pointer; }
-.easter-egg-dialog { position: relative; z-index: 1; width: min(520px, calc(100vw - 36px)); border: 1px solid rgb(203 219 210 / 88%); border-radius: var(--radius-lg); background: #ffffff; box-shadow: 0 30px 90px rgb(0 0 0 / 24%); overflow: hidden; }
-.easter-egg-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 15px; border-bottom: 1px solid var(--color-border); background: #f7faf7; color: var(--color-text-muted); font-size: 12px; font-weight: 850; }
-.easter-egg-dialog header button { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--color-surface-soft); color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 20px; line-height: 1; padding: 0; }
-.easter-egg-dialog header button:hover,
-.easter-egg-dialog header button:focus-visible { background: #e8ebe6; color: var(--color-text); outline: 0; }
-.easter-egg-content { display: grid; gap: 14px; padding: 22px; }
-.easter-egg-content h2 { margin: 0; color: var(--color-accent); font-size: 22px; line-height: 1.35; letter-spacing: 0; }
-.easter-egg-content pre { max-height: min(420px, 58vh); margin: 0; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--color-text); font: inherit; font-size: 15px; line-height: 1.65; }
-.easter-egg-loading { display: flex; align-items: center; gap: 12px; color: var(--color-text-muted); font-weight: 800; }
-.easter-egg-loading .model-comparison-loading-spinner { flex: 0 0 auto; width: 28px; height: 28px; border-width: 3px; }
-.easter-egg-loading p,
+.easter-egg-popover { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; width: min(280px, calc(100vw - 28px)); border: 1px solid rgb(203 219 210 / 90%); border-radius: 12px; background: #ffffff; box-shadow: 0 16px 42px rgb(31 41 51 / 16%); overflow: hidden; }
+.easter-egg-popover header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--color-border); background: #f7faf7; color: var(--color-text-muted); font-size: 11px; font-weight: 850; }
+.easter-egg-popover header button { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 16px; line-height: 1; padding: 0; }
+.easter-egg-popover header button:hover,
+.easter-egg-popover header button:focus-visible { background: #e8ebe6; color: var(--color-text); outline: 0; }
+.easter-egg-content { display: grid; gap: 8px; padding: 12px; }
+.easter-egg-content strong { color: var(--color-accent); font-size: 14px; line-height: 1.35; }
+.easter-egg-content p,
 .easter-egg-error { margin: 0; }
+.easter-egg-content pre { max-height: 170px; margin: 0; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--color-text); font: inherit; font-size: 12px; line-height: 1.55; }
 .easter-egg-error { color: #9b3327; font-weight: 800; }
 
 .workspace-content.chat-visible { min-height: 0; overflow: hidden; }

@@ -201,7 +201,7 @@ function App() {
   const [fileUploadState, setFileUploadState] = useState(null)
   const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
   const [comparisonResetKey, setComparisonResetKey] = useState(0)
-  const [easterEggModal, setEasterEggModal] = useState(null)
+  const [easterEggPopover, setEasterEggPopover] = useState(null)
   const graphStateRef = useRef(graphState)
   const sessionContentCacheRef = useRef(createSessionContentCache())
   const splitWorkspaceRef = useRef(null)
@@ -572,17 +572,17 @@ function App() {
   const handleOpenEasterEgg = async (kind) => {
     const config = kind === 'frontend'
       ? {
-          title: '프론트팀 이스터에그',
-          label: '계정 더블클릭',
+          title: 'GET /egg',
+          label: '계정',
           load: () => branchGraphApi.getEgg(),
         }
       : {
-          title: '백엔드 첫 손코딩 데뷔',
-          label: '도움말 더블클릭',
+          title: 'GET /home',
+          label: '도움말',
           load: () => branchGraphApi.getHome(),
         }
 
-    setEasterEggModal({
+    setEasterEggPopover({
       title: config.title,
       label: config.label,
       content: '',
@@ -592,7 +592,7 @@ function App() {
 
     try {
       const response = await config.load()
-      setEasterEggModal({
+      setEasterEggPopover({
         title: readEasterEggTitle(response) || config.title,
         label: config.label,
         content: readEasterEggContent(response),
@@ -600,7 +600,7 @@ function App() {
         error: '',
       })
     } catch (error) {
-      setEasterEggModal({
+      setEasterEggPopover({
         title: config.title,
         label: config.label,
         content: '',
@@ -1547,7 +1547,7 @@ function App() {
               type="button"
               className="topbar-action-button"
               onDoubleClick={() => void handleOpenEasterEgg('backend')}
-              aria-label="도움말 이스터에그 열기"
+              aria-label="도움말"
               title="도움말"
             >
               도움말
@@ -1556,11 +1556,17 @@ function App() {
               type="button"
               className="topbar-action-button"
               onDoubleClick={() => void handleOpenEasterEgg('frontend')}
-              aria-label="계정 이스터에그 열기"
+              aria-label="계정"
               title="계정"
             >
               계정
             </button>
+            {easterEggPopover ? (
+              <EasterEggPopover
+                egg={easterEggPopover}
+                onClose={() => setEasterEggPopover(null)}
+              />
+            ) : null}
           </div>
         </header>
 
@@ -1790,59 +1796,30 @@ function App() {
         />
       ) : null}
 
-      {easterEggModal ? (
-        <EasterEggModal
-          egg={easterEggModal}
-          onClose={() => setEasterEggModal(null)}
-        />
-      ) : null}
     </main>
   )
 }
 
-function EasterEggModal({ egg, onClose }) {
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
+function EasterEggPopover({ egg, onClose }) {
   return (
-    <div className="easter-egg-modal" role="dialog" aria-modal="true" aria-label={egg.title}>
-      <button
-        type="button"
-        className="easter-egg-backdrop"
-        aria-label="이스터에그 닫기"
-        onClick={onClose}
-      />
-      <section className="easter-egg-dialog">
-        <header>
-          <span>{egg.label}</span>
-          <button type="button" aria-label="이스터에그 닫기" onClick={onClose}>
-            ×
-          </button>
-        </header>
-        <div className="easter-egg-content" aria-live="polite">
-          <h2>{egg.title}</h2>
-          {egg.isLoading ? (
-            <div className="easter-egg-loading" role="status">
-              <span className="model-comparison-loading-spinner" aria-hidden="true" />
-              <p>이스터에그 불러오는 중...</p>
-            </div>
-          ) : egg.error ? (
-            <p className="easter-egg-error">{egg.error}</p>
-          ) : (
-            <pre>{egg.content}</pre>
-          )}
-        </div>
-      </section>
-    </div>
+    <section className="easter-egg-popover" role="status" aria-live="polite" aria-label={egg.title}>
+      <header>
+        <span>{egg.label}</span>
+        <button type="button" aria-label="이스터에그 닫기" onClick={onClose}>
+          ×
+        </button>
+      </header>
+      <div className="easter-egg-content">
+        <strong>{egg.title}</strong>
+        {egg.isLoading ? (
+          <p>불러오는 중...</p>
+        ) : egg.error ? (
+          <p className="easter-egg-error">{egg.error}</p>
+        ) : (
+          <pre>{egg.content}</pre>
+        )}
+      </div>
+    </section>
   )
 }
 

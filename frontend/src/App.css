@@ -1476,6 +1476,7 @@
 }
 
 .topbar-actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -1492,17 +1493,6 @@
   cursor: pointer;
   font: inherit;
   padding: 6px 0;
-}
-
-.topbar-action-button:hover,
-.topbar-action-button:focus-visible {
-  color: var(--color-accent);
-}
-
-.topbar-action-button:focus-visible {
-  border-radius: 6px;
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
 }
 
 .api-error {

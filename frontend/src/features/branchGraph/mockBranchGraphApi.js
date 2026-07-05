@@ -13,15 +13,15 @@ export function createMockBranchGraphApi() {
     async getHome() {
       await delay()
       return {
-        title: '백엔드 첫 손코딩 데뷔',
-        message: 'GET /home 응답이 도착했습니다. 첫 손코딩 백엔드, 무대 위로!',
+        title: 'GET /home',
+        message: 'GET /home 응답이 도착했습니다.',
       }
     },
     async getEgg() {
       await delay()
       return {
-        title: '프론트팀 이스터에그',
-        message: 'GET /egg 응답이 도착했습니다. 프론트팀도 여기까지 열심히 왔습니다.',
+        title: 'GET /egg',
+        message: 'GET /egg 응답이 도착했습니다.',
       }
     },
     async createSession(title = '새 대화') {
