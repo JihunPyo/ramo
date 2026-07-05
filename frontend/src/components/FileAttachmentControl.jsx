@@ -196,7 +196,11 @@ function readFileName(file) {
 }
 
 function readPreviewUrl(file) {
-  return file?.previewUrl ?? file?.preview_url ?? ''
+  if (!isImageAttachment(file)) {
+    return ''
+  }
+
+  return file?.previewUrl ?? file?.preview_url ?? file?.content_url ?? file?.contentUrl ?? ''
 }
 
 function getAttachmentExtensionLabel(filename) {
@@ -207,4 +211,12 @@ function getAttachmentExtensionLabel(filename) {
   }
 
   return extension.slice(0, 4)
+}
+
+function isImageAttachment(file) {
+  return file?.file_type === 'image' ||
+    file?.fileType === 'image' ||
+    file?.type?.startsWith('image/') ||
+    file?.mime_type?.startsWith('image/') ||
+    file?.mimeType?.startsWith('image/')
 }

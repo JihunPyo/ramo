@@ -450,8 +450,26 @@ function normalizeMessage(message) {
       message.is_hidden === true ||
       message.isHidden === true ||
       metadata.hidden_from_user === true,
+    attachments: normalizeMessageAttachments(message.attachments),
     createdAt: formatDisplayTime(message.created_at ?? message.createdAt),
   }
+}
+
+function normalizeMessageAttachments(attachments) {
+  if (!Array.isArray(attachments)) {
+    return []
+  }
+
+  return attachments.map((file) => ({
+    ...file,
+    id: file.id ?? file.file_id ?? file.fileId,
+    filename: file.filename ?? file.name ?? '첨부 파일',
+    branch_id: file.branch_id ?? file.branchId ?? null,
+    message_id: file.message_id ?? file.messageId ?? null,
+    file_type: file.file_type ?? file.fileType ?? '',
+    mime_type: file.mime_type ?? file.mimeType ?? '',
+    content_url: file.content_url ?? file.contentUrl ?? '',
+  }))
 }
 
 function formatDisplayTime(value) {

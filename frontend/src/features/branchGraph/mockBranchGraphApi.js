@@ -194,10 +194,10 @@ export function createMockBranchGraphApi() {
       }
 
       if (!includeInherited) {
-        return [...(store.messagesByBranchId.get(branchId) ?? [])]
+        return withMockMessageAttachments(store, [...(store.messagesByBranchId.get(branchId) ?? [])])
       }
 
-      return getInheritedMessages(store, branchId)
+      return withMockMessageAttachments(store, getInheritedMessages(store, branchId))
     },
     async sendChatMessage({
       branchId,
@@ -206,6 +206,7 @@ export function createMockBranchGraphApi() {
       modelName = 'gpt-4o-mini',
       personaKey = '',
       personaName = '',
+      fileIds = [],
     }) {
       await delay()
       const branch = store.branches.get(branchId)
@@ -239,6 +240,9 @@ export function createMockBranchGraphApi() {
         },
       })
       const branchMessages = store.messagesByBranchId.get(branchId) ?? []
+      const attachments = attachMockFilesToMessage(store, branchId, fileIds, userMessage.id)
+
+      userMessage.attachments = attachments
 
       store.messagesByBranchId.set(branchId, [...branchMessages, userMessage, assistantMessage])
 
@@ -791,15 +795,47 @@ function createMockStore() {
 
 function createMockUploadedFile({ file, sessionId, branchId, modelProvider, modelName }) {
   const filename = file?.name || '첨부 파일'
+  const mimeType = file?.type || inferMockMimeType(filename)
+  const isImage = mimeType.startsWith('image/')
 
   return {
     id: `mock-file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     session_id: sessionId,
     branch_id: branchId,
+    message_id: null,
     filename,
     summary: createMockFileSummary(file, modelProvider, modelName),
+    file_type: isImage ? 'image' : 'text',
+    mime_type: mimeType,
+    content_url: isImage && typeof URL !== 'undefined' ? URL.createObjectURL(file) : null,
     created_at: new Date().toISOString(),
   }
+}
+
+function inferMockMimeType(filename) {
+  const extension = String(filename).split('.').pop()?.toLowerCase()
+
+  if (extension === 'png') {
+    return 'image/png'
+  }
+
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return 'image/jpeg'
+  }
+
+  if (extension === 'webp') {
+    return 'image/webp'
+  }
+
+  if (extension === 'gif') {
+    return 'image/gif'
+  }
+
+  if (extension === 'pdf') {
+    return 'application/pdf'
+  }
+
+  return 'application/octet-stream'
 }
 
 function createMockFileSummary(file, modelProvider, modelName) {
@@ -811,6 +847,35 @@ function createMockFileSummary(file, modelProvider, modelName) {
   }
 
   return `${filename} 파일을 첨부했다. mock 환경에서는 실제 텍스트 추출 대신 파일 메타데이터만 표시한다. (${sizeLabel}, ${modelProvider}/${modelName})`
+}
+
+function attachMockFilesToMessage(store, branchId, fileIds, messageId) {
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return []
+  }
+
+  const fileIdSet = new Set(fileIds)
+  const branchFiles = store.filesByBranchId.get(branchId) ?? []
+  const attachments = branchFiles.filter((file) => fileIdSet.has(file.id))
+
+  attachments.forEach((file) => {
+    file.message_id = messageId
+  })
+
+  return attachments
+}
+
+function withMockMessageAttachments(store, messages) {
+  return messages.map((message) => ({
+    ...message,
+    attachments: getMockMessageAttachments(store, message.id),
+  }))
+}
+
+function getMockMessageAttachments(store, messageId) {
+  return Array.from(store.filesByBranchId.values())
+    .flatMap((files) => files)
+    .filter((file) => file.message_id === messageId)
 }
 
 function formatFileSize(size) {

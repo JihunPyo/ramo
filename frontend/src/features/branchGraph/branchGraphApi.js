@@ -88,6 +88,7 @@ export function createHttpBranchGraphApi(client = httpClient) {
       modelName = 'gpt-4o-mini',
       personaKey = '',
       personaName = '',
+      fileIds = [],
     }) {
       return client.request('/chat', {
         method: 'POST',
@@ -96,6 +97,7 @@ export function createHttpBranchGraphApi(client = httpClient) {
           message,
           model_provider: modelProvider,
           model_name: modelName,
+          file_ids: fileIds,
           ...(personaKey ? { persona_key: personaKey } : {}),
           ...(personaName ? { persona_name: personaName } : {}),
         },

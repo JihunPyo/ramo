@@ -39,10 +39,6 @@ import {
   shouldUseInheritedMessagesForNode,
 } from './features/branchGraph/branchGraphModel.js'
 import { createSessionContentCache } from './features/branchGraph/sessionContentCache.js'
-import {
-  cacheMessageAttachments,
-  restoreMessageAttachmentCache,
-} from './features/branchGraph/messageAttachmentCache.js'
 
 const CHATKHU_MODEL_GROUPS = {
   anthropic: { groupLabel: 'CLAUDE', mark: '✺' },
@@ -206,57 +202,11 @@ function App() {
   const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
   const [comparisonResetKey, setComparisonResetKey] = useState(0)
   const graphStateRef = useRef(graphState)
-  const messageAttachmentsByIdRef = useRef(messageAttachmentsById)
   const sessionContentCacheRef = useRef(createSessionContentCache())
   const splitWorkspaceRef = useRef(null)
 
   useEffect(() => {
     graphStateRef.current = graphState
-  }, [graphState])
-
-  useEffect(() => {
-    messageAttachmentsByIdRef.current = messageAttachmentsById
-  }, [messageAttachmentsById])
-
-  useEffect(() => {
-    const messageIds = getMessageAttachmentRestoreIds(
-      graphState,
-      messageAttachmentsByIdRef.current,
-    )
-
-    if (messageIds.length === 0) {
-      return undefined
-    }
-
-    let isCancelled = false
-
-    restoreMessageAttachmentCache(messageIds)
-      .then((cachedAttachmentsById) => {
-        if (isCancelled) {
-          return
-        }
-
-        setMessageAttachmentsById((currentAttachmentsById) => {
-          const nextAttachmentsById = { ...currentAttachmentsById }
-          let hasChange = false
-
-          Object.entries(cachedAttachmentsById).forEach(([messageId, files]) => {
-            if (currentAttachmentsById[messageId]?.length > 0 || files.length === 0) {
-              return
-            }
-
-            nextAttachmentsById[messageId] = files
-            hasChange = true
-          })
-
-          return hasChange ? nextAttachmentsById : currentAttachmentsById
-        })
-      })
-      .catch(() => {})
-
-    return () => {
-      isCancelled = true
-    }
   }, [graphState])
 
   useEffect(() => {
@@ -820,6 +770,7 @@ function App() {
         modelName: selectedChatModel.name,
         personaKey: personaNode?.personaKey,
         personaName: personaNode?.personaName,
+        fileIds: outgoingAttachments.map(readAttachmentFileId).filter(Boolean),
       })
       sessionContentCacheRef.current.invalidateAll()
       const nextState = await loadGraphState({
@@ -833,10 +784,9 @@ function App() {
         findLatestSentUserMessageId(nextState ?? graphStateRef.current, branchId, messageText)
 
       if (sentUserMessageId && outgoingAttachments.length > 0) {
-        void cacheMessageAttachments(sentUserMessageId, outgoingAttachments).catch(() => {})
         setMessageAttachmentsById((currentAttachmentsById) => ({
           ...currentAttachmentsById,
-          [sentUserMessageId]: outgoingAttachments,
+          [sentUserMessageId]: readSentUserMessageAttachments(sendResponse) ?? outgoingAttachments,
         }))
         setAttachedFilesByBranchId((currentFilesByBranchId) =>
           removeAttachedFilesByIds(currentFilesByBranchId, branchId, outgoingAttachments),
@@ -881,6 +831,7 @@ function App() {
         modelName: selectedSplitChatModel.name,
         personaKey: personaNode?.personaKey,
         personaName: personaNode?.personaName,
+        fileIds: outgoingAttachments.map(readAttachmentFileId).filter(Boolean),
       })
       sessionContentCacheRef.current.invalidateAll()
       const messages = await sessionContentCacheRef.current.getBranchMessages(
@@ -895,10 +846,9 @@ function App() {
         findLatestSentUserMessageIdFromMessages(messages, branchId, messageText)
 
       if (sentUserMessageId && outgoingAttachments.length > 0) {
-        void cacheMessageAttachments(sentUserMessageId, outgoingAttachments).catch(() => {})
         setMessageAttachmentsById((currentAttachmentsById) => ({
           ...currentAttachmentsById,
-          [sentUserMessageId]: outgoingAttachments,
+          [sentUserMessageId]: readSentUserMessageAttachments(sendResponse) ?? outgoingAttachments,
         }))
         setAttachedFilesByBranchId((currentFilesByBranchId) =>
           removeAttachedFilesByIds(currentFilesByBranchId, branchId, outgoingAttachments),
@@ -1942,15 +1892,6 @@ function normalizeIncomingFiles(incomingFiles) {
   return Array.from(incomingFiles ?? []).filter((file) => file && file.size >= 0)
 }
 
-function getMessageAttachmentRestoreIds(graphState, messageAttachmentsById) {
-  return graphState.sessions.flatMap((session) =>
-    session.messages
-      .filter((message) => message.role === 'user')
-      .map(readMessageId)
-      .filter((messageId) => messageId && !messageAttachmentsById[messageId]?.length),
-  )
-}
-
 function createMessageAttachmentSnapshot(files, branchId) {
   return files.map((file) => ({
     ...file,
@@ -1975,7 +1916,7 @@ function getDraftAttachmentFiles(files, messageAttachmentsById, branchId) {
 
   return files.filter((file) => {
     const fileId = readAttachmentFileId(file)
-    return !fileId || !sentFileIds.has(fileId)
+    return !readAttachmentMessageId(file) && (!fileId || !sentFileIds.has(fileId))
   })
 }
 
@@ -1999,6 +1940,13 @@ function readSentUserMessageId(response) {
     response?.user_message_id ??
     response?.userMessageId ??
     null
+}
+
+function readSentUserMessageAttachments(response) {
+  const userMessage = response?.user_message ?? response?.userMessage
+  const attachments = userMessage?.attachments
+
+  return Array.isArray(attachments) && attachments.length > 0 ? attachments : null
 }
 
 function findLatestSentUserMessageId(graphState, branchId, messageText) {
@@ -2035,6 +1983,10 @@ function createUploadedAttachment(uploadedFile, sourceFile) {
     filename: uploadedFile?.filename ?? sourceFile?.name,
     type: uploadedFile?.type ?? sourceFile?.type,
     mime_type: uploadedFile?.mime_type ?? sourceFile?.type,
+  }
+
+  if (readAttachmentPreviewUrl(attachment)) {
+    return attachment
   }
 
   if (!isPreviewableImage(sourceFile) || typeof URL === 'undefined') {
@@ -2081,16 +2033,32 @@ function readAttachmentFileId(file) {
   return file?.id ?? file?.file_id ?? file?.fileId ?? ''
 }
 
+function readAttachmentMessageId(file) {
+  return file?.message_id ?? file?.messageId ?? null
+}
+
 function readAttachmentFileName(file) {
   return file?.filename ?? file?.name ?? '첨부 이미지'
 }
 
 function readAttachmentPreviewUrl(file) {
-  return file?.previewUrl ?? file?.preview_url ?? ''
+  if (!isAttachmentImage(file)) {
+    return ''
+  }
+
+  return file?.previewUrl ?? file?.preview_url ?? file?.content_url ?? file?.contentUrl ?? ''
 }
 
 function isPreviewableImage(file) {
   return file?.type?.startsWith('image/')
+}
+
+function isAttachmentImage(file) {
+  return file?.file_type === 'image' ||
+    file?.fileType === 'image' ||
+    file?.type?.startsWith('image/') ||
+    file?.mime_type?.startsWith('image/') ||
+    file?.mimeType?.startsWith('image/')
 }
 
 function revokeAttachmentPreview(file) {

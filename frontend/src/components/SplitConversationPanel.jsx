@@ -74,33 +74,37 @@ export function SplitConversationPanel({
       </header>
 
       <div className="message-list split-conversation-messages">
-        {messages.length > 0 ? messages.map((message) => (
-          <article key={message.id} className={`message-row ${message.role}`}>
-            {message.role === 'user' && messageAttachmentsById[message.id]?.length > 0 ? (
-              <MessageAttachmentList
-                files={messageAttachmentsById[message.id]}
-                onOpenFile={onOpenAttachment}
-              />
-            ) : null}
-            <div className="message-bubble">
-              <span className="message-role">
-                {getMessageRoleLabel(withNodePersona(message, node), modelOptions)}
-              </span>
-              <RichMessageContent content={message.content} />
-              {message.role === 'assistant' ? (
-                <div className="message-actions">
-                  <button
-                    type="button"
-                    onClick={() => onCreateBranch?.(message.id, node.id)}
-                    disabled={isBusy}
-                  >
-                    브랜치 생성
-                  </button>
-                </div>
+        {messages.length > 0 ? messages.map((message) => {
+          const messageAttachments = getMessageAttachments(message, messageAttachmentsById)
+
+          return (
+            <article key={message.id} className={`message-row ${message.role}`}>
+              {message.role === 'user' && messageAttachments.length > 0 ? (
+                <MessageAttachmentList
+                  files={messageAttachments}
+                  onOpenFile={onOpenAttachment}
+                />
               ) : null}
-            </div>
-          </article>
-        )) : (
+              <div className="message-bubble">
+                <span className="message-role">
+                  {getMessageRoleLabel(withNodePersona(message, node), modelOptions)}
+                </span>
+                <RichMessageContent content={message.content} />
+                {message.role === 'assistant' ? (
+                  <div className="message-actions">
+                    <button
+                      type="button"
+                      onClick={() => onCreateBranch?.(message.id, node.id)}
+                      disabled={isBusy}
+                    >
+                      브랜치 생성
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </article>
+          )
+        }) : (
           <p className="split-conversation-empty">이 노드에는 아직 표시할 대화가 없습니다.</p>
         )}
         {isAwaitingResponse && pendingUserMessage ? (
@@ -191,4 +195,10 @@ function withNodePersona(message, node) {
     ...message,
     personaName: nodePersonaName,
   }
+}
+
+function getMessageAttachments(message, messageAttachmentsById) {
+  return message.attachments?.length > 0
+    ? message.attachments
+    : messageAttachmentsById[message.id] ?? []
 }

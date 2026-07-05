@@ -45,6 +45,31 @@
 
 - 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
 
+## 2026-07-06 첨부 파일 백엔드 저장 방식 전환
+
+### 변경 사항
+
+- 전송 후 첨부 이미지 표시를 프론트 IndexedDB 캐시 방식에서 백엔드 `MessageOut.attachments` 기반 렌더링으로 전환했다.
+- `frontend/src/features/branchGraph/messageAttachmentCache.js`를 제거해 프론트 DB 사용을 중단했다.
+- `/chat` 요청에 전송 대상 첨부 파일 ID 목록을 `file_ids`로 전달하도록 수정했다.
+- 메시지 정규화 단계에서 `attachments`를 보존하고, 메인 채팅/분할 채팅 모두 백엔드 attachments를 우선 렌더링하도록 변경했다.
+- 이미지 MIME인 첨부만 `content_url`을 미리보기와 원본 모달에 사용하도록 제한해 PDF 등 문서는 문서 카드로 표시되게 했다.
+- Mock API도 `file_ids`, `message_id`, `attachments`, 이미지 `content_url` 응답을 흉내내도록 맞췄다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행했고, 기존 포트 사용으로 `http://127.0.0.1:5178/`에서 Mock 개발 서버가 실행되었다.
+- 인앱 브라우저에서 PNG 클립보드 붙여넣기 후 입력창 이미지 카드가 1개만 생성되는 것을 확인했다.
+- 메시지 전송 후 입력창 첨부는 비워지고, 사용자 메시지 영역의 attachments 이미지가 유지되며 원본 모달이 열리는 것을 확인했다.
+- PDF 클립보드 붙여넣기 시 preview 카드가 아닌 문서 카드 1개와 `PDF` 라벨이 표시되는 것을 확인했다.
+- 브라우저 콘솔 오류가 없음을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
 ## 2026-07-06 전송 후 첨부 이미지 표시 유지
 
 ### 변경 사항
