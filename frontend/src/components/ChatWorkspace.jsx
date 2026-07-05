@@ -8,6 +8,7 @@ import {
   getSessionByNodeId,
   isMergeNode,
 } from '../features/branchGraph/branchGraphModel.js'
+import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
 import { getMessageRoleLabel } from './messageRoleLabel.js'
@@ -506,13 +507,16 @@ function PendingAssistantMessage() {
 }
 
 function withNodePersona(message, node) {
-  if (message.role !== 'assistant' || message.personaName || !node?.personaName) {
+  const messagePersonaName = normalizePersonaLabel(message.personaName)
+  const nodePersonaName = normalizePersonaLabel(node?.personaName)
+
+  if (message.role !== 'assistant' || messagePersonaName || !nodePersonaName) {
     return message
   }
 
   return {
     ...message,
-    personaName: node.personaName,
+    personaName: nodePersonaName,
   }
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getSessionByNodeId } from '../features/branchGraph/branchGraphModel.js'
+import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
@@ -134,12 +135,15 @@ export function SplitConversationPanel({
 }
 
 function withNodePersona(message, node) {
-  if (message.role !== 'assistant' || message.personaName || !node?.personaName) {
+  const messagePersonaName = normalizePersonaLabel(message.personaName)
+  const nodePersonaName = normalizePersonaLabel(node?.personaName)
+
+  if (message.role !== 'assistant' || messagePersonaName || !nodePersonaName) {
     return message
   }
 
   return {
     ...message,
-    personaName: node.personaName,
+    personaName: nodePersonaName,
   }
 }

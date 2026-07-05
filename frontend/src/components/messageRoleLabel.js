@@ -1,3 +1,5 @@
+import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
+
 const UNKNOWN_MODEL_LABEL = '모델 미상'
 
 export function getMessageRoleLabel(message, modelOptions = []) {
@@ -32,7 +34,7 @@ function formatAssistantRoleLabel({
 }) {
   return dedupeLabelParts([
     resolveModelDisplayName({ modelProvider, modelName, modelLabel, modelOptions }),
-    normalizeLabel(personaName),
+    normalizePersonaLabel(personaName),
   ]).join(' · ')
 }
 
