@@ -29,6 +29,15 @@
 .ramo-logo-node-side { fill: #3dba7d; animation-delay: 620ms; }
 .ramo-logo-joint { fill: #fff; stroke: #3dba7d; stroke-width: 2; animation-delay: 430ms; }
 .ramo-logo.compact .ramo-logo-mark { width: 112px; }
+.loading-logo .ramo-logo-mark { width: 210px; }
+.loading-logo .ramo-logo-branch { animation: ramo-branch-grow 1400ms ease-in-out infinite both; }
+.loading-logo .ramo-logo-branch-side { animation-delay: 160ms; }
+.loading-logo .ramo-logo-branch-sprout { animation-delay: 320ms; }
+.loading-logo .ramo-logo-node,
+.loading-logo .ramo-logo-joint { animation: ramo-node-pop 1400ms ease-in-out infinite both; }
+.loading-logo .ramo-logo-joint { animation-delay: 500ms; }
+.loading-logo .ramo-logo-node-top { animation-delay: 640ms; }
+.loading-logo .ramo-logo-node-side { animation-delay: 780ms; }
 
 @keyframes ramo-branch-grow {
   to { stroke-dashoffset: 0; }
@@ -43,10 +52,33 @@
 @media (prefers-reduced-motion: reduce) {
   .ramo-logo-branch,
   .ramo-logo-node,
-  .ramo-logo-joint {
+  .ramo-logo-joint,
+  .loading-message,
+  .loading-dots,
+  .loading-message::before,
+  .loading-message::after {
     animation: none;
+  }
+
+  .ramo-logo-branch,
+  .ramo-logo-node,
+  .ramo-logo-joint {
     opacity: 1;
     stroke-dashoffset: 0;
+  }
+
+  .loading-message::before {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  .loading-message::after {
+    opacity: 1;
+    transform: translateX(-2px) rotate(-34deg) scaleX(1);
+  }
+
+  .loading-dots {
+    width: 0.9em;
   }
 }
 .sidebar-header h2, .chat-header h1, .graph-modal-header h2 { color: var(--color-text); }

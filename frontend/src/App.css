@@ -1498,17 +1498,128 @@
 
 .empty-state {
   display: grid;
+  gap: 12px;
   place-items: center;
   align-content: center;
   min-height: calc(100vh - 64px);
   text-align: center;
 }
 
+.loading-state {
+  gap: 14px;
+}
+
+.loading-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
 .empty-state h1 {
   margin: 0;
   color: #3f485f;
-  font-size: 28px;
+  font-size: 36px;
   letter-spacing: 0;
+}
+
+.loading-message {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 18px;
+  animation: loading-message-breathe 1800ms ease-in-out infinite;
+}
+
+.loading-dots {
+  display: inline-block;
+  min-width: 0.9em;
+  overflow: hidden;
+  vertical-align: baseline;
+  animation: loading-dots-reveal 1300ms steps(4, end) infinite;
+}
+
+.loading-message::before,
+.loading-message::after {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 92px;
+  height: 2px;
+  transform-origin: left center;
+  border-radius: 999px;
+  background: #3dba7d;
+  content: '';
+}
+
+.loading-message::before {
+  transform: translateX(-50%) scaleX(0);
+  animation: loading-message-branch-main 1800ms ease-in-out infinite;
+}
+
+.loading-message::after {
+  width: 36px;
+  transform: translateX(-2px) rotate(-34deg) scaleX(0);
+  background: #7ed9a8;
+  animation: loading-message-branch-side 1800ms ease-in-out infinite;
+}
+
+@keyframes loading-message-breathe {
+  0%,
+  100% {
+    color: #3f485f;
+  }
+
+  45% {
+    color: #25324d;
+  }
+}
+
+@keyframes loading-dots-reveal {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 0.9em;
+  }
+}
+
+@keyframes loading-message-branch-main {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0);
+  }
+
+  55%,
+  82% {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+@keyframes loading-message-branch-side {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateX(-2px) rotate(-34deg) scaleX(0);
+  }
+
+  68%,
+  84% {
+    opacity: 1;
+    transform: translateX(-2px) rotate(-34deg) scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-2px) rotate(-34deg) scaleX(1);
+  }
 }
 
 .chat-workspace {

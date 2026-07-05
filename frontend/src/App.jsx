@@ -5,6 +5,7 @@ import { ChatLanding } from './components/ChatLanding.jsx'
 import { ChatWorkspace } from './components/ChatWorkspace.jsx'
 import { FullscreenGraphModal } from './components/FullscreenGraphModal.jsx'
 import { ModelComparisonFlow } from './components/ModelComparisonFlow.jsx'
+import { RamoLogo } from './components/RamoLogo.jsx'
 import { SplitConversationPanel } from './components/SplitConversationPanel.jsx'
 import { SplitResizeHandle } from './components/SplitResizeHandle.jsx'
 import { StartNodeSidebar } from './components/StartNodeSidebar.jsx'
@@ -1123,9 +1124,14 @@ function App() {
             style={splitNode ? { flexGrow: 1 - splitChatShare } : undefined}
           >
             {isLoading && !activeNode ? (
-              <section className="empty-state" aria-label="초기 데이터 동기화">
-                <p className="eyebrow">API 동기화</p>
-                <h1>세션과 브랜치 정보를 불러오는 중이다.</h1>
+              <section className="empty-state loading-state" aria-label="초기 데이터 동기화">
+                <div className="loading-logo" aria-hidden="true">
+                  <RamoLogo />
+                </div>
+                <h1 className="loading-message" aria-label="생각의 가지를 펼치고 있어요...">
+                  <span>생각의 가지를 펼치고 있어요</span>
+                  <span className="loading-dots" aria-hidden="true">...</span>
+                </h1>
               </section>
             ) : isLandingVisible ? (
               <ChatLanding
