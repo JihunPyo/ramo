@@ -1,5 +1,6 @@
 import { createInitialGraphState } from './mockData.js'
 import { createMockLlmResponse } from './mockLlmProvider.js'
+import { getPersonaOption, readPersonaSlug } from '../personas/personaOptions.js'
 
 export function createMockBranchGraphApi() {
   const store = createMockStore()
@@ -170,6 +171,7 @@ export function createMockBranchGraphApi() {
           parent_branch_id: branch.parent_branch_id,
           merge_parent_ids: branch.merge_parent_ids,
           persona_key: branch.persona_key,
+          persona_slug: branch.persona_slug,
           persona_name: branch.persona_name,
         })),
         edges: branches.flatMap((branch) =>
@@ -316,7 +318,7 @@ export function createMockBranchGraphApi() {
       comparison.status = 'done'
       return { comparison_id: comparisonId, merged_content: content, message_id: assistantMessage.id }
     },
-    async createBranch({ sessionId, parentBranchId, forkFromMessageId, name }) {
+    async createBranch({ sessionId, parentBranchId, forkFromMessageId, name, persona }) {
       await delay()
       const parentBranch = store.branches.get(parentBranchId)
 
@@ -337,6 +339,8 @@ export function createMockBranchGraphApi() {
 
       const createdAt = new Date().toISOString()
       const branchId = `mock-branch-${Date.now()}`
+      const personaSlug = readPersonaSlug(persona)
+      const personaOption = getPersonaOption(persona?.key ?? personaSlug)
       const branch = {
         id: branchId,
         session_id: sessionId,
@@ -350,6 +354,9 @@ export function createMockBranchGraphApi() {
         is_merge: false,
         is_main: false,
         merge_parent_ids: [],
+        persona_key: personaOption?.key ?? '',
+        persona_slug: personaSlug,
+        persona_name: personaOption?.name ?? '',
         created_at: createdAt,
         updated_at: createdAt,
       }
@@ -500,6 +507,46 @@ export function createMockBranchGraphApi() {
         branch_id: branchId,
         main_branch_ids: mainBranchIds,
       }
+    },
+    async setBranchPersona(branchId, persona) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch_id가 존재하지 않는다.')
+      }
+
+      const personaSlug = readPersonaSlug(persona)
+      const personaOption = getPersonaOption(persona?.key ?? personaSlug)
+      const updatedBranch = {
+        ...branch,
+        persona_key: personaOption?.key ?? '',
+        persona_slug: personaSlug,
+        persona_name: personaOption?.name ?? '',
+        updated_at: new Date().toISOString(),
+      }
+
+      store.branches.set(branchId, updatedBranch)
+      return updatedBranch
+    },
+    async clearBranchPersona(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch_id가 존재하지 않는다.')
+      }
+
+      const updatedBranch = {
+        ...branch,
+        persona_key: null,
+        persona_slug: null,
+        persona_name: null,
+        updated_at: new Date().toISOString(),
+      }
+
+      store.branches.set(branchId, updatedBranch)
+      return updatedBranch
     },
     async updateBranch(branchId, patch) {
       await delay()

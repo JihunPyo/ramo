@@ -535,15 +535,16 @@ function App() {
   const handleSetNodePersona = async (nodeId, persona) => {
     setPendingAction('페르소나 지정 중')
     setErrorMessage('')
+    const previousState = graphStateRef.current
+    const targetNodeIds = getSubtreeNodeIds(previousState.nodes, nodeId)
     setGraphState((currentState) => setNodePersonaForSubtree(currentState, nodeId, persona))
 
     try {
-      await branchGraphApi.updateBranch(nodeId, {
-        persona_key: persona.key,
-        persona_name: persona.name,
-      })
-    } catch {
-      // Persona persistence is best-effort until the backend API is ready.
+      await Promise.all(targetNodeIds.map((targetNodeId) => branchGraphApi.setBranchPersona(targetNodeId, persona)))
+      sessionContentCacheRef.current.invalidateAll()
+    } catch (error) {
+      setGraphState(previousState)
+      setErrorMessage(getDisplayError(error))
     } finally {
       setPendingAction('')
     }
@@ -552,15 +553,16 @@ function App() {
   const handleClearNodePersona = async (nodeId) => {
     setPendingAction('페르소나 해제 중')
     setErrorMessage('')
+    const previousState = graphStateRef.current
+    const targetNodeIds = getSubtreeNodeIds(previousState.nodes, nodeId)
     setGraphState((currentState) => clearNodePersonaForSubtree(currentState, nodeId))
 
     try {
-      await branchGraphApi.updateBranch(nodeId, {
-        persona_key: null,
-        persona_name: null,
-      })
-    } catch {
-      // Persona persistence is best-effort until the backend API is ready.
+      await Promise.all(targetNodeIds.map((targetNodeId) => branchGraphApi.clearBranchPersona(targetNodeId)))
+      sessionContentCacheRef.current.invalidateAll()
+    } catch (error) {
+      setGraphState(previousState)
+      setErrorMessage(getDisplayError(error))
     } finally {
       setPendingAction('')
     }
@@ -1172,6 +1174,7 @@ function App() {
         sessionId: parentNode.apiSessionId,
         parentBranchId: parentNode.id,
         forkFromMessageId: messageId,
+        persona: parentNode.personaKey ? { key: parentNode.personaKey } : null,
       })
       sessionContentCacheRef.current.invalidateAll()
       const branchId = readBranchId(branch)

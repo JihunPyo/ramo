@@ -1,3 +1,5 @@
+import { getPersonaOption, normalizePersonaKey } from '../personas/personaOptions.js'
+
 export function readSessionId(session) {
   return session?.session_id ?? session?.id ?? ''
 }
@@ -232,6 +234,13 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
         parentId,
         sessionTitle,
       })
+      const rawPersonaKey = resolvePersonaKey({ node, branch, previousNode })
+      const personaKey = normalizePersonaKey(rawPersonaKey)
+      const rawPersonaName = resolvePersonaName({ node, branch, previousNode })
+      const personaName =
+        typeof rawPersonaName === 'string' && rawPersonaName.trim()
+          ? rawPersonaName.trim()
+          : getPersonaOption(personaKey)?.name ?? ''
 
       return {
         id: branchId,
@@ -263,20 +272,8 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
         isMain: Boolean(branch?.is_main ?? node.is_main ?? node.isMain),
         isMerge: Boolean(branch?.is_merge ?? node.is_merge ?? node.isMerge),
         messageCount: node.message_count ?? node.messageCount ?? 0,
-        personaKey:
-          node.persona_key ??
-          node.personaKey ??
-          branch?.persona_key ??
-          branch?.personaKey ??
-          previousNode?.personaKey ??
-          '',
-        personaName:
-          node.persona_name ??
-          node.personaName ??
-          branch?.persona_name ??
-          branch?.personaName ??
-          previousNode?.personaName ??
-          '',
+        personaKey,
+        personaName,
       }
     })
     .filter(Boolean)
@@ -285,6 +282,62 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
     ...node,
     rootId: resolveRootId(nodes, node.id),
   }))
+}
+
+function resolvePersonaKey({ node, branch, previousNode }) {
+  const apiPersonaKey = readFirstPresentField(node, [
+    'persona_key',
+    'persona_slug',
+    'personaKey',
+    'personaSlug',
+  ])
+
+  if (apiPersonaKey !== undefined) {
+    return apiPersonaKey
+  }
+
+  const branchPersonaKey = readFirstPresentField(branch, [
+    'persona_key',
+    'persona_slug',
+    'personaKey',
+    'personaSlug',
+  ])
+
+  if (branchPersonaKey !== undefined) {
+    return branchPersonaKey
+  }
+
+  return previousNode?.personaKey ?? ''
+}
+
+function resolvePersonaName({ node, branch, previousNode }) {
+  const apiPersonaName = readFirstPresentField(node, ['persona_name', 'personaName'])
+
+  if (apiPersonaName !== undefined) {
+    return apiPersonaName
+  }
+
+  const branchPersonaName = readFirstPresentField(branch, ['persona_name', 'personaName'])
+
+  if (branchPersonaName !== undefined) {
+    return branchPersonaName
+  }
+
+  return previousNode?.personaName ?? ''
+}
+
+function readFirstPresentField(source, fieldNames) {
+  if (!source) {
+    return undefined
+  }
+
+  for (const fieldName of fieldNames) {
+    if (Object.prototype.hasOwnProperty.call(source, fieldName)) {
+      return source[fieldName]
+    }
+  }
+
+  return undefined
 }
 
 function resolveNodeDescription({ node, branch, previousNode, sessionTitle, title }) {

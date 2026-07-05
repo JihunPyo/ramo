@@ -45,6 +45,27 @@
 
 - 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
 
+## 2026-07-06 노드 페르소나 저장 연동
+
+### 변경 사항
+
+- 프론트엔드의 노드 페르소나 지정/해제 동작을 임시 `PATCH /branches/{id}` 호출에서 백엔드 전용 `PUT/DELETE /branches/{id}/persona` API 호출로 교체했다.
+- 현재 UI가 하위 노드까지 페르소나를 표시하는 동작과 맞추어, 지정/해제 대상 하위 노드들의 페르소나 상태도 함께 저장하도록 했다.
+- 백엔드 `persona_slug`와 프론트 UI key를 매핑해 새로고침 후 그래프 응답에서 페르소나 아이콘과 표시 이름을 복원하도록 했다.
+- 신규 브랜치 생성 시 부모 노드에 페르소나가 있으면 같은 `persona_slug`를 생성 요청에 포함하도록 했다.
+- mock API에도 실제 API와 동일한 `setBranchPersona`, `clearBranchPersona` 동작을 추가했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- 최초 `npm run build`는 `katex`가 `node_modules`에 없어 실패했으며, `npm install`로 lockfile 의존성을 동기화한 뒤 재실행한 `npm run build`가 통과했다.
+- `frontend/`에서 `npm ls katex` 실행 결과, `katex@0.17.0` 설치를 확인했다.
+- 프론트 저장소에서 `git diff --check` 실행 결과, 공백 오류가 없었다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
 ## 2026-07-06 첨부 파일 백엔드 저장 방식 전환
 
 ### 변경 사항

@@ -1,4 +1,5 @@
 import { httpClient } from '../../lib/apiClient.js'
+import { readPersonaSlug } from '../personas/personaOptions.js'
 import { createMockBranchGraphApi } from './mockBranchGraphApi.js'
 
 export function createHttpBranchGraphApi(client = httpClient) {
@@ -103,7 +104,9 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
-    createBranch({ sessionId, parentBranchId, forkFromMessageId, name }) {
+    createBranch({ sessionId, parentBranchId, forkFromMessageId, name, persona }) {
+      const personaSlug = readPersonaSlug(persona)
+
       return client.request('/branches', {
         method: 'POST',
         body: {
@@ -111,6 +114,7 @@ export function createHttpBranchGraphApi(client = httpClient) {
           parent_branch_id: parentBranchId,
           fork_from_message_id: forkFromMessageId,
           ...(name ? { name } : {}),
+          ...(personaSlug ? { persona_slug: personaSlug } : {}),
         },
       })
     },
@@ -180,6 +184,21 @@ export function createHttpBranchGraphApi(client = httpClient) {
     selectMainBranch(branchId) {
       return client.request(`/branches/${branchId}/select-main`, {
         method: 'POST',
+      })
+    },
+    setBranchPersona(branchId, persona) {
+      const personaSlug = readPersonaSlug(persona)
+
+      return client.request(`/branches/${branchId}/persona`, {
+        method: 'PUT',
+        body: {
+          persona_slug: personaSlug,
+        },
+      })
+    },
+    clearBranchPersona(branchId) {
+      return client.request(`/branches/${branchId}/persona`, {
+        method: 'DELETE',
       })
     },
     updateBranch(branchId, patch) {
