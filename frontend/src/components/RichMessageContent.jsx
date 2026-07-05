@@ -1,3 +1,6 @@
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+
 const TABLE_SEPARATOR_PATTERN = /^\s*\|?[\s:-]+\|[\s|:-]*$/
 const ORDERED_LIST_ITEM_PATTERN = /^(\s*)(\d+)[.)]\s+(.+)$/
 const UNORDERED_LIST_ITEM_PATTERN = /^(\s*)[-*]\s+(.+)$/
@@ -420,7 +423,8 @@ function renderListItem(block, item, key) {
 
 function renderInline(text, keyPrefix) {
   const parts = []
-  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
+  const pattern =
+    /(\$\$[^$]+\$\$|\$[^$\n]+\$|[\\₩]\[[\s\S]*?[\\₩]\]|[\\₩]\([\s\S]*?[\\₩]\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
   let lastIndex = 0
   let match
 
@@ -441,6 +445,10 @@ function renderInline(text, keyPrefix) {
 }
 
 function renderInlineToken(token, key) {
+  if (isMathToken(token)) {
+    return renderMathToken(token, key)
+  }
+
   if (token.startsWith('**') && token.endsWith('**')) {
     return <strong key={key}>{token.slice(2, -2)}</strong>
   }
@@ -460,4 +468,43 @@ function renderInlineToken(token, key) {
   }
 
   return token
+}
+
+function isMathToken(token) {
+  return (
+    (token.startsWith('$') && token.endsWith('$')) ||
+    /^[\\₩][[(]/.test(token)
+  )
+}
+
+function renderMathToken(token, key) {
+  const display = token.startsWith('$$') || /^[\\₩]\[/.test(token)
+  const expression = unwrapMathToken(token)
+  const normalizedExpression = expression.replaceAll('₩', '\\')
+  const html = katex.renderToString(normalizedExpression, {
+    displayMode: display,
+    throwOnError: false,
+    strict: false,
+    trust: false,
+  })
+
+  return (
+    <span
+      key={key}
+      className={display ? 'math-display' : 'math-inline'}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
+function unwrapMathToken(token) {
+  if (token.startsWith('$$') && token.endsWith('$$')) {
+    return token.slice(2, -2).trim()
+  }
+
+  if (token.startsWith('$') && token.endsWith('$')) {
+    return token.slice(1, -1).trim()
+  }
+
+  return token.slice(2, -2).trim()
 }
