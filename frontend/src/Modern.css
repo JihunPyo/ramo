@@ -331,6 +331,33 @@
   font-size: .92em;
   padding: 2px 5px;
 }
+.math-inline,
+.math-display {
+  font-family: "Cambria Math", "Times New Roman", serif;
+  font-size: 1.04em;
+  letter-spacing: 0;
+}
+.math-inline {
+  display: inline;
+  white-space: nowrap;
+}
+.math-display {
+  display: block;
+  overflow-x: auto;
+  margin: 4px 0;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+.math-display .katex-display {
+  margin: 0;
+  text-align: left;
+}
+.math-inline sub,
+.math-inline sup,
+.math-display sub,
+.math-display sup {
+  line-height: 0;
+}
 .rich-code-block {
   overflow: hidden;
   border: 1px solid var(--color-border);
