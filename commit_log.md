@@ -1,5 +1,25 @@
 # Commit Log
 
+## 2026-07-06 브라우저 탭 이름 및 아이콘 변경
+
+### 변경 사항
+
+- `frontend/index.html`의 브라우저 탭 제목을 `frontend`에서 `ramo`로 변경했다.
+- 첨부 로고 이미지를 기반으로 `frontend/public/ramo-logo.png` favicon 자산을 추가했다.
+- `frontend/index.html`의 favicon 링크를 기존 SVG에서 `ramo-logo.png` PNG 이미지로 변경했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 일반 권한의 `npm run dev` 실행은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 `npm run dev`를 실행했고, 기존 포트 사용으로 인해 `http://127.0.0.1:5179/`에서 개발 서버가 실행되었다.
+- 개발 서버 HTML 응답에서 `<title>ramo</title>`과 `/ramo-logo.png` favicon 링크가 적용된 것을 확인했다.
+- `http://127.0.0.1:5179/ramo-logo.png` 요청이 `200 OK`와 `Content-Type: image/png`로 응답하는 것을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
 ## 2026-07-06 다중 이미지 미리보기 및 문서 카드
 
 ### 변경 사항
@@ -24,6 +44,32 @@
 ### Git 상태
 
 - 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+## 2026-07-06 전송 후 첨부 이미지 표시 유지
+
+### 변경 사항
+
+- 전송 성공 시 사용자 메시지 ID와 첨부 파일 스냅샷을 연결하여 채팅 기록에서도 첨부 이미지와 문서 아이콘이 유지되도록 수정했다.
+- 첨부 이미지를 클릭하면 현재 브라우저 세션의 원본 blob URL을 모달로 열어 크게 확인할 수 있도록 구현했다.
+- 전송된 첨부 파일은 입력창 첨부 목록에서 제외되도록 필터링하여, 보낸 뒤에도 입력창에 남아 보이는 문제를 방지했다.
+- 전송된 메시지 첨부 메타데이터와 이미지 blob을 IndexedDB에 7일 TTL로 캐싱하여, 메시지 재로드 시 가능한 범위에서 첨부 미리보기를 복원하도록 추가했다.
+- 메인 채팅과 분할 채팅 패널 모두 동일한 전송 후 첨부 렌더링을 사용하도록 맞췄다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/App.jsx frontend/src/Modern.css frontend/src/components/ChatWorkspace.jsx frontend/src/components/FileAttachmentControl.jsx frontend/src/components/SplitConversationPanel.jsx frontend/src/features/branchGraph/messageAttachmentCache.js commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 일반 권한의 `npm run dev:mock -- --host 127.0.0.1`은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행했고, 기존 포트 사용으로 `http://127.0.0.1:5178/`에서 Mock 개발 서버가 실행되었다.
+- 인앱 브라우저에서 PNG 클립보드 붙여넣기 후 입력창 첨부 이미지 카드가 1개만 생성되고, preview `src`가 `blob:`인 것을 확인했다.
+- 메시지 전송 후 입력창 첨부 이미지는 0개로 비워지고, 사용자 메시지 영역의 첨부 이미지가 1개 유지되며 preview `src`가 `blob:`인 것을 확인했다.
+- 전송된 첨부 이미지를 클릭했을 때 원본 이미지 모달이 열리고, 모달 이미지 `src`가 `blob:`인 것을 확인했다.
+- 브라우저 콘솔 오류가 없음을 확인했다.
+
+### Git 상태
+
+- 커밋은 아직 수행하지 않았다.
 
 ## 2026-07-06 첨부 상태 문구 숨김
 

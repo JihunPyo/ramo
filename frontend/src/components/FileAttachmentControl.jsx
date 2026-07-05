@@ -65,6 +65,36 @@ export function AttachmentTray({
   disabled = false,
   onDeleteFile,
 }) {
+  return (
+    <AttachmentList
+      className="attachment-tray"
+      files={files}
+      disabled={disabled}
+      onDeleteFile={onDeleteFile}
+    />
+  )
+}
+
+export function MessageAttachmentList({
+  files = [],
+  onOpenFile,
+}) {
+  return (
+    <AttachmentList
+      className="message-attachment-list"
+      files={files}
+      onOpenFile={onOpenFile}
+    />
+  )
+}
+
+function AttachmentList({
+  className,
+  files = [],
+  disabled = false,
+  onDeleteFile,
+  onOpenFile,
+}) {
   const hasFiles = files.length > 0
 
   if (!hasFiles) {
@@ -72,18 +102,28 @@ export function AttachmentTray({
   }
 
   return (
-    <div className="attachment-tray" aria-live="polite">
+    <div className={className} aria-live="polite">
       {files.map((file) => {
         const fileId = readFileId(file)
         const fileName = readFileName(file)
         const extensionLabel = getAttachmentExtensionLabel(fileName)
         const previewUrl = readPreviewUrl(file)
         const hasPreview = Boolean(previewUrl)
+        const isOpenable = hasPreview && onOpenFile
 
         return (
           <span
             key={fileId || fileName}
+            role={isOpenable ? 'button' : undefined}
+            tabIndex={isOpenable ? 0 : undefined}
             className={hasPreview ? 'attachment-chip with-preview' : 'attachment-chip with-document'}
+            onClick={isOpenable ? () => onOpenFile(file) : undefined}
+            onKeyDown={isOpenable ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onOpenFile(file)
+              }
+            } : undefined}
           >
             {hasPreview ? (
               <>
@@ -98,7 +138,10 @@ export function AttachmentTray({
                       className="attachment-card-remove"
                       aria-label={`${fileName} 첨부 삭제`}
                       disabled={disabled}
-                      onClick={() => onDeleteFile(fileId)}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onDeleteFile(fileId)
+                      }}
                     >
                       ×
                     </button>
@@ -127,7 +170,10 @@ export function AttachmentTray({
                     className="attachment-card-remove"
                     aria-label={`${fileName} 첨부 삭제`}
                     disabled={disabled}
-                    onClick={() => onDeleteFile(fileId)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onDeleteFile(fileId)
+                    }}
                   >
                     ×
                   </button>

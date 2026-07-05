@@ -5,6 +5,7 @@ import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import {
   AttachmentTray,
   FileAttachmentButton,
+  MessageAttachmentList,
 } from './FileAttachmentControl.jsx'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
@@ -17,7 +18,9 @@ export function SplitConversationPanel({
   isBusy = false,
   isAwaitingResponse = false,
   pendingUserMessage = '',
+  pendingUserAttachments = [],
   attachedFiles = [],
+  messageAttachmentsById = {},
   uploadState = null,
   modelOptions = [],
   selectedModel,
@@ -26,6 +29,7 @@ export function SplitConversationPanel({
   onSendMessage,
   onAttachFiles,
   onDeleteAttachment,
+  onOpenAttachment,
   onCreateBranch,
   onClose,
 }) {
@@ -72,6 +76,12 @@ export function SplitConversationPanel({
       <div className="message-list split-conversation-messages">
         {messages.length > 0 ? messages.map((message) => (
           <article key={message.id} className={`message-row ${message.role}`}>
+            {message.role === 'user' && messageAttachmentsById[message.id]?.length > 0 ? (
+              <MessageAttachmentList
+                files={messageAttachmentsById[message.id]}
+                onOpenFile={onOpenAttachment}
+              />
+            ) : null}
             <div className="message-bubble">
               <span className="message-role">
                 {getMessageRoleLabel(withNodePersona(message, node), modelOptions)}
@@ -95,6 +105,9 @@ export function SplitConversationPanel({
         )}
         {isAwaitingResponse && pendingUserMessage ? (
           <article className="message-row user pending-user-message" aria-label="방금 보낸 질문">
+            {pendingUserAttachments.length > 0 ? (
+              <MessageAttachmentList files={pendingUserAttachments} onOpenFile={onOpenAttachment} />
+            ) : null}
             <div className="message-bubble">
               <RichMessageContent content={pendingUserMessage} />
             </div>

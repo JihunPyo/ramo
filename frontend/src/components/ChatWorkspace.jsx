@@ -12,6 +12,7 @@ import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
 import {
   AttachmentTray,
   FileAttachmentButton,
+  MessageAttachmentList,
 } from './FileAttachmentControl.jsx'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
@@ -25,7 +26,9 @@ export function ChatWorkspace({
   isBusy = false,
   isAwaitingResponse = false,
   pendingUserMessage = '',
+  pendingUserAttachments = [],
   attachedFiles = [],
+  messageAttachmentsById = {},
   uploadState = null,
   modelOptions = [],
   selectedModel,
@@ -35,6 +38,7 @@ export function ChatWorkspace({
   onSendMessage,
   onAttachFiles,
   onDeleteAttachment,
+  onOpenAttachment,
   onCreateBranch,
   onRenameSession,
 }) {
@@ -408,6 +412,12 @@ export function ChatWorkspace({
                     }
                     className={`message-row ${message.role}`}
                   >
+                    {message.role === 'user' && messageAttachmentsById[message.id]?.length > 0 ? (
+                      <MessageAttachmentList
+                        files={messageAttachmentsById[message.id]}
+                        onOpenFile={onOpenAttachment}
+                      />
+                    ) : null}
                     <div className="message-bubble">
                       <span className="message-role">
                         {getMessageRoleLabel(withNodePersona(message, section.node), modelOptions)}
@@ -433,6 +443,9 @@ export function ChatWorkspace({
         })}
         {isAwaitingResponse && pendingUserMessage ? (
           <article className="message-row user pending-user-message" aria-label="방금 보낸 질문">
+            {pendingUserAttachments.length > 0 ? (
+              <MessageAttachmentList files={pendingUserAttachments} onOpenFile={onOpenAttachment} />
+            ) : null}
             <div className="message-bubble">
               <span className="message-role">User</span>
               <RichMessageContent content={pendingUserMessage} />
