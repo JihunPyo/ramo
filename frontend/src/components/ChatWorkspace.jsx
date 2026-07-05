@@ -177,12 +177,16 @@ export function ChatWorkspace({
 
   return (
     <section
-      className={isSplitViewOpen ? 'chat-workspace with-chat-header' : 'chat-workspace'}
+      className={isSplitViewOpen ? 'chat-workspace with-chat-header split-conversation-panel' : 'chat-workspace'}
       aria-label="현재 노드 채팅 세션"
     >
       <header className="chat-header">
         <div className="chat-header-context">
-          {isRenamingSession ? (
+          {isSplitViewOpen ? (
+            <div className="split-pane-heading">
+              <h2>{activeNode?.title}</h2>
+            </div>
+          ) : isRenamingSession ? (
             <div className="session-name-editor">
               <input
                 value={sessionNameDraft}
@@ -202,24 +206,26 @@ export function ChatWorkspace({
               <span aria-hidden="true">✎</span>
             </button>
           )}
-          <div className="path-line">
-            {branchPath.map((node) => (
-              <button
-                key={node.id}
-                type="button"
-                className={[
-                  mainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
-                  node.id === comparisonNodeId ? 'comparison-selected' : '',
-                  node.id === activeNode?.id ? 'current-path-node' : '',
-                ].filter(Boolean).join(' ')}
-                aria-pressed={node.id === comparisonNodeId}
-                title={node.id === activeNode?.id ? '비교 화면 닫기' : `${node.title} 노드와 비교`}
-                onClick={() => setComparisonNodeId(node.id === activeNode?.id ? null : node.id)}
-              >
-                {node.title}
-              </button>
-            ))}
-          </div>
+          {!isSplitViewOpen ? (
+            <div className="path-line">
+              {branchPath.map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  className={[
+                    mainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
+                    node.id === comparisonNodeId ? 'comparison-selected' : '',
+                    node.id === activeNode?.id ? 'current-path-node' : '',
+                  ].filter(Boolean).join(' ')}
+                  aria-pressed={node.id === comparisonNodeId}
+                  title={node.id === activeNode?.id ? '비교 화면 닫기' : `${node.title} 노드와 비교`}
+                  onClick={() => setComparisonNodeId(node.id === activeNode?.id ? null : node.id)}
+                >
+                  {node.title}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </header>
 

@@ -1063,19 +1063,21 @@ function App() {
           {!isLandingVisible && activeNode ? (
             <div className="topbar-conversation-title">
               <strong>{activeRootNode?.title ?? activeNode.title}</strong>
-              <div className="path-line topbar-path-line" aria-label="현재 노드 경로">
-                {activeBranchPath.map((node) => (
-                  <span
-                    key={node.id}
-                    className={[
-                      activeMainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
-                      node.id === activeNode.id ? 'current-path-node' : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    {node.title}
-                  </span>
-                ))}
-              </div>
+              {!isSplitViewOpen ? (
+                <div className="path-line topbar-path-line" aria-label="현재 노드 경로">
+                  {activeBranchPath.map((node) => (
+                    <span
+                      key={node.id}
+                      className={[
+                        activeMainPathNodeIds.has(node.id) ? 'main-path-pill' : '',
+                        node.id === activeNode.id ? 'current-path-node' : '',
+                      ].filter(Boolean).join(' ')}
+                    >
+                      {node.title}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
           {!isLandingVisible && activeNode ? (

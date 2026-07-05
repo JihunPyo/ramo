@@ -21,7 +21,6 @@ export function SplitConversationPanel({
   const [draft, setDraft] = useState('')
   const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
   const session = getSessionByNodeId(graphState, node?.id ?? '')
-  const rootNode = graphState.nodes.find((candidate) => candidate.id === node?.rootId)
   const messages = session.messages.filter((message) => !message.isHidden && message.role !== 'system')
   const inputId = `split-message-${node?.id ?? 'node'}`
 
@@ -40,8 +39,7 @@ export function SplitConversationPanel({
   return (
     <aside className="split-conversation-panel" aria-label={`${node?.title ?? '선택 노드'} 대화`}>
       <header>
-        <div>
-          <span>{rootNode?.title ?? '세션'}</span>
+        <div className="split-pane-heading">
           <h2>{node?.title}</h2>
         </div>
         <div className="split-conversation-header-actions">
