@@ -5,7 +5,9 @@ const TABLE_SEPARATOR_PATTERN = /^\s*\|?[\s:-]+\|[\s|:-]*$/
 const ORDERED_LIST_ITEM_PATTERN = /^(\s*)(\d+)[.)]\s+(.+)$/
 const UNORDERED_LIST_ITEM_PATTERN = /^(\s*)[-*]\s+(.+)$/
 const MATH_SLASH_GLOBAL_PATTERN = /[\\\u20a9]/g
-const MATH_BLOCK_START_PATTERN = /^\s*(\$\$|[\\\u20a9]\[)/
+const MATH_BLOCK_START_PATTERN = /^\s*(\$\$|[\\\u20a9W]\[)/
+const MATH_COMMAND_PATTERN =
+  /W(?=alpha|beta|gamma|delta|epsilon|lambda|mu|pi|sigma|theta|frac|sqrt|cdot|times|div|pm|le|leq|ge|geq|neq|approx|infty|rightarrow|to\b)/g
 
 export function RichMessageContent({ content }) {
   const blocks = parseMessageBlocks(content)
@@ -361,7 +363,7 @@ function isMathBlockStart(line) {
 function parseMathBlock(lines, startIndex) {
   const openingLine = lines[startIndex].trim()
   const delimiter = openingLine.startsWith('$$') ? '$$' : '\\['
-  const endPattern = delimiter === '$$' ? /\$\$\s*$/ : /[\\\u20a9]\]\s*$/
+  const endPattern = delimiter === '$$' ? /\$\$\s*$/ : /[\\\u20a9W]\]\s*$/
   const firstLineContent = openingLine.slice(delimiter.length).trim()
   const mathLines = []
   let index = startIndex + 1
@@ -493,7 +495,7 @@ function renderListItem(block, item, key) {
 function renderInline(text, keyPrefix) {
   const parts = []
   const pattern =
-    /(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|[\\\u20a9]\[[\s\S]+?[\\\u20a9]\]|[\\\u20a9]\([\s\S]+?[\\\u20a9]\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
+    /(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|[\\\u20a9W]\[[\s\S]+?[\\\u20a9W]\]|[\\\u20a9W]\([\s\S]+?[\\\u20a9W]\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
   let lastIndex = 0
   let match
 
@@ -542,12 +544,12 @@ function renderInlineToken(token, key) {
 function isMathToken(token) {
   return (
     (token.startsWith('$') && token.endsWith('$')) ||
-    /^[\\\u20a9][[(]/.test(token)
+    /^[\\\u20a9W][[(]/.test(token)
   )
 }
 
 function renderMathToken(token, key) {
-  const display = token.startsWith('$$') || /^[\\\u20a9]\[/.test(token)
+  const display = token.startsWith('$$') || /^[\\\u20a9W]\[/.test(token)
   const expression = unwrapMathToken(token)
   return renderMath(expression, {
     key,
@@ -557,7 +559,9 @@ function renderMathToken(token, key) {
 }
 
 function renderMath(expression, { key, display, className }) {
-  const normalizedExpression = expression.replace(MATH_SLASH_GLOBAL_PATTERN, '\\')
+  const normalizedExpression = expression
+    .replace(MATH_SLASH_GLOBAL_PATTERN, '\\')
+    .replace(MATH_COMMAND_PATTERN, '\\')
   const html = katex.renderToString(normalizedExpression, {
     displayMode: display,
     throwOnError: false,
