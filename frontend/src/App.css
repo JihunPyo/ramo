@@ -2720,7 +2720,7 @@ textarea:disabled {
   place-items: center;
   background: rgb(31 41 51 / 54%);
   padding: 28px;
-  z-index: 10;
+  z-index: 1300;
 }
 
 .graph-modal {

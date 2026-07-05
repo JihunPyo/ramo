@@ -97,7 +97,9 @@ export function FullscreenGraphModal({
           renderTooltip={false}
           onTooltipNodeChange={setTooltipNode}
           mergeSelectedNodeIds={mergeNodeIds}
-          isNodeSelectionDisabled={(nodeId) => !canMergeNodes(graphState.nodes, sourceNode?.id, nodeId)}
+          isNodeSelectionDisabled={isMergeMode
+            ? (nodeId) => !canMergeNodes(graphState.nodes, sourceNode?.id, nodeId)
+            : undefined}
         />
 
         <div className="fullscreen-graph-footer">
