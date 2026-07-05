@@ -126,6 +126,16 @@ export function FullscreenGraphModal({
             </button>
           ) : null}
         </div>
+        {isMerging ? (
+          <div
+            className="model-comparison-loading-overlay merge-loading-overlay"
+            role="status"
+            aria-label="노드 합치는 중"
+            aria-live="polite"
+          >
+            <span className="model-comparison-loading-spinner" aria-hidden="true" />
+          </div>
+        ) : null}
       </section>
     </div>
   )

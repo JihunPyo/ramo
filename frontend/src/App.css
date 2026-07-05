@@ -2854,6 +2854,7 @@ textarea:disabled {
 }
 
 .graph-modal {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
@@ -2945,6 +2946,10 @@ textarea:disabled {
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: model-comparison-loading-spin 800ms linear infinite;
+}
+
+.merge-loading-overlay {
+  background: rgb(255 255 255 / 72%);
 }
 
 @keyframes model-comparison-loading-spin {
