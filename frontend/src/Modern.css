@@ -39,6 +39,14 @@
 .loading-logo .ramo-logo-node-top { animation-delay: 640ms; }
 .loading-logo .ramo-logo-node-side { animation-delay: 780ms; }
 
+.sidebar-scroll-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes ramo-branch-grow {
   to { stroke-dashoffset: 0; }
 }
