@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getSessionByNodeId } from '../features/branchGraph/branchGraphModel.js'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
+import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
 
 export function SplitConversationPanel({
@@ -23,7 +24,6 @@ export function SplitConversationPanel({
   const rootNode = graphState.nodes.find((candidate) => candidate.id === node?.rootId)
   const messages = session.messages.filter((message) => !message.isHidden && message.role !== 'system')
   const inputId = `split-message-${node?.id ?? 'node'}`
-  const modelSelectId = `split-model-${node?.id ?? 'node'}`
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -105,26 +105,14 @@ export function SplitConversationPanel({
           rows={1}
           placeholder="이 노드에서 이어서 질문하세요."
         />
-        <label className="composer-model-label" htmlFor={modelSelectId}>현재 모델</label>
-        <select
-          id={modelSelectId}
-          className="composer-model-select"
-          value={selectedModel?.name ?? ''}
-          onChange={(event) => {
-            const nextModel = modelOptions.find((model) => model.name === event.target.value)
-            if (nextModel) {
-              onChangeModel?.(nextModel)
-            }
-          }}
+        <ModelSelector
+          modelOptions={modelOptions}
+          selectedModel={selectedModel}
+          onChangeModel={onChangeModel}
           disabled={isBusy}
-          aria-label="선택 노드 사용 모델 선택"
-        >
-          {modelOptions.map((model) => (
-            <option key={`${model.provider}:${model.name}`} value={model.name}>
-              {model.label}
-            </option>
-          ))}
-        </select>
+          placement="top"
+          className="composer-model-selector"
+        />
         <button
           type="button"
           className="composer-compare-button"
