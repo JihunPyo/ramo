@@ -62,14 +62,12 @@ export function FileAttachmentButton({
 
 export function AttachmentTray({
   files = [],
-  uploadState = null,
   disabled = false,
   onDeleteFile,
 }) {
   const hasFiles = files.length > 0
-  const hasStatus = uploadState?.message
 
-  if (!hasFiles && !hasStatus) {
+  if (!hasFiles) {
     return null
   }
 
@@ -78,33 +76,67 @@ export function AttachmentTray({
       {files.map((file) => {
         const fileId = readFileId(file)
         const fileName = readFileName(file)
+        const extensionLabel = getAttachmentExtensionLabel(fileName)
+        const previewUrl = readPreviewUrl(file)
+        const hasPreview = Boolean(previewUrl)
 
         return (
-          <span key={fileId || fileName} className="attachment-chip">
-            <span className="attachment-chip-kind" aria-hidden="true">
-              {getAttachmentKindLabel(fileName)}
-            </span>
-            <span className="attachment-chip-name">{fileName}</span>
-            {file.summary ? <span className="attachment-chip-summary">{file.summary}</span> : null}
-            {fileId && onDeleteFile ? (
-              <button
-                type="button"
-                className="attachment-chip-remove"
-                aria-label={`${fileName} 첨부 삭제`}
-                disabled={disabled}
-                onClick={() => onDeleteFile(fileId)}
-              >
-                ×
-              </button>
-            ) : null}
+          <span
+            key={fileId || fileName}
+            className={hasPreview ? 'attachment-chip with-preview' : 'attachment-chip with-document'}
+          >
+            {hasPreview ? (
+              <>
+                <span className="attachment-preview-frame">
+                  <img className="attachment-preview" src={previewUrl} alt="" aria-hidden="true" />
+                  <span className="attachment-extension-badge" aria-hidden="true">
+                    {extensionLabel}
+                  </span>
+                  {fileId && onDeleteFile ? (
+                    <button
+                      type="button"
+                      className="attachment-card-remove"
+                      aria-label={`${fileName} 첨부 삭제`}
+                      disabled={disabled}
+                      onClick={() => onDeleteFile(fileId)}
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </span>
+                <span className="attachment-card-footer">
+                  <span className="attachment-chip-name">{fileName}</span>
+                  <span className="attachment-card-check" aria-hidden="true">
+                    ✓
+                  </span>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="attachment-document-icon" aria-hidden="true">
+                  <span className="attachment-document-fold" />
+                  <span className="attachment-document-label">{extensionLabel}</span>
+                </span>
+                <span className="attachment-document-copy">
+                  <span className="attachment-chip-name">{fileName}</span>
+                  <span className="attachment-document-type">{extensionLabel}</span>
+                </span>
+                {fileId && onDeleteFile ? (
+                  <button
+                    type="button"
+                    className="attachment-card-remove"
+                    aria-label={`${fileName} 첨부 삭제`}
+                    disabled={disabled}
+                    onClick={() => onDeleteFile(fileId)}
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </>
+            )}
           </span>
         )
       })}
-      {hasStatus ? (
-        <span className={`attachment-status ${uploadState.phase ?? 'idle'}`}>
-          {uploadState.message}
-        </span>
-      ) : null}
     </div>
   )
 }
@@ -117,20 +149,16 @@ function readFileName(file) {
   return file?.filename ?? file?.name ?? '첨부 파일'
 }
 
-function getAttachmentKindLabel(filename) {
-  const extension = String(filename).split('.').pop()?.toLowerCase() ?? ''
+function readPreviewUrl(file) {
+  return file?.previewUrl ?? file?.preview_url ?? ''
+}
 
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic'].includes(extension)) {
+function getAttachmentExtensionLabel(filename) {
+  const extension = String(filename).split('.').pop()?.toUpperCase()
+
+  if (!extension || extension === String(filename).toUpperCase()) {
     return 'IMG'
   }
 
-  if (extension === 'pdf') {
-    return 'PDF'
-  }
-
-  if (extension === 'docx') {
-    return 'DOC'
-  }
-
-  return 'FILE'
+  return extension.slice(0, 4)
 }

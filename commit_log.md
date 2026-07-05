@@ -1,5 +1,102 @@
 # Commit Log
 
+## 2026-07-06 다중 이미지 미리보기 및 문서 카드
+
+### 변경 사항
+
+- 브랜치 파일 목록을 서버에서 다시 가져올 때 기존 첨부 객체의 `previewUrl`을 보존하도록 병합 방식을 수정했다.
+- 여러 이미지를 한 번에 붙여넣어도 각 이미지의 로컬 `blob:` 미리보기 URL이 유지되도록 했다.
+- 업로드 직후 첨부 객체에 파일명과 MIME 타입 정보를 함께 저장하도록 했다.
+- 미리보기가 없는 PDF와 문서 파일은 pill 대신 문서 아이콘이 포함된 카드로 렌더링되도록 변경했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/App.jsx frontend/src/components/FileAttachmentControl.jsx frontend/src/Modern.css commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 일반 권한의 `npm run dev:mock -- --host 127.0.0.1` 실행은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행해 `http://127.0.0.1:5178/`에서 mock 개발 서버를 띄웠다.
+- 브라우저에서 테스트 이미지 2개와 PDF 1개를 클립보드로 붙여넣었을 때 전체 첨부 카드가 3개 표시되는 것을 확인했다.
+- 이미지 카드 2개 모두 `.attachment-preview`를 가지고 `blob:` 미리보기 URL을 사용하는 것을 확인했다.
+- PDF는 `.attachment-chip.with-document` 카드로 표시되고 문서 아이콘 라벨과 파일 타입 텍스트가 모두 `PDF`로 표시되는 것을 확인했다.
+- 서버 파일 목록 재조회 대기 후에도 이미지 미리보기 카드 2개와 PDF 문서 카드 1개가 유지되는 것을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+## 2026-07-06 첨부 상태 문구 숨김
+
+### 변경 사항
+
+- 첨부 트레이에서 `uploadState.message`를 렌더링하지 않도록 변경했다.
+- `1개 파일을 첨부했다.`, `첨부 파일을 삭제했다.` 같은 첨부 상태 문구가 입력창 위에 표시되지 않도록 했다.
+- 첨부 파일 summary 렌더링도 제거하여 mock 파일 요약 문구가 DOM에 남지 않도록 했다.
+- 더 이상 사용하지 않는 `.attachment-status`, `.attachment-chip-summary` 스타일을 제거했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/components/FileAttachmentControl.jsx frontend/src/Modern.css commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 일반 권한의 `npm run dev:mock -- --host 127.0.0.1` 실행은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행해 `http://127.0.0.1:5177/`에서 mock 개발 서버를 띄웠다.
+- 브라우저에서 테스트 PNG 이미지를 붙여넣은 직후 `.attachment-status`와 `.attachment-chip-summary`가 생성되지 않는 것을 확인했다.
+- 붙여넣기 직후 첨부 트레이 텍스트가 `PNG×clipboard.png✓`만 포함하고 `파일을 첨부했다` 문구를 포함하지 않는 것을 확인했다.
+- 첨부 삭제 후에도 `첨부 파일을 삭제했다` 문구가 표시되지 않고 첨부 트레이가 제거되는 것을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+## 2026-07-06 이미지 첨부 카드 세로형 UI
+
+### 변경 사항
+
+- 이미지 첨부 카드를 미리보기 영역과 파일명 영역이 위아래로 나뉜 세로형 카드로 변경했다.
+- 이미지 미리보기 위에 파일 확장자 배지를 표시하고, 카드 하단에는 파일명과 첨부 완료 체크 표시가 보이도록 했다.
+- 이미지 첨부 카드의 외곽 곡률을 입력창과 같은 `var(--radius-lg)` 기준으로 맞췄다.
+- 이미지 카드의 삭제 버튼은 기존 삭제 기능을 유지하면서 hover 또는 focus 상태에서만 우상단에 보이도록 정리했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/components/FileAttachmentControl.jsx frontend/src/Modern.css commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 일반 권한의 `npm run dev:mock -- --host 127.0.0.1` 실행은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행해 `http://127.0.0.1:5176/`에서 mock 개발 서버를 띄웠다.
+- 브라우저에서 테스트 PNG 이미지를 클립보드로 붙여넣었을 때 이미지 첨부 카드가 1개만 표시되는 것을 확인했다.
+- 이미지 미리보기는 카드 상단, 파일명은 카드 하단에 배치되는 것을 확인했다.
+- 확장자 배지는 `PNG`, 완료 표시는 `✓`로 렌더링되는 것을 확인했다.
+- 이미지 첨부 카드와 랜딩 입력창의 `border-radius`가 모두 `24px`로 일치하는 것을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
+## 2026-07-05 첨부 카드 상단 표시 및 이미지 미리보기
+
+### 변경 사항
+
+- 랜딩 채팅 입력창에서 첨부 파일 카드가 입력 행 위에 렌더링되도록 `AttachmentTray` 배치와 랜딩 composer grid 표시 방식을 정리했다.
+- 이미지 첨부 파일에는 업로드 직후 `blob:` 미리보기 URL을 붙여 썸네일을 표시하도록 했다.
+- 파일 삭제 시 이미지 미리보기 URL을 해제해 브라우저 메모리에 남지 않도록 했다.
+- 일반 채팅 입력창과 스플릿 채팅 입력창도 첨부 파일 영역이 입력 행 위에 오도록 grid 영역을 조정했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/App.jsx frontend/src/Modern.css frontend/src/components/ChatLanding.jsx frontend/src/components/FileAttachmentControl.jsx commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 권한 상승으로 `npm run dev:mock -- --host 127.0.0.1`을 실행해 `http://127.0.0.1:5173/`에서 mock 개발 서버를 띄웠다.
+- 브라우저에서 테스트 PNG 이미지를 클립보드로 붙여넣었을 때 첨부 칩이 1개만 표시되는 것을 확인했다.
+- 이미지 첨부에 `blob:` 미리보기 URL이 붙고, `.attachment-preview` 썸네일이 1개 표시되는 것을 확인했다.
+- 첨부 트레이의 하단 좌표가 입력 행의 상단 좌표보다 위에 있어 첨부 카드가 입력줄 위에 표시되는 것을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청하지 않았으므로 커밋은 수행하지 않았다.
+
 ## 2026-07-05 클립보드 이미지 중복 첨부 방지
 
 ### 원인

@@ -65,6 +65,12 @@ export function ChatLanding({
 
       <form className="landing-composer" onSubmit={handleSubmit}>
         <label htmlFor="landing-message">메시지</label>
+        <AttachmentTray
+          files={attachedFiles}
+          uploadState={uploadState}
+          disabled={isBusy}
+          onDeleteFile={onDeleteAttachment}
+        />
         <div className="landing-input-row">
           <FileAttachmentButton
             inputId="landing-file-input"
@@ -86,12 +92,6 @@ export function ChatLanding({
             ➤
           </button>
         </div>
-        <AttachmentTray
-          files={attachedFiles}
-          uploadState={uploadState}
-          disabled={isBusy}
-          onDeleteFile={onDeleteAttachment}
-        />
 
         <div className="prompt-chip-row composer-model-controls landing-model-controls" aria-label="답변 옵션">
           <ModelSelector

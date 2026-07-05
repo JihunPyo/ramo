@@ -392,7 +392,10 @@ function App() {
         if (!isCancelled && Array.isArray(branchFiles)) {
           setAttachedFilesByBranchId((currentFilesByBranchId) => ({
             ...currentFilesByBranchId,
-            [activeNode.id]: branchFiles,
+            [activeNode.id]: mergeAttachmentFiles(
+              branchFiles,
+              currentFilesByBranchId[activeNode.id] ?? [],
+            ),
           }))
         }
       })
@@ -843,7 +846,7 @@ function App() {
           modelProvider: model.provider,
           modelName: model.name,
         })
-        uploadedFiles.push(uploadedFile)
+        uploadedFiles.push(createUploadedAttachment(uploadedFile, file))
       }
 
       setAttachedFilesByBranchId((currentFilesByBranchId) => ({
@@ -860,7 +863,10 @@ function App() {
         if (Array.isArray(branchFiles)) {
           setAttachedFilesByBranchId((currentFilesByBranchId) => ({
             ...currentFilesByBranchId,
-            [targetBranchId]: branchFiles,
+            [targetBranchId]: mergeAttachmentFiles(
+              branchFiles,
+              mergeAttachmentFiles(currentFilesByBranchId[targetBranchId] ?? [], uploadedFiles),
+            ),
           }))
         }
       } catch {
@@ -908,6 +914,10 @@ function App() {
 
     try {
       await branchGraphApi.deleteFile(fileId)
+      const currentFile = (attachedFilesByBranchId[branchId] ?? []).find(
+        (file) => readAttachmentFileId(file) === fileId,
+      )
+      revokeAttachmentPreview(currentFile)
       setAttachedFilesByBranchId((currentFilesByBranchId) => ({
         ...currentFilesByBranchId,
         [branchId]: (currentFilesByBranchId[branchId] ?? []).filter(
@@ -1752,19 +1762,46 @@ function normalizeIncomingFiles(incomingFiles) {
   return Array.from(incomingFiles ?? []).filter((file) => file && file.size >= 0)
 }
 
+function createUploadedAttachment(uploadedFile, sourceFile) {
+  const attachment = {
+    ...uploadedFile,
+    filename: uploadedFile?.filename ?? sourceFile?.name,
+    type: uploadedFile?.type ?? sourceFile?.type,
+    mime_type: uploadedFile?.mime_type ?? sourceFile?.type,
+  }
+
+  if (!isPreviewableImage(sourceFile) || typeof URL === 'undefined') {
+    return attachment
+  }
+
+  return {
+    ...attachment,
+    previewUrl: URL.createObjectURL(sourceFile),
+  }
+}
+
 function mergeAttachmentFiles(currentFiles, nextFiles) {
-  const mergedFiles = [...currentFiles]
-  const fileIds = new Set(currentFiles.map(readAttachmentFileId).filter(Boolean))
+  const mergedFiles = currentFiles.map((file) => ({ ...file }))
+  const fileIndexById = new Map(
+    mergedFiles
+      .map((file, index) => [readAttachmentFileId(file), index])
+      .filter(([fileId]) => Boolean(fileId)),
+  )
 
   nextFiles.forEach((file) => {
     const fileId = readAttachmentFileId(file)
+    const existingIndex = fileId ? fileIndexById.get(fileId) : undefined
 
-    if (fileId && fileIds.has(fileId)) {
+    if (existingIndex !== undefined) {
+      mergedFiles[existingIndex] = {
+        ...mergedFiles[existingIndex],
+        ...file,
+      }
       return
     }
 
     if (fileId) {
-      fileIds.add(fileId)
+      fileIndexById.set(fileId, mergedFiles.length)
     }
 
     mergedFiles.push(file)
@@ -1775,6 +1812,16 @@ function mergeAttachmentFiles(currentFiles, nextFiles) {
 
 function readAttachmentFileId(file) {
   return file?.id ?? file?.file_id ?? file?.fileId ?? ''
+}
+
+function isPreviewableImage(file) {
+  return file?.type?.startsWith('image/')
+}
+
+function revokeAttachmentPreview(file) {
+  if (file?.previewUrl && typeof URL !== 'undefined') {
+    URL.revokeObjectURL(file.previewUrl)
+  }
 }
 
 export default App

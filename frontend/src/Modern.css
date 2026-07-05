@@ -205,8 +205,8 @@
 .landing-model { margin-top: 16px; color: var(--color-accent); font-size: 12px; letter-spacing: .14em; }
 .chat-landing h1 { color: var(--color-text); font-size: clamp(30px, 4vw, 42px); letter-spacing: -.035em; margin: 0 0 28px; }
 .landing-context { margin: 10px 0 28px; color: var(--color-text-muted); font-size: 14px; }
-.landing-composer { width: 100%; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 5%); padding: 8px 10px 10px; }
-.landing-input-row { width: 100%; align-items: center; grid-template-columns: 40px minmax(0, 1fr) 40px; grid-template-areas: "attach input send"; gap: 8px; min-height: 54px; border: 0; background: transparent; }
+.landing-composer { display: grid; width: 100%; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 5%); padding: 8px 10px 10px; }
+.landing-input-row { display: grid; grid-area: auto; width: 100%; align-items: center; grid-template-columns: 40px minmax(0, 1fr) 40px; grid-template-areas: "attach input send"; gap: 8px; min-height: 54px; border: 0; background: transparent; }
 .landing-input-row textarea { grid-area: input; min-height: 26px; max-height: 180px; padding: 6px 8px; line-height: 1.55; overflow-y: hidden; }
 .landing-input-row textarea:focus-visible { outline: 0; box-shadow: none; }
 .landing-input-row button[type="submit"] { grid-area: send; width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; margin-top: 0; transform: none; }
@@ -418,7 +418,7 @@
 .message-row:hover .message-actions button, .message-row:focus-within .message-actions button { opacity: 1; }
 .message-actions button:hover { background: var(--color-surface-soft); color: var(--color-accent); }
 
-.composer { position: relative; bottom: auto; z-index: 6; display: grid; grid-template-columns: 40px minmax(0, 1fr) 42px; grid-template-areas: "attach input send" "attachments attachments send" "controls controls send"; align-items: center; gap: 6px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 12px; }
+.composer { position: relative; bottom: auto; z-index: 6; display: grid; grid-template-columns: 40px minmax(0, 1fr) 42px; grid-template-areas: "attachments attachments attachments" "attach input send" "controls controls send"; align-items: center; gap: 6px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 12px; }
 .composer textarea { grid-area: input; resize: none; border: 0; outline: 0; background: transparent; box-sizing: border-box; min-height: 42px; max-height: 180px; padding: 8px 4px; line-height: 1.55; overflow-y: hidden; }
 .composer-file-input { display: none; }
 .composer-attach-button { grid-area: attach; align-self: center; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--color-surface-soft); color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 23px; font-weight: 450; line-height: 1; padding: 0; }
@@ -429,17 +429,31 @@
 .landing-input-row .composer-attach-button { grid-area: attach; width: 38px; height: 38px; background: var(--color-surface-soft); color: var(--color-text-muted); margin-top: 0; transform: none; }
 .landing-input-row .composer-attach-button:hover,
 .landing-input-row .composer-attach-button:focus-visible { background: #e8ebe6; color: var(--color-accent); }
-.attachment-tray { grid-area: attachments; display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; overflow-x: auto; padding: 0 2px 2px; scrollbar-width: thin; }
-.attachment-chip { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; max-width: min(360px, 86vw); min-height: 30px; border-radius: 999px; background: #f1f4f0; color: var(--color-text); font-size: 12px; font-weight: 700; padding: 4px 7px 4px 5px; }
-.attachment-chip-kind { display: inline-grid; place-items: center; min-width: 34px; height: 22px; border-radius: 999px; background: #dfe8df; color: #476452; font-size: 9px; font-weight: 900; letter-spacing: .04em; }
-.attachment-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.attachment-chip-summary { display: none; }
-.attachment-chip-remove { display: inline-grid; place-items: center; width: 21px; height: 21px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; padding: 0; }
-.attachment-chip-remove:hover,
-.attachment-chip-remove:focus-visible { background: #dfe8df; color: var(--color-text); outline: 0; }
-.attachment-status { flex: 0 0 auto; color: var(--color-text-muted); font-size: 12px; font-weight: 750; }
-.attachment-status.error { color: #b54a3f; }
-.attachment-status.success { color: var(--color-accent); }
+.attachment-tray { grid-area: attachments; display: flex; align-items: flex-start; gap: 10px; min-width: 0; max-width: 100%; overflow-x: auto; padding: 0 2px 7px; scrollbar-width: thin; }
+.landing-composer > .attachment-tray { grid-area: auto; padding: 0 4px 9px; }
+.attachment-chip { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; max-width: min(420px, 86vw); min-height: 30px; border-radius: 11px; background: transparent; color: var(--color-text); font-size: 12px; font-weight: 750; padding: 0; }
+.attachment-chip.with-preview { position: relative; display: grid; grid-template-rows: 76px 34px; align-items: stretch; justify-items: stretch; gap: 0; width: 126px; max-width: 126px; min-height: 112px; border: 1px solid #dce3ee; border-radius: var(--radius-lg); background: #ffffff; box-shadow: 0 5px 14px rgb(39 49 71 / 9%); overflow: hidden; }
+.attachment-chip.with-document { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 10px; width: 226px; max-width: min(226px, 72vw); min-height: 72px; border: 1px solid #e2e7ef; border-radius: var(--radius-lg); background: #ffffff; box-shadow: 0 5px 14px rgb(39 49 71 / 8%); overflow: hidden; padding: 10px 34px 10px 10px; }
+.attachment-chip-name { min-width: 0; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-preview-frame { position: relative; display: block; min-width: 0; height: 72px; margin: 5px 5px 0; border-radius: calc(var(--radius-lg) - 7px) calc(var(--radius-lg) - 7px) 8px 8px; background: #f7f9fb; overflow: hidden; }
+.attachment-preview { display: block; width: 100%; height: 100%; border-radius: inherit; background: #f7f9fb; object-fit: cover; }
+.attachment-extension-badge { position: absolute; right: -2px; bottom: 6px; display: inline-flex; align-items: center; min-height: 20px; border-radius: 999px; background: rgb(72 76 83 / 72%); color: #ffffff; font-size: 11px; font-weight: 850; line-height: 1; padding: 4px 7px; }
+.attachment-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 7px 10px 8px; }
+.attachment-chip.with-preview .attachment-chip-name { max-width: 86px; color: #3f485f; font-size: 13px; font-weight: 800; }
+.attachment-card-check { flex: 0 0 auto; color: var(--color-accent); font-size: 17px; font-weight: 900; line-height: 1; }
+.attachment-document-icon { position: relative; display: inline-grid; place-items: center; width: 42px; height: 50px; border: 1px solid #e7ebf0; border-radius: 12px; background: #f8fafc; }
+.attachment-document-icon::before { position: absolute; inset: 8px 9px 10px; border-radius: 6px; background: #ff5a5f; content: ''; }
+.attachment-document-fold { position: absolute; top: 8px; right: 9px; width: 10px; height: 10px; border-radius: 0 5px 0 4px; background: #ffb5b7; }
+.attachment-document-label { position: relative; z-index: 1; color: #ffffff; font-size: 8px; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+.attachment-document-copy { display: grid; gap: 4px; min-width: 0; }
+.attachment-chip.with-document .attachment-chip-name { max-width: 130px; color: #2d343f; font-size: 13px; font-weight: 850; }
+.attachment-document-type { color: #727b87; font-size: 12px; font-weight: 750; line-height: 1; }
+.attachment-card-remove { position: absolute; top: 7px; right: 7px; z-index: 1; display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgb(32 35 31 / 62%); color: #ffffff; cursor: pointer; font: inherit; font-size: 15px; line-height: 1; opacity: 0; padding: 0; transition: opacity 140ms ease, background 140ms ease; }
+.attachment-chip.with-preview:hover .attachment-card-remove,
+.attachment-chip.with-document .attachment-card-remove,
+.attachment-card-remove:focus-visible { opacity: 1; }
+.attachment-card-remove:hover,
+.attachment-card-remove:focus-visible { background: rgb(32 35 31 / 82%); outline: 0; }
 .composer-model-controls { grid-area: controls; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .composer-model-selector { flex: 0 1 auto; min-width: 0; }
 .composer-model-controls .model-selector-trigger { background: #f1f2ef; color: #71776f; }
@@ -482,7 +496,7 @@
 .workspace-content.split-view-open .chat-workspace.split-conversation-panel { padding: 0; }
 .workspace-content.split-view-open .chat-header { border-radius: 18px 18px 0 0; }
 .workspace-content.split-view-open .composer,
-.split-conversation-panel .composer { grid-template-columns: 38px minmax(0, 1fr) 40px; grid-template-areas: "attach input send" "attachments attachments send" "controls controls send"; align-items: center; }
+.split-conversation-panel .composer { grid-template-columns: 38px minmax(0, 1fr) 40px; grid-template-areas: "attachments attachments attachments" "attach input send" "controls controls send"; align-items: center; }
 .workspace-content.split-view-open .composer-model-controls,
 .split-conversation-panel .composer-model-controls { width: 100%; overflow: hidden; }
 .workspace-content.split-view-open .composer-model-selector,
@@ -623,7 +637,7 @@
   .message-actions button { opacity: 1; }
   .message-row.user .message-bubble { max-width: 92%; }
   .merge-summary-grid { grid-template-columns: 1fr; }
-  .composer { bottom: auto; grid-template-columns: 38px minmax(0, 1fr) 40px; grid-template-areas: "attach input send" "attachments attachments send" "controls controls send"; }
+  .composer { bottom: auto; grid-template-columns: 38px minmax(0, 1fr) 40px; grid-template-areas: "attachments attachments attachments" "attach input send" "controls controls send"; }
   .model-selector-popover { width: calc(100vw - 32px); max-height: 66vh; }
   .model-selector-grid { grid-template-columns: 1fr; }
   .node-comparison-grid { grid-template-columns: 1fr; overflow-y: auto; }
