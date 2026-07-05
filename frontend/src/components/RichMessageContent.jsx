@@ -4,6 +4,8 @@ import 'katex/dist/katex.min.css'
 const TABLE_SEPARATOR_PATTERN = /^\s*\|?[\s:-]+\|[\s|:-]*$/
 const ORDERED_LIST_ITEM_PATTERN = /^(\s*)(\d+)[.)]\s+(.+)$/
 const UNORDERED_LIST_ITEM_PATTERN = /^(\s*)[-*]\s+(.+)$/
+const MATH_SLASH_GLOBAL_PATTERN = /[\\\u20a9]/g
+const MATH_BLOCK_START_PATTERN = /^\s*(\$\$|[\\\u20a9]\[)/
 
 export function RichMessageContent({ content }) {
   const blocks = parseMessageBlocks(content)
@@ -49,6 +51,14 @@ function parseMessageBlocks(content) {
         content: codeLines.join('\n'),
       })
       index += index < lines.length ? 1 : 0
+      continue
+    }
+
+    if (isMathBlockStart(trimmedLine)) {
+      const { block, nextIndex } = parseMathBlock(lines, index)
+
+      blocks.push(block)
+      index = nextIndex
       continue
     }
 
@@ -122,6 +132,7 @@ function startsSpecialBlock(lines, index) {
 
   return (
     trimmedLine.startsWith('```') ||
+    isMathBlockStart(trimmedLine) ||
     /^#{2,4}\s+/.test(trimmedLine) ||
     Boolean(matchUnorderedListItem(lines[index])) ||
     Boolean(matchOrderedListItem(lines[index])) ||
@@ -343,6 +354,56 @@ function parseTableCells(line) {
     .map((cell) => cell.trim())
 }
 
+function isMathBlockStart(line) {
+  return MATH_BLOCK_START_PATTERN.test(line)
+}
+
+function parseMathBlock(lines, startIndex) {
+  const openingLine = lines[startIndex].trim()
+  const delimiter = openingLine.startsWith('$$') ? '$$' : '\\['
+  const endPattern = delimiter === '$$' ? /\$\$\s*$/ : /[\\\u20a9]\]\s*$/
+  const firstLineContent = openingLine.slice(delimiter.length).trim()
+  const mathLines = []
+  let index = startIndex + 1
+
+  if (firstLineContent) {
+    if (endPattern.test(firstLineContent)) {
+      return {
+        block: {
+          type: 'math',
+          display: true,
+          content: firstLineContent.replace(endPattern, '').trim(),
+        },
+        nextIndex: index,
+      }
+    }
+
+    mathLines.push(firstLineContent)
+  }
+
+  while (index < lines.length) {
+    const line = lines[index]
+
+    if (endPattern.test(line.trim())) {
+      mathLines.push(line.replace(endPattern, '').trimEnd())
+      index += 1
+      break
+    }
+
+    mathLines.push(line)
+    index += 1
+  }
+
+  return {
+    block: {
+      type: 'math',
+      display: true,
+      content: mathLines.join('\n').trim(),
+    },
+    nextIndex: index,
+  }
+}
+
 function renderBlock(block, key) {
   if (block.type === 'heading') {
     const HeadingTag = `h${Math.min(4, Math.max(3, block.level + 1))}`
@@ -367,6 +428,14 @@ function renderBlock(block, key) {
         </pre>
       </figure>
     )
+  }
+
+  if (block.type === 'math') {
+    return renderMath(block.content, {
+      key,
+      display: true,
+      className: 'math-display',
+    })
   }
 
   if (block.type === 'table') {
@@ -424,7 +493,7 @@ function renderListItem(block, item, key) {
 function renderInline(text, keyPrefix) {
   const parts = []
   const pattern =
-    /(\$\$[^$]+\$\$|\$[^$\n]+\$|[\\₩]\[[\s\S]*?[\\₩]\]|[\\₩]\([\s\S]*?[\\₩]\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
+    /(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|[\\\u20a9]\[[\s\S]+?[\\\u20a9]\]|[\\\u20a9]\([\s\S]+?[\\\u20a9]\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
   let lastIndex = 0
   let match
 
@@ -473,14 +542,22 @@ function renderInlineToken(token, key) {
 function isMathToken(token) {
   return (
     (token.startsWith('$') && token.endsWith('$')) ||
-    /^[\\₩][[(]/.test(token)
+    /^[\\\u20a9][[(]/.test(token)
   )
 }
 
 function renderMathToken(token, key) {
-  const display = token.startsWith('$$') || /^[\\₩]\[/.test(token)
+  const display = token.startsWith('$$') || /^[\\\u20a9]\[/.test(token)
   const expression = unwrapMathToken(token)
-  const normalizedExpression = expression.replaceAll('₩', '\\')
+  return renderMath(expression, {
+    key,
+    display,
+    className: display ? 'math-display' : 'math-inline',
+  })
+}
+
+function renderMath(expression, { key, display, className }) {
+  const normalizedExpression = expression.replace(MATH_SLASH_GLOBAL_PATTERN, '\\')
   const html = katex.renderToString(normalizedExpression, {
     displayMode: display,
     throwOnError: false,
@@ -491,7 +568,7 @@ function renderMathToken(token, key) {
   return (
     <span
       key={key}
-      className={display ? 'math-display' : 'math-inline'}
+      className={className}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
