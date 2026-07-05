@@ -1477,11 +1477,32 @@
 
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 18px;
   margin-left: auto;
   color: #8a94aa;
   font-size: 14px;
   font-weight: 700;
+}
+
+.topbar-action-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 6px 0;
+}
+
+.topbar-action-button:hover,
+.topbar-action-button:focus-visible {
+  color: var(--color-accent);
+}
+
+.topbar-action-button:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .api-error {

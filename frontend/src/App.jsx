@@ -201,6 +201,7 @@ function App() {
   const [fileUploadState, setFileUploadState] = useState(null)
   const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
   const [comparisonResetKey, setComparisonResetKey] = useState(0)
+  const [easterEggModal, setEasterEggModal] = useState(null)
   const graphStateRef = useRef(graphState)
   const sessionContentCacheRef = useRef(createSessionContentCache())
   const splitWorkspaceRef = useRef(null)
@@ -565,6 +566,47 @@ function App() {
       setErrorMessage(getDisplayError(error))
     } finally {
       setPendingAction('')
+    }
+  }
+
+  const handleOpenEasterEgg = async (kind) => {
+    const config = kind === 'frontend'
+      ? {
+          title: '프론트팀 이스터에그',
+          label: '계정 더블클릭',
+          load: () => branchGraphApi.getEgg(),
+        }
+      : {
+          title: '백엔드 첫 손코딩 데뷔',
+          label: '도움말 더블클릭',
+          load: () => branchGraphApi.getHome(),
+        }
+
+    setEasterEggModal({
+      title: config.title,
+      label: config.label,
+      content: '',
+      isLoading: true,
+      error: '',
+    })
+
+    try {
+      const response = await config.load()
+      setEasterEggModal({
+        title: readEasterEggTitle(response) || config.title,
+        label: config.label,
+        content: readEasterEggContent(response),
+        isLoading: false,
+        error: '',
+      })
+    } catch (error) {
+      setEasterEggModal({
+        title: config.title,
+        label: config.label,
+        content: '',
+        isLoading: false,
+        error: getDisplayError(error),
+      })
     }
   }
 
@@ -1501,8 +1543,24 @@ function App() {
           ) : null}
           <div className="topbar-actions" aria-label="작업 도구">
             <span>알림</span>
-            <span>도움말</span>
-            <span>계정</span>
+            <button
+              type="button"
+              className="topbar-action-button"
+              onDoubleClick={() => void handleOpenEasterEgg('backend')}
+              aria-label="도움말 이스터에그 열기"
+              title="도움말"
+            >
+              도움말
+            </button>
+            <button
+              type="button"
+              className="topbar-action-button"
+              onDoubleClick={() => void handleOpenEasterEgg('frontend')}
+              aria-label="계정 이스터에그 열기"
+              title="계정"
+            >
+              계정
+            </button>
           </div>
         </header>
 
@@ -1731,7 +1789,60 @@ function App() {
           onClose={() => setAttachmentPreviewFile(null)}
         />
       ) : null}
+
+      {easterEggModal ? (
+        <EasterEggModal
+          egg={easterEggModal}
+          onClose={() => setEasterEggModal(null)}
+        />
+      ) : null}
     </main>
+  )
+}
+
+function EasterEggModal({ egg, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="easter-egg-modal" role="dialog" aria-modal="true" aria-label={egg.title}>
+      <button
+        type="button"
+        className="easter-egg-backdrop"
+        aria-label="이스터에그 닫기"
+        onClick={onClose}
+      />
+      <section className="easter-egg-dialog">
+        <header>
+          <span>{egg.label}</span>
+          <button type="button" aria-label="이스터에그 닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <div className="easter-egg-content" aria-live="polite">
+          <h2>{egg.title}</h2>
+          {egg.isLoading ? (
+            <div className="easter-egg-loading" role="status">
+              <span className="model-comparison-loading-spinner" aria-hidden="true" />
+              <p>이스터에그 불러오는 중...</p>
+            </div>
+          ) : egg.error ? (
+            <p className="easter-egg-error">{egg.error}</p>
+          ) : (
+            <pre>{egg.content}</pre>
+          )}
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -1783,6 +1894,40 @@ function AttachmentPreviewModal({ file, onClose }) {
 
 function getDisplayError(error) {
   return error?.message ?? '알 수 없는 오류가 발생했다.'
+}
+
+function readEasterEggTitle(response) {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    return ''
+  }
+
+  return response.title ?? response.name ?? response.heading ?? ''
+}
+
+function readEasterEggContent(response) {
+  if (typeof response === 'string') {
+    return response
+  }
+
+  if (response === null || response === undefined) {
+    return '응답 내용이 없습니다.'
+  }
+
+  if (typeof response !== 'object') {
+    return String(response)
+  }
+
+  const content = response.message ?? response.content ?? response.text ?? response.body ?? response.result
+
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (content !== undefined && content !== null) {
+    return JSON.stringify(content, null, 2)
+  }
+
+  return JSON.stringify(response, null, 2)
 }
 
 function readComparisonContent(response) {

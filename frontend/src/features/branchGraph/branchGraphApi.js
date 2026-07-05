@@ -7,6 +7,12 @@ export function createHttpBranchGraphApi(client = httpClient) {
     listSessions() {
       return client.request('/sessions')
     },
+    getHome() {
+      return client.request('/home')
+    },
+    getEgg() {
+      return client.request('/egg')
+    },
     createSession(title) {
       return client.request('/sessions', {
         method: 'POST',
