@@ -443,7 +443,7 @@ function PendingAssistantMessage() {
             <i />
           </span>
           <div>
-            <strong>답변을 구성하는 중이다.</strong>
+            <strong>답변을 구성중이에요</strong>
             <p>현재 노드의 맥락과 선택한 모델 응답을 기다리고 있다.</p>
           </div>
         </div>
