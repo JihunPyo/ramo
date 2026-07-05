@@ -145,7 +145,7 @@
   background: rgb(247 247 245 / 90%);
   padding: 0 22px;
   backdrop-filter: blur(14px);
-  overflow: hidden;
+  overflow: visible;
 }
 .model-button { color: var(--color-text); font-size: 15px; letter-spacing: .02em; }
 .api-status { border: 0; background: var(--color-surface-soft); color: var(--color-text-muted); font-weight: 700; }
@@ -514,7 +514,7 @@
 .attachment-preview-dialog header button:hover,
 .attachment-preview-dialog header button:focus-visible { background: #e8ebe6; color: var(--color-text); outline: 0; }
 .attachment-preview-dialog img { display: block; width: auto; height: auto; max-width: 92vw; max-height: calc(92vh - 55px); background: #f7f9fb; object-fit: contain; }
-.easter-egg-popover { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; width: min(280px, calc(100vw - 28px)); border: 1px solid rgb(203 219 210 / 90%); border-radius: 12px; background: #ffffff; box-shadow: 0 16px 42px rgb(31 41 51 / 16%); overflow: hidden; }
+.easter-egg-popover { position: absolute; top: calc(100% + 10px); right: 0; z-index: 120; width: min(280px, calc(100vw - 28px)); border: 1px solid rgb(203 219 210 / 90%); border-radius: 12px; background: #ffffff; box-shadow: 0 16px 42px rgb(31 41 51 / 16%); overflow: hidden; }
 .easter-egg-popover header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--color-border); background: #f7faf7; color: var(--color-text-muted); font-size: 11px; font-weight: 850; }
 .easter-egg-popover header button { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 16px; line-height: 1; padding: 0; }
 .easter-egg-popover header button:hover,
