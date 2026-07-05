@@ -2,8 +2,13 @@ import { useState } from 'react'
 import { getSessionByNodeId } from '../features/branchGraph/branchGraphModel.js'
 import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
+import {
+  AttachmentTray,
+  FileAttachmentButton,
+} from './FileAttachmentControl.jsx'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
+import { getFilesFromClipboard } from './fileAttachmentUtils.js'
 import { getMessageRoleLabel } from './messageRoleLabel.js'
 
 export function SplitConversationPanel({
@@ -12,11 +17,15 @@ export function SplitConversationPanel({
   isBusy = false,
   isAwaitingResponse = false,
   pendingUserMessage = '',
+  attachedFiles = [],
+  uploadState = null,
   modelOptions = [],
   selectedModel,
   onChangeModel,
   onOpenModelComparison,
   onSendMessage,
+  onAttachFiles,
+  onDeleteAttachment,
   onCreateBranch,
   onClose,
 }) {
@@ -36,6 +45,17 @@ export function SplitConversationPanel({
 
     onSendMessage?.(messageText)
     setDraft('')
+  }
+
+  const handlePaste = (event) => {
+    const files = getFilesFromClipboard(event.clipboardData)
+
+    if (files.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+    onAttachFiles?.(files)
   }
 
   return (
@@ -93,6 +113,11 @@ export function SplitConversationPanel({
 
       <form className="composer split-composer" onSubmit={handleSubmit}>
         <label htmlFor={inputId}>메시지</label>
+        <FileAttachmentButton
+          inputId={`${inputId}-file-input`}
+          disabled={isBusy}
+          onAttachFiles={onAttachFiles}
+        />
         <textarea
           ref={textareaRef}
           id={inputId}
@@ -104,9 +129,16 @@ export function SplitConversationPanel({
               event.currentTarget.form?.requestSubmit()
             }
           }}
+          onPaste={handlePaste}
           disabled={isBusy}
           rows={1}
           placeholder="이 노드에서 이어서 질문하세요."
+        />
+        <AttachmentTray
+          files={attachedFiles}
+          uploadState={uploadState}
+          disabled={isBusy}
+          onDeleteFile={onDeleteAttachment}
         />
         <div className="composer-model-controls">
           <ModelSelector

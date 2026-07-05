@@ -9,8 +9,13 @@ import {
   isMergeNode,
 } from '../features/branchGraph/branchGraphModel.js'
 import { normalizePersonaLabel } from '../features/personas/personaLabel.js'
+import {
+  AttachmentTray,
+  FileAttachmentButton,
+} from './FileAttachmentControl.jsx'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
+import { getFilesFromClipboard } from './fileAttachmentUtils.js'
 import { getMessageRoleLabel } from './messageRoleLabel.js'
 
 export function ChatWorkspace({
@@ -20,12 +25,16 @@ export function ChatWorkspace({
   isBusy = false,
   isAwaitingResponse = false,
   pendingUserMessage = '',
+  attachedFiles = [],
+  uploadState = null,
   modelOptions = [],
   selectedModel,
   onChangeModel,
   onOpenModelComparison,
   isSplitViewOpen = false,
   onSendMessage,
+  onAttachFiles,
+  onDeleteAttachment,
   onCreateBranch,
   onRenameSession,
 }) {
@@ -187,6 +196,17 @@ export function ChatWorkspace({
 
     event.preventDefault()
     event.currentTarget.form?.requestSubmit()
+  }
+
+  const handlePaste = (event) => {
+    const files = getFilesFromClipboard(event.clipboardData)
+
+    if (files.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+    onAttachFiles?.(files)
   }
 
   const startRenamingSession = () => {
@@ -371,15 +391,27 @@ export function ChatWorkspace({
 
       <form className="composer" onSubmit={handleSubmit}>
         <label htmlFor="message-input">메시지</label>
+        <FileAttachmentButton
+          inputId="message-file-input"
+          disabled={isBusy}
+          onAttachFiles={onAttachFiles}
+        />
         <textarea
           ref={textareaRef}
           id="message-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleMessageKeyDown}
+          onPaste={handlePaste}
           disabled={isBusy}
           rows={1}
           placeholder="현재 대화에서 이어서 질문하세요."
+        />
+        <AttachmentTray
+          files={attachedFiles}
+          uploadState={uploadState}
+          disabled={isBusy}
+          onDeleteFile={onDeleteAttachment}
         />
         <div className="composer-model-controls">
           <ModelSelector

@@ -1,5 +1,105 @@
 # Commit Log
 
+## 2026-07-05 클립보드 이미지 중복 첨부 방지
+
+### 원인
+
+- 이미지 붙여넣기 시 브라우저가 같은 파일을 `clipboardData.files`와 `clipboardData.items` 양쪽에 노출할 수 있었다.
+- 기존 로직은 두 컬렉션을 합친 뒤 `name`, `type`, `size`, `lastModified` 조합으로 중복 제거를 했고, 같은 이미지라도 `lastModified` 등이 다르면 서로 다른 파일로 판단될 수 있었다.
+
+### 변경 사항
+
+- `frontend/src/components/fileAttachmentUtils.js`에서 `clipboardData.files`가 있으면 해당 목록만 사용하고, 비어 있을 때만 `clipboardData.items`를 fallback으로 사용하도록 변경했다.
+- 같은 소스 내 중복 제거 기준에서 `lastModified`를 제외해 클립보드 이미지의 불안정한 타임스탬프 때문에 중복 파일로 남지 않게 했다.
+
+### 검증 결과
+
+- 브라우저에서 테스트 PNG 이미지를 클립보드로 붙여넣었을 때 첨부 칩이 1개만 생성되는 것을 확인했다.
+- 업로드 완료 후 `1개 파일을 첨부했다.` 상태가 표시되는 것을 확인했다.
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/components/fileAttachmentUtils.js commit_log.md` 실행 결과, 공백 오류가 없었다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청해 현재 커밋 대상에 포함했다.
+
+## 2026-07-05 랜딩 첨부 버튼 레이아웃 보정
+
+### 원인
+
+- 랜딩 입력창의 `+` 첨부 버튼에 공통 composer용 `grid-area: attach`가 적용되었지만, `.landing-input-row`에는 `grid-template-areas`가 없었다.
+- 이로 인해 브라우저가 암묵 grid를 만들면서 전송 버튼이 입력창 중앙으로 밀리고, 첨부 버튼이 오른쪽으로 배치되는 현상이 발생했다.
+
+### 변경 사항
+
+- `frontend/src/Modern.css`에서 `.landing-input-row`에 `attach input send` grid 영역을 명시했다.
+- 랜딩 textarea는 `input`, 첨부 버튼은 `attach`, 전송 버튼은 `send` 영역을 사용하도록 지정했다.
+- 랜딩 첨부 버튼과 전송 버튼의 불필요한 `margin-top`, `transform` 보정을 제거해 세 요소가 같은 행에서 정렬되도록 했다.
+
+### 검증 결과
+
+- 브라우저에서 랜딩 입력창 좌표를 확인한 결과 `+` 버튼은 왼쪽, textarea는 중앙, 전송 버튼은 오른쪽에 배치되는 것을 확인했다.
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/Modern.css commit_log.md` 실행 결과, 공백 오류가 없었다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청해 현재 커밋 대상에 포함했다.
+
+## 2026-07-05 채팅 입력창 파일 첨부 UI
+
+### 변경 사항
+
+- `frontend/src/components/FileAttachmentControl.jsx`를 추가하여 공통 파일 첨부 버튼과 첨부 파일 칩 UI를 구현했다.
+- `frontend/src/components/fileAttachmentUtils.js`의 클립보드 파일 추출 유틸을 랜딩, 일반 채팅, 스플릿 채팅 입력창에서 사용하도록 연결했다.
+- `frontend/src/components/ChatLanding.jsx`, `frontend/src/components/ChatWorkspace.jsx`, `frontend/src/components/SplitConversationPanel.jsx`에 `+` 파일 첨부 버튼, 클립보드 파일 붙여넣기, 첨부 목록 표시, 첨부 삭제 UI를 추가했다.
+- `frontend/src/App.jsx`에서 새 채팅 draft 상태의 파일 첨부 시 먼저 세션을 생성하고, 현재 브랜치에 파일을 업로드한 뒤 첨부 목록과 캐시를 갱신하도록 했다.
+- `frontend/src/features/branchGraph/mockBranchGraphApi.js`에 mock 파일 업로드, 파일 목록, 파일 삭제 동작을 추가하여 이미지와 PDF 첨부 UI를 로컬에서 검증할 수 있게 했다.
+- `frontend/src/Modern.css`에서 랜딩/채팅/스플릿 입력 바 grid와 첨부 칩 스타일을 추가했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 프로젝트 루트에서 `git diff --check -- frontend/src/App.jsx frontend/src/Modern.css frontend/src/components/ChatLanding.jsx frontend/src/components/ChatWorkspace.jsx frontend/src/components/SplitConversationPanel.jsx frontend/src/components/FileAttachmentControl.jsx frontend/src/components/fileAttachmentUtils.js frontend/src/features/branchGraph/mockBranchGraphApi.js frontend/src/features/branchGraph/sessionContentCache.js commit_log.md` 실행 결과, 공백 오류가 없었다.
+- 일반 권한의 `npm run dev:mock` 실행은 로컬 포트 바인딩 제한으로 `listen EPERM`이 발생했다.
+- 권한 상승으로 Mock 개발 서버를 실행했고, 기본 포트가 사용 중이라 `http://127.0.0.1:5175/`에서 실행되었다.
+- 브라우저에서 랜딩 입력창의 `파일 첨부` 버튼과 file input이 렌더링되는 것을 확인했다.
+- 브라우저 클립보드에 테스트 PNG 이미지를 넣고 붙여넣었을 때 첨부 칩과 `1개 파일을 첨부했다.` 상태가 표시되는 것을 확인했다.
+- 메시지 전송 후 일반 채팅 입력창에도 `파일 첨부` 버튼과 `image/*,application/pdf,.pdf,.docx,.txt,.md,.csv,.json,.py,.js,.ts,.html,.xml` accept 값이 유지되는 것을 확인했다.
+- 첨부 칩 삭제 버튼 클릭 후 첨부 목록이 비고 `첨부 파일을 삭제했다.` 상태가 표시되는 것을 확인했다.
+- 브라우저 콘솔 error 로그가 없음을 확인했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청해 현재 커밋 대상에 포함했다.
+
+## 2026-07-05 세션 콘텐츠 임시 캐시
+
+### 변경 사항
+
+- `frontend/src/features/branchGraph/sessionContentCache.js`를 추가하여 세션 목록, 휴지통 목록, 세션 그래프, 브랜치 메시지를 60초 동안 캐싱하도록 했다.
+- `frontend/src/App.jsx`의 세션 그래프 로딩, 노드 메시지 로딩, 스플릿 대화 열기 흐름에서 캐시를 우선 사용하도록 수정했다.
+- 메시지 전송, 브랜치 생성, 이름 변경, 접기, 삭제, 복구, 영구 삭제, 병합, 모델 비교 답변 적용 후에는 캐시를 무효화하고 최신 데이터를 강제 재조회하도록 했다.
+- 관련 요구사항과 테스트 계획을 `REQ-036`, `TP-019`로 문서화했다.
+- 현재 작업트리에 함께 있던 파일 첨부 UI 변경의 Fast Refresh lint 오류를 해소하기 위해 클립보드 파일 유틸을 `frontend/src/components/fileAttachmentUtils.js`로 분리했다.
+
+### 검증 결과
+
+- `sessionContentCache` 단위 검증에서 캐시 hit와 `invalidateAll` 이후 재조회가 정상 동작함을 확인했다.
+- `frontend/`에서 `npm run lint` 실행 결과, ESLint 검사가 통과했다.
+- 프로젝트 루트에서 `git diff --check` 실행 결과, 공백 오류가 없었다.
+- `frontend/`에서 `npm run build` 실행 결과, Vite 프로덕션 빌드가 통과했다.
+- 일반 샌드박스 권한의 `npm run dev:mock` 실행은 `listen EPERM`으로 실패했다.
+- 권한 상승으로 Mock 개발 서버를 `http://127.0.0.1:5173/`에서 실행했고, HTTP `200 OK` 응답을 확인했다.
+- 파일 첨부 UI 변경까지 포함된 현재 작업트리 기준으로 `npm run lint`, `git diff --check`, `npm run build`를 다시 실행했고 모두 통과했다.
+
+### Git 상태
+
+- 사용자가 커밋을 요청해 현재 커밋 대상에 포함했다.
+
 ## 2026-07-05 브랜치 그래프 전체 노드 설명 생성 API 연결
 
 ### 변경 사항

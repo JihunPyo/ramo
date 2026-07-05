@@ -127,8 +127,10 @@ export function createMockBranchGraphApi() {
       getBranchesBySession(store, sessionId).forEach((branch) => {
         store.branches.delete(branch.id)
         store.messagesByBranchId.delete(branch.id)
+        store.filesByBranchId.delete(branch.id)
       })
       store.sessions = store.sessions.filter((candidate) => candidate.id !== sessionId)
+      store.filesBySessionId.delete(sessionId)
 
       return null
     },
@@ -571,9 +573,71 @@ export function createMockBranchGraphApi() {
       collectBranchIds(store, branchId).forEach((id) => {
         store.branches.delete(id)
         store.messagesByBranchId.delete(id)
+        store.filesByBranchId.delete(id)
       })
       if (!branch.parent_branch_id && !branch.is_merge) {
         store.sessions = store.sessions.filter((session) => session.id !== branch.session_id)
+        store.filesBySessionId.delete(branch.session_id)
+      }
+
+      return null
+    },
+    async uploadBranchFile(branchId, file, { modelProvider = 'openai', modelName = 'gpt-4o-mini' } = {}) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch_id가 존재하지 않는다.')
+      }
+
+      const uploadedFile = createMockUploadedFile({
+        file,
+        sessionId: branch.session_id,
+        branchId,
+        modelProvider,
+        modelName,
+      })
+      const currentFiles = store.filesByBranchId.get(branchId) ?? []
+
+      store.filesByBranchId.set(branchId, [...currentFiles, uploadedFile])
+
+      return uploadedFile
+    },
+    async uploadSessionFile(sessionId, file, { modelProvider = 'openai', modelName = 'gpt-4o-mini' } = {}) {
+      await delay()
+
+      if (!store.sessions.some((session) => session.id === sessionId)) {
+        throw new Error('session_id가 존재하지 않는다.')
+      }
+
+      const uploadedFile = createMockUploadedFile({
+        file,
+        sessionId,
+        branchId: null,
+        modelProvider,
+        modelName,
+      })
+      const currentFiles = store.filesBySessionId.get(sessionId) ?? []
+
+      store.filesBySessionId.set(sessionId, [...currentFiles, uploadedFile])
+
+      return uploadedFile
+    },
+    async listBranchFiles(branchId) {
+      await delay()
+      return [...(store.filesByBranchId.get(branchId) ?? [])]
+    },
+    async listSessionFiles(sessionId) {
+      await delay()
+      return [...(store.filesBySessionId.get(sessionId) ?? [])]
+    },
+    async deleteFile(fileId) {
+      await delay()
+      const wasDeletedFromBranch = deleteFileFromStoreMap(store.filesByBranchId, fileId)
+      const wasDeletedFromSession = deleteFileFromStoreMap(store.filesBySessionId, fileId)
+
+      if (!wasDeletedFromBranch && !wasDeletedFromSession) {
+        throw new Error('파일을 찾을 수 없습니다.')
       }
 
       return null
@@ -718,9 +782,62 @@ function createMockStore() {
     sessions,
     branches,
     messagesByBranchId,
+    filesByBranchId: new Map(),
+    filesBySessionId: new Map(),
     comparisons: new Map(),
     messageSequence: 1000,
   }
+}
+
+function createMockUploadedFile({ file, sessionId, branchId, modelProvider, modelName }) {
+  const filename = file?.name || '첨부 파일'
+
+  return {
+    id: `mock-file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    session_id: sessionId,
+    branch_id: branchId,
+    filename,
+    summary: createMockFileSummary(file, modelProvider, modelName),
+    created_at: new Date().toISOString(),
+  }
+}
+
+function createMockFileSummary(file, modelProvider, modelName) {
+  const filename = file?.name || '첨부 파일'
+  const sizeLabel = formatFileSize(file?.size ?? 0)
+
+  if (file?.type?.startsWith('image/')) {
+    return `${filename} 이미지 파일을 첨부했다. mock 환경에서는 이미지 내용 분석 대신 파일 메타데이터만 표시한다. (${sizeLabel}, ${modelProvider}/${modelName})`
+  }
+
+  return `${filename} 파일을 첨부했다. mock 환경에서는 실제 텍스트 추출 대신 파일 메타데이터만 표시한다. (${sizeLabel}, ${modelProvider}/${modelName})`
+}
+
+function formatFileSize(size) {
+  if (size < 1024) {
+    return `${size} B`
+  }
+
+  if (size < 1024 * 1024) {
+    return `${Math.round(size / 1024)} KB`
+  }
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
+}
+
+function deleteFileFromStoreMap(filesByOwnerId, fileId) {
+  let wasDeleted = false
+
+  filesByOwnerId.forEach((files, ownerId) => {
+    const nextFiles = files.filter((file) => file.id !== fileId)
+
+    if (nextFiles.length !== files.length) {
+      wasDeleted = true
+      filesByOwnerId.set(ownerId, nextFiles)
+    }
+  })
+
+  return wasDeleted
 }
 
 function createMockTags(node) {

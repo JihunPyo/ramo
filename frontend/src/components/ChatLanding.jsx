@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
+import {
+  AttachmentTray,
+  FileAttachmentButton,
+} from './FileAttachmentControl.jsx'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RamoLogo } from './RamoLogo.jsx'
+import { getFilesFromClipboard } from './fileAttachmentUtils.js'
 
 export function ChatLanding({
   activeNode,
   isBusy = false,
+  attachedFiles = [],
+  uploadState = null,
   modelOptions = [],
   selectedModel,
   onChangeModel,
   onSendMessage,
+  onAttachFiles,
+  onDeleteAttachment,
   onOpenModelComparison,
 }) {
   const [draft, setDraft] = useState('')
@@ -36,6 +45,17 @@ export function ChatLanding({
     event.currentTarget.form?.requestSubmit()
   }
 
+  const handlePaste = (event) => {
+    const files = getFilesFromClipboard(event.clipboardData)
+
+    if (files.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+    onAttachFiles?.(files)
+  }
+
   return (
     <section className="chat-landing" aria-label="채팅 시작">
       <div className="landing-logo" aria-hidden="true">
@@ -46,13 +66,18 @@ export function ChatLanding({
       <form className="landing-composer" onSubmit={handleSubmit}>
         <label htmlFor="landing-message">메시지</label>
         <div className="landing-input-row">
-          <span aria-hidden="true">＋</span>
+          <FileAttachmentButton
+            inputId="landing-file-input"
+            disabled={isBusy}
+            onAttachFiles={onAttachFiles}
+          />
           <textarea
             ref={textareaRef}
             id="landing-message"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleMessageKeyDown}
+            onPaste={handlePaste}
             disabled={isBusy}
             rows={1}
             placeholder={`${activeNode?.title ?? '새 대화'}에서 무엇이든 물어보세요`}
@@ -61,6 +86,12 @@ export function ChatLanding({
             ➤
           </button>
         </div>
+        <AttachmentTray
+          files={attachedFiles}
+          uploadState={uploadState}
+          disabled={isBusy}
+          onDeleteFile={onDeleteAttachment}
+        />
 
         <div className="prompt-chip-row composer-model-controls landing-model-controls" aria-label="답변 옵션">
           <ModelSelector

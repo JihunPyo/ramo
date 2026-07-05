@@ -37,6 +37,7 @@ import {
   setNodePersonaForSubtree,
   shouldUseInheritedMessagesForNode,
 } from './features/branchGraph/branchGraphModel.js'
+import { createSessionContentCache } from './features/branchGraph/sessionContentCache.js'
 
 const CHATKHU_MODEL_GROUPS = {
   anthropic: { groupLabel: 'CLAUDE', mark: '✺' },
@@ -191,9 +192,12 @@ function App() {
   const [selectedSplitChatModel, setSelectedSplitChatModel] = useState(() => CHAT_MODEL_OPTIONS[0])
   const [pendingUserMessage, setPendingUserMessage] = useState('')
   const [pendingSplitUserMessage, setPendingSplitUserMessage] = useState('')
+  const [attachedFilesByBranchId, setAttachedFilesByBranchId] = useState({})
+  const [fileUploadState, setFileUploadState] = useState(null)
   const [modelComparisonFlow, setModelComparisonFlow] = useState(null)
   const [comparisonResetKey, setComparisonResetKey] = useState(0)
   const graphStateRef = useRef(graphState)
+  const sessionContentCacheRef = useRef(createSessionContentCache())
   const splitWorkspaceRef = useRef(null)
 
   useEffect(() => {
@@ -232,6 +236,19 @@ function App() {
   const isSplitViewOpen = Boolean(splitNode || isMiniGraphOpen)
   const activeRootNode = activeNode ? getNodeById(graphState.nodes, activeNode.rootId) : null
   const activeBranchPath = activeNode ? getBranchPath(graphState.nodes, activeNode.id) : []
+  const activeAttachmentBranchId = isNewChatDraft ? null : activeNode?.id
+  const activeAttachedFiles = activeAttachmentBranchId
+    ? attachedFilesByBranchId[activeAttachmentBranchId] ?? []
+    : []
+  const activeUploadState = shouldShowUploadState(fileUploadState, activeAttachmentBranchId)
+    ? fileUploadState
+    : null
+  const splitAttachedFiles = splitNode?.id
+    ? attachedFilesByBranchId[splitNode.id] ?? []
+    : []
+  const splitUploadState = shouldShowUploadState(fileUploadState, splitNode?.id)
+    ? fileUploadState
+    : null
 
   const loadGraphState = useCallback(
     async ({
@@ -239,18 +256,31 @@ function App() {
       selectedRootNodeId,
       loadMessages = true,
       includeInheritedMessages,
+      forceRefresh = false,
     } = {}) => {
-      setIsLoading(true)
+      setIsLoading(graphStateRef.current.nodes.length === 0)
 
       try {
-        const [activeSessions, trashSessions] = await Promise.all([
-          branchGraphApi.listSessions(),
-          branchGraphApi.listTrashSessions(),
-        ])
+        const { activeSessions, trashSessions } =
+          await sessionContentCacheRef.current.getSessionLists(
+            async () => {
+              const [nextActiveSessions, nextTrashSessions] = await Promise.all([
+                branchGraphApi.listSessions(),
+                branchGraphApi.listTrashSessions(),
+              ])
+
+              return {
+                activeSessions: nextActiveSessions,
+                trashSessions: nextTrashSessions,
+              }
+            },
+            { force: forceRefresh },
+          )
         let apiSessions = activeSessions
 
         if (apiSessions.length === 0) {
           apiSessions = [await branchGraphApi.createSession()]
+          sessionContentCacheRef.current.invalidateAll()
         }
 
         const sessionToLoad = resolveSessionToLoad({
@@ -259,7 +289,13 @@ function App() {
           activeNodeId,
           selectedRootNodeId,
         })
-        const graphResponses = sessionToLoad ? [await loadSessionGraphResponse(sessionToLoad)] : []
+        const graphResponses = sessionToLoad
+          ? [
+              await loadSessionGraphResponse(sessionToLoad, sessionContentCacheRef.current, {
+                force: forceRefresh,
+              }),
+            ]
+          : []
         let nextState = buildGraphStateFromApi({
           apiSessions,
           graphResponses,
@@ -273,7 +309,12 @@ function App() {
         if (loadMessages && nextActiveNode) {
           const shouldIncludeInherited =
             includeInheritedMessages ?? shouldUseInheritedMessagesForNode(nextActiveNode)
-          const messages = await branchGraphApi.getBranchMessages(nextActiveNode.id, shouldIncludeInherited)
+          const messages = await sessionContentCacheRef.current.getBranchMessages(
+            nextActiveNode.id,
+            shouldIncludeInherited,
+            () => branchGraphApi.getBranchMessages(nextActiveNode.id, shouldIncludeInherited),
+            { force: forceRefresh },
+          )
           nextState = applyBranchMessages(nextState, nextActiveNode.id, messages)
         }
 
@@ -292,13 +333,29 @@ function App() {
   )
 
   const loadBranchMessages = useCallback(async (branchId) => {
+    const node = getNodeById(graphStateRef.current.nodes, branchId)
+    const includeInheritedMessages = shouldUseInheritedMessagesForNode(node)
+    const cachedMessages = sessionContentCacheRef.current.readBranchMessages(
+      branchId,
+      includeInheritedMessages,
+    )
+
+    if (cachedMessages) {
+      setGraphState((currentState) => {
+        const selectedState = selectNode(currentState, branchId)
+        return applyBranchMessages(selectedState, branchId, cachedMessages)
+      })
+      setErrorMessage('')
+      return
+    }
+
     setPendingAction('메시지 동기화 중')
 
     try {
-      const node = getNodeById(graphStateRef.current.nodes, branchId)
-      const messages = await branchGraphApi.getBranchMessages(
+      const messages = await sessionContentCacheRef.current.getBranchMessages(
         branchId,
-        shouldUseInheritedMessagesForNode(node),
+        includeInheritedMessages,
+        () => branchGraphApi.getBranchMessages(branchId, includeInheritedMessages),
       )
 
       setGraphState((currentState) => {
@@ -322,6 +379,29 @@ function App() {
       window.clearTimeout(timerId)
     }
   }, [loadGraphState])
+
+  useEffect(() => {
+    if (!activeNode?.id || isNewChatDraft) {
+      return undefined
+    }
+
+    let isCancelled = false
+
+    branchGraphApi.listBranchFiles(activeNode.id)
+      .then((branchFiles) => {
+        if (!isCancelled && Array.isArray(branchFiles)) {
+          setAttachedFilesByBranchId((currentFilesByBranchId) => ({
+            ...currentFilesByBranchId,
+            [activeNode.id]: branchFiles,
+          }))
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isCancelled = true
+    }
+  }, [activeNode?.id, isNewChatDraft])
 
   const handleSelectRoot = (rootId) => {
     const mainLeafNode = getMainLeafNodeForRoot(graphStateRef.current, rootId)
@@ -356,11 +436,24 @@ function App() {
       return
     }
 
+    const cachedMessages = sessionContentCacheRef.current.readBranchMessages(nodeId, true)
+
+    if (cachedMessages) {
+      setGraphState((currentState) => applyBranchMessages(currentState, nodeId, cachedMessages))
+      setSplitNodeId(nodeId)
+      setErrorMessage('')
+      return
+    }
+
     setPendingAction('스플릿 대화 불러오는 중')
     setErrorMessage('')
 
     try {
-      const messages = await branchGraphApi.getBranchMessages(nodeId, true)
+      const messages = await sessionContentCacheRef.current.getBranchMessages(
+        nodeId,
+        true,
+        () => branchGraphApi.getBranchMessages(nodeId, true),
+      )
       setGraphState((currentState) => applyBranchMessages(currentState, nodeId, messages))
       setSplitNodeId(nodeId)
     } catch (error) {
@@ -376,6 +469,7 @@ function App() {
 
     try {
       await branchGraphApi.selectMainBranch(nodeId)
+      sessionContentCacheRef.current.invalidateAll()
       setGraphState((currentState) => setMainTargetNode(currentState, nodeId))
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -396,6 +490,7 @@ function App() {
 
     try {
       await branchGraphApi.updateBranch(nodeId, { name: normalizedTitle })
+      sessionContentCacheRef.current.invalidateAll()
       setGraphState((currentState) => renameNode(currentState, nodeId, normalizedTitle))
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -411,6 +506,7 @@ function App() {
 
     try {
       await branchGraphApi.updateBranch(nodeId, { is_collapsed: isCollapsed })
+      sessionContentCacheRef.current.invalidateAll()
       setGraphState((currentState) => setNodeCollapsed(currentState, nodeId, isCollapsed))
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -522,6 +618,7 @@ function App() {
         branchIds: mergeNodes.map((node) => node.id),
         name: `병합: ${mergeNodes.map((node) => node.title).join(' + ')}`,
       })
+      sessionContentCacheRef.current.invalidateAll()
       const mergedBranchId = readBranchId(mergedBranch)
 
       if (!mergedBranchId) {
@@ -532,6 +629,7 @@ function App() {
         activeNodeId: mergedBranchId,
         selectedRootNodeId: mergeNodes[0].rootId,
         loadMessages: true,
+        forceRefresh: true,
       })
 
       if (nextState) {
@@ -579,6 +677,7 @@ function App() {
     const newRootTitle = createNewRootNodeTitle(getRootNodes(graphStateRef.current.nodes))
 
     const session = await branchGraphApi.createSession(newRootTitle)
+    sessionContentCacheRef.current.invalidateAll()
     const mainBranchId = readMainBranchId(session)
 
     if (!mainBranchId) {
@@ -589,6 +688,7 @@ function App() {
       activeNodeId: mainBranchId,
       selectedRootNodeId: mainBranchId,
       loadMessages: false,
+      forceRefresh: true,
     })
 
     if (!nextState) {
@@ -644,10 +744,12 @@ function App() {
         personaKey: personaNode?.personaKey,
         personaName: personaNode?.personaName,
       })
+      sessionContentCacheRef.current.invalidateAll()
       await loadGraphState({
         activeNodeId: branchId,
         selectedRootNodeId,
         loadMessages: true,
+        forceRefresh: true,
       })
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -679,12 +781,155 @@ function App() {
         personaKey: personaNode?.personaKey,
         personaName: personaNode?.personaName,
       })
-      const messages = await branchGraphApi.getBranchMessages(branchId, true)
+      sessionContentCacheRef.current.invalidateAll()
+      const messages = await sessionContentCacheRef.current.getBranchMessages(
+        branchId,
+        true,
+        () => branchGraphApi.getBranchMessages(branchId, true),
+        { force: true },
+      )
       setGraphState((currentState) => applyBranchMessages(currentState, branchId, messages))
     } catch (error) {
       setErrorMessage(getDisplayError(error))
     } finally {
       setPendingSplitUserMessage('')
+      setPendingAction('')
+    }
+  }
+
+  const handleAttachFiles = async (incomingFiles, {
+    branchId,
+    selectedRootNodeId,
+    model = selectedChatModel,
+  } = {}) => {
+    const files = normalizeIncomingFiles(incomingFiles)
+
+    if (files.length === 0) {
+      return
+    }
+
+    let targetBranchId = branchId ?? graphStateRef.current.activeNodeId
+    let targetRootNodeId = selectedRootNodeId ?? graphStateRef.current.selectedRootNodeId
+    const shouldCreateDraftSession = !branchId && (isNewChatDraft || !targetBranchId)
+
+    setErrorMessage('')
+    setPendingAction(shouldCreateDraftSession ? '첨부용 대화 생성 중' : '파일 첨부 중')
+    setFileUploadState({
+      branchId: shouldCreateDraftSession ? null : targetBranchId || null,
+      phase: 'uploading',
+      message: shouldCreateDraftSession ? '첨부할 대화를 준비하는 중이다.' : `${files.length}개 파일을 첨부하는 중이다.`,
+    })
+
+    try {
+      if (shouldCreateDraftSession) {
+        targetBranchId = await createDraftSession()
+        targetRootNodeId = targetBranchId
+        setPendingAction('파일 첨부 중')
+        setFileUploadState({
+          branchId: targetBranchId,
+          phase: 'uploading',
+          message: `${files.length}개 파일을 첨부하는 중이다.`,
+        })
+      }
+
+      if (!targetBranchId) {
+        throw new Error('파일을 첨부할 대화 노드를 확인할 수 없습니다.')
+      }
+
+      const uploadedFiles = []
+
+      for (const file of files) {
+        const uploadedFile = await branchGraphApi.uploadBranchFile(targetBranchId, file, {
+          modelProvider: model.provider,
+          modelName: model.name,
+        })
+        uploadedFiles.push(uploadedFile)
+      }
+
+      setAttachedFilesByBranchId((currentFilesByBranchId) => ({
+        ...currentFilesByBranchId,
+        [targetBranchId]: mergeAttachmentFiles(
+          currentFilesByBranchId[targetBranchId] ?? [],
+          uploadedFiles,
+        ),
+      }))
+      sessionContentCacheRef.current.invalidateAll()
+
+      try {
+        const branchFiles = await branchGraphApi.listBranchFiles(targetBranchId)
+        if (Array.isArray(branchFiles)) {
+          setAttachedFilesByBranchId((currentFilesByBranchId) => ({
+            ...currentFilesByBranchId,
+            [targetBranchId]: branchFiles,
+          }))
+        }
+      } catch {
+        // 파일 목록 API 실패는 업로드 성공 자체를 취소하지 않는다.
+      }
+
+      const isCurrentActiveBranch =
+        shouldCreateDraftSession || targetBranchId === graphStateRef.current.activeNodeId
+
+      if (isCurrentActiveBranch) {
+        await loadGraphState({
+          activeNodeId: targetBranchId,
+          selectedRootNodeId: targetRootNodeId,
+          loadMessages: true,
+          forceRefresh: true,
+        })
+      }
+
+      setFileUploadState({
+        branchId: targetBranchId,
+        phase: 'success',
+        message: `${uploadedFiles.length}개 파일을 첨부했다.`,
+      })
+    } catch (error) {
+      const message = getDisplayError(error)
+
+      setErrorMessage(message)
+      setFileUploadState({
+        branchId: targetBranchId || null,
+        phase: 'error',
+        message,
+      })
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleDeleteAttachment = async (branchId, fileId) => {
+    if (!branchId || !fileId) {
+      return
+    }
+
+    setPendingAction('첨부 삭제 중')
+    setErrorMessage('')
+
+    try {
+      await branchGraphApi.deleteFile(fileId)
+      setAttachedFilesByBranchId((currentFilesByBranchId) => ({
+        ...currentFilesByBranchId,
+        [branchId]: (currentFilesByBranchId[branchId] ?? []).filter(
+          (file) => readAttachmentFileId(file) !== fileId,
+        ),
+      }))
+      sessionContentCacheRef.current.invalidateAll()
+      setFileUploadState({
+        branchId,
+        phase: 'success',
+        message: '첨부 파일을 삭제했다.',
+      })
+    } catch (error) {
+      const message = getDisplayError(error)
+
+      setErrorMessage(message)
+      setFileUploadState({
+        branchId,
+        phase: 'error',
+        message,
+      })
+    } finally {
       setPendingAction('')
     }
   }
@@ -775,6 +1020,7 @@ function App() {
 
     try {
       await branchGraphApi.selectComparison(comparisonId, selected)
+      sessionContentCacheRef.current.invalidateAll()
       setSelectedChatModel(model)
       setComparisonResetKey((key) => key + 1)
       setModelComparisonFlow(null)
@@ -783,6 +1029,7 @@ function App() {
         activeNodeId: branchId,
         selectedRootNodeId: graphStateRef.current.selectedRootNodeId,
         loadMessages: true,
+        forceRefresh: true,
       })
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -812,6 +1059,7 @@ function App() {
         modelProvider: mergeModel.provider,
         modelName: mergeModel.name,
       })
+      sessionContentCacheRef.current.invalidateAll()
       setSelectedChatModel(mergeModel)
       setComparisonResetKey((key) => key + 1)
       setModelComparisonFlow(null)
@@ -820,6 +1068,7 @@ function App() {
         activeNodeId: branchId,
         selectedRootNodeId: graphStateRef.current.selectedRootNodeId,
         loadMessages: true,
+        forceRefresh: true,
       })
     } catch (error) {
       setErrorMessage(getDisplayError(error))
@@ -843,12 +1092,14 @@ function App() {
         parentBranchId: parentNode.id,
         forkFromMessageId: messageId,
       })
+      sessionContentCacheRef.current.invalidateAll()
       const branchId = readBranchId(branch)
 
       await loadGraphState({
         activeNodeId: branchId,
         selectedRootNodeId: parentNode.rootId,
         loadMessages: true,
+        forceRefresh: true,
       })
       setIsNewChatDraft(false)
       setIsLandingVisible(false)
@@ -875,10 +1126,12 @@ function App() {
 
     try {
       await branchGraphApi.updateSession(rootNode.apiSessionId, { title })
+      sessionContentCacheRef.current.invalidateAll()
       await loadGraphState({
         activeNodeId: currentState.activeNodeId,
         selectedRootNodeId: currentState.selectedRootNodeId,
         loadMessages: true,
+        forceRefresh: true,
       })
       setErrorMessage('')
       return true
@@ -913,10 +1166,12 @@ function App() {
       await Promise.all(
         branchIds.map((branchId) => branchGraphApi.updateBranch(branchId, { status: 'deleted' })),
       )
+      sessionContentCacheRef.current.invalidateAll()
       await loadGraphState({
         activeNodeId: node.parentId,
         selectedRootNodeId: node.rootId,
         loadMessages: true,
+        forceRefresh: true,
       })
       setIsNewChatDraft(false)
       setIsLandingVisible(false)
@@ -954,10 +1209,12 @@ function App() {
 
     try {
       await branchGraphApi.deleteSession(rootNode.apiSessionId)
+      sessionContentCacheRef.current.invalidateAll()
       await loadGraphState({
         activeNodeId: isDeletingCurrentTree ? undefined : currentState.activeNodeId,
         selectedRootNodeId: isDeletingCurrentTree ? undefined : currentState.selectedRootNodeId,
         loadMessages: !isDeletingCurrentTree,
+        forceRefresh: true,
       })
       if (isDeletingCurrentTree) {
         setIsNewChatDraft(true)
@@ -985,16 +1242,19 @@ function App() {
     try {
       if (node.trashType === 'session') {
         await branchGraphApi.restoreSession(node.apiSessionId)
-        await loadGraphState({ loadMessages: false })
+        sessionContentCacheRef.current.invalidateAll()
+        await loadGraphState({ loadMessages: false, forceRefresh: true })
         setIsLandingVisible(true)
         return
       }
 
       await Promise.all(branchIds.map((branchId) => branchGraphApi.restoreBranch(branchId)))
+      sessionContentCacheRef.current.invalidateAll()
       await loadGraphState({
         activeNodeId: nodeId,
         selectedRootNodeId: node.rootId,
         loadMessages: true,
+        forceRefresh: true,
       })
       setIsNewChatDraft(false)
       setIsLandingVisible(false)
@@ -1032,7 +1292,8 @@ function App() {
       } else {
         await branchGraphApi.deleteBranch(nodeId)
       }
-      await loadGraphState({ loadMessages: false })
+      sessionContentCacheRef.current.invalidateAll()
+      await loadGraphState({ loadMessages: false, forceRefresh: true })
     } catch (error) {
       setErrorMessage(getDisplayError(error))
     } finally {
@@ -1189,10 +1450,18 @@ function App() {
               <ChatLanding
                 activeNode={isNewChatDraft ? null : activeNode}
                 isBusy={isBusy}
+                attachedFiles={activeAttachedFiles}
+                uploadState={activeUploadState}
                 modelOptions={CHAT_MODEL_OPTIONS}
                 selectedModel={selectedChatModel}
                 onChangeModel={setSelectedChatModel}
                 onSendMessage={handleSendMessage}
+                onAttachFiles={(files) => handleAttachFiles(files)}
+                onDeleteAttachment={(fileId) => {
+                  if (activeAttachmentBranchId) {
+                    void handleDeleteAttachment(activeAttachmentBranchId, fileId)
+                  }
+                }}
                 onOpenModelComparison={handleOpenModelComparison}
               />
             ) : (
@@ -1204,12 +1473,20 @@ function App() {
                 isBusy={isBusy}
                 isAwaitingResponse={pendingAction === '메시지 전송 중'}
                 pendingUserMessage={pendingUserMessage}
+                attachedFiles={activeAttachedFiles}
+                uploadState={activeUploadState}
                 modelOptions={CHAT_MODEL_OPTIONS}
                 selectedModel={selectedChatModel}
                 onChangeModel={setSelectedChatModel}
                 onOpenModelComparison={handleOpenModelComparison}
                 isSplitViewOpen={isSplitViewOpen}
                 onSendMessage={handleSendMessage}
+                onAttachFiles={(files) => handleAttachFiles(files)}
+                onDeleteAttachment={(fileId) => {
+                  if (activeNode?.id) {
+                    void handleDeleteAttachment(activeNode.id, fileId)
+                  }
+                }}
                 onCreateBranch={handleCreateBranch}
                 onRenameSession={handleRenameSession}
               />
@@ -1241,11 +1518,23 @@ function App() {
                   isBusy={isBusy}
                   isAwaitingResponse={pendingAction === '스플릿 메시지 전송 중'}
                   pendingUserMessage={pendingSplitUserMessage}
+                  attachedFiles={splitAttachedFiles}
+                  uploadState={splitUploadState}
                   modelOptions={CHAT_MODEL_OPTIONS}
                   selectedModel={selectedSplitChatModel}
                   onChangeModel={setSelectedSplitChatModel}
                   onOpenModelComparison={handleOpenModelComparison}
                   onSendMessage={handleSendSplitMessage}
+                  onAttachFiles={(files) => handleAttachFiles(files, {
+                    branchId: splitNode.id,
+                    selectedRootNodeId: splitNode.rootId,
+                    model: selectedSplitChatModel,
+                  })}
+                  onDeleteAttachment={(fileId) => {
+                    if (splitNode?.id) {
+                      void handleDeleteAttachment(splitNode.id, fileId)
+                    }
+                  }}
                   onCreateBranch={handleCreateBranch}
                   onClose={() => setSplitNodeId(null)}
                 />
@@ -1361,13 +1650,22 @@ function readComparisonContent(response) {
   return response?.content ?? response?.reply ?? response?.response ?? '응답 내용을 확인할 수 없습니다.'
 }
 
-async function loadSessionGraphResponse(session) {
+async function loadSessionGraphResponse(session, sessionContentCache, { force = false } = {}) {
   const sessionId = readSessionId(session)
-  let graphPayload = await fetchSessionGraphPayload(sessionId)
+  let graphPayload = await sessionContentCache.getSessionGraphPayload(
+    sessionId,
+    () => fetchSessionGraphPayload(sessionId),
+    { force },
+  )
   const didRequestDescriptions = await describeMissingGraphNodes(graphPayload)
 
   if (didRequestDescriptions) {
-    graphPayload = await fetchSessionGraphPayload(sessionId)
+    sessionContentCache.invalidateSession(sessionId)
+    graphPayload = await sessionContentCache.getSessionGraphPayload(
+      sessionId,
+      () => fetchSessionGraphPayload(sessionId),
+      { force: true },
+    )
   }
 
   return { session, ...graphPayload }
@@ -1436,6 +1734,47 @@ function createNewRootNodeTitle(rootNodes) {
   const newChatRootCount = rootNodes.filter((node) => /^새 대화(?: \d+)?$/.test(node.title)).length
 
   return newChatRootCount === 0 ? '새 대화' : `새 대화 ${newChatRootCount + 1}`
+}
+
+function shouldShowUploadState(uploadState, branchId) {
+  if (!uploadState) {
+    return false
+  }
+
+  if (!branchId) {
+    return uploadState.phase === 'uploading' && !uploadState.branchId
+  }
+
+  return uploadState.branchId === branchId
+}
+
+function normalizeIncomingFiles(incomingFiles) {
+  return Array.from(incomingFiles ?? []).filter((file) => file && file.size >= 0)
+}
+
+function mergeAttachmentFiles(currentFiles, nextFiles) {
+  const mergedFiles = [...currentFiles]
+  const fileIds = new Set(currentFiles.map(readAttachmentFileId).filter(Boolean))
+
+  nextFiles.forEach((file) => {
+    const fileId = readAttachmentFileId(file)
+
+    if (fileId && fileIds.has(fileId)) {
+      return
+    }
+
+    if (fileId) {
+      fileIds.add(fileId)
+    }
+
+    mergedFiles.push(file)
+  })
+
+  return mergedFiles
+}
+
+function readAttachmentFileId(file) {
+  return file?.id ?? file?.file_id ?? file?.fileId ?? ''
 }
 
 export default App
