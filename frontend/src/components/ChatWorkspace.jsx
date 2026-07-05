@@ -32,11 +32,12 @@ export function ChatWorkspace({
   const [isRenamingSession, setIsRenamingSession] = useState(false)
   const [sessionNameDraft, setSessionNameDraft] = useState('')
   const [comparisonNodeId, setComparisonNodeId] = useState(null)
-  const [previousContextState, setPreviousContextState] = useState({ nodeId: null, isOpen: false })
+  const [previousContextState, setPreviousContextState] = useState({ nodeId: null, revealedCount: 0 })
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
   const messageListRef = useRef(null)
   const previousConversationStateRef = useRef(null)
+  const previousContextAnchorTopRef = useRef(null)
   const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
@@ -47,7 +48,10 @@ export function ChatWorkspace({
   const mergeSourceSummaries = getMergeSourceSummaries(graphState, activeNode?.id ?? '')
   const shouldHideMergeResultMessage = isActiveMergeNode && mergeSourceSummaries.length > 0
   const comparisonNode = branchPath.find((node) => node.id === comparisonNodeId)
-  const isPreviousContextOpen = previousContextState.nodeId === activeNode?.id && previousContextState.isOpen
+  const revealedPreviousContextCount = previousContextState.nodeId === activeNode?.id
+    ? previousContextState.revealedCount
+    : 0
+  const isPreviousContextOpen = revealedPreviousContextCount > 0
   const contextSectionsWithMessages = contextSections.map((section) => ({
     ...section,
     visibleMessages: section.session.messages.filter((message) =>
@@ -61,11 +65,15 @@ export function ChatWorkspace({
   const previousContextSections = activeSectionIndex > 0
     ? contextSectionsWithMessages.slice(0, activeSectionIndex)
     : []
+  const visiblePreviousContextSections = revealedPreviousContextCount > 0
+    ? previousContextSections.slice(Math.max(0, previousContextSections.length - revealedPreviousContextCount))
+    : []
+  const hasHiddenPreviousContext = previousContextSections.length > visiblePreviousContextSections.length
   const currentContextSections = activeSectionIndex >= 0
     ? contextSectionsWithMessages.slice(activeSectionIndex)
     : contextSectionsWithMessages
   const renderedContextSections = isPreviousContextOpen
-    ? [...previousContextSections, ...currentContextSections]
+    ? [...visiblePreviousContextSections, ...currentContextSections]
     : currentContextSections
   const hasActiveStartMessage = contextSectionsWithMessages.some(
     (section) => section.node.id === activeNode?.id && section.visibleMessages.length > 0,
@@ -120,6 +128,25 @@ export function ChatWorkspace({
     }
 
     previousConversationStateRef.current = currentState
+
+    if (previousContextAnchorTopRef.current !== null) {
+      const anchorTop = previousContextAnchorTopRef.current
+      previousContextAnchorTopRef.current = null
+
+      const animationFrameId = window.requestAnimationFrame(() => {
+        const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
+        const messageList = messageListRef.current
+
+        if (!scrollTarget || !messageList) {
+          return
+        }
+
+        const nextAnchorTop = scrollTarget.getBoundingClientRect().top
+        messageList.scrollTop += nextAnchorTop - anchorTop
+      })
+
+      return () => window.cancelAnimationFrame(animationFrameId)
+    }
 
     const shouldScrollToBottom =
       previousState?.nodeId === currentState.nodeId &&
@@ -258,20 +285,30 @@ export function ChatWorkspace({
         />
       ) : (
       <section ref={messageListRef} className="message-list" aria-label="메시지 목록">
-        {previousContextSections.length > 0 ? (
+        {hasHiddenPreviousContext ? (
           <button
             type="button"
             className={isPreviousContextOpen ? 'previous-context-toggle active' : 'previous-context-toggle'}
             aria-expanded={isPreviousContextOpen}
             aria-label={isPreviousContextOpen ? '이전 대화 숨기기' : '이전 대화 보기'}
             onClick={() => {
-              setPreviousContextState((currentState) => ({
-                nodeId: activeNode?.id ?? null,
-                isOpen: currentState.nodeId === activeNode?.id ? !currentState.isOpen : true,
-              }))
+              setPreviousContextState((currentState) => {
+                const currentRevealedCount = currentState.nodeId === activeNode?.id
+                  ? currentState.revealedCount
+                  : 0
+                const nextRevealedCount = Math.min(previousContextSections.length, currentRevealedCount + 1)
+
+                const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
+                previousContextAnchorTopRef.current = scrollTarget?.getBoundingClientRect().top ?? null
+
+                return {
+                  nodeId: activeNode?.id ?? null,
+                  revealedCount: nextRevealedCount,
+                }
+              })
             }}
           >
-            <span aria-hidden="true">...</span>
+            <span aria-hidden="true">↑</span>
           </button>
         ) : null}
         {renderedContextSections.map((section) => {
