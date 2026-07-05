@@ -62,23 +62,22 @@ export function ChatLanding({
           </button>
         </div>
 
-        <div className="prompt-chip-row" aria-label="답변 옵션">
+        <div className="prompt-chip-row composer-model-controls landing-model-controls" aria-label="답변 옵션">
           <ModelSelector
             modelOptions={modelOptions}
             selectedModel={selectedModel}
             onChangeModel={onChangeModel}
             disabled={isBusy}
             placement="bottom"
-            className="landing-model-selector"
+            className="landing-model-selector composer-model-selector"
           />
           <button
             type="button"
-            className="option-chip model-compare-launch"
+            className="composer-compare-button model-compare-launch"
             disabled={isBusy}
             onClick={() => onOpenModelComparison?.(draft.trim())}
           >
-            <span>모델 비교</span>
-            <small>답변 나란히 보기</small>
+            모델 비교
           </button>
         </div>
       </form>

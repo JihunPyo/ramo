@@ -105,22 +105,24 @@ export function SplitConversationPanel({
           rows={1}
           placeholder="이 노드에서 이어서 질문하세요."
         />
-        <ModelSelector
-          modelOptions={modelOptions}
-          selectedModel={selectedModel}
-          onChangeModel={onChangeModel}
-          disabled={isBusy}
-          placement="top"
-          className="composer-model-selector"
-        />
-        <button
-          type="button"
-          className="composer-compare-button"
-          disabled={isBusy}
-          onClick={() => onOpenModelComparison?.(draft.trim())}
-        >
-          모델 비교
-        </button>
+        <div className="composer-model-controls">
+          <ModelSelector
+            modelOptions={modelOptions}
+            selectedModel={selectedModel}
+            onChangeModel={onChangeModel}
+            disabled={isBusy}
+            placement="top"
+            className="composer-model-selector"
+          />
+          <button
+            type="button"
+            className="composer-compare-button"
+            disabled={isBusy}
+            onClick={() => onOpenModelComparison?.(draft.trim())}
+          >
+            모델 비교
+          </button>
+        </div>
         <button type="submit" className="send-button" aria-label="선택 노드 메시지 전송" disabled={isBusy || !draft.trim()}>
           <span aria-hidden="true">↑</span>
         </button>

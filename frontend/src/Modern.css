@@ -188,6 +188,8 @@
 .landing-input-row textarea { min-height: 26px; max-height: 180px; padding: 6px 8px; line-height: 1.55; overflow-y: hidden; }
 .landing-input-row textarea:focus-visible { outline: 0; box-shadow: none; }
 .landing-input-row button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; margin-top: 10px; transform: translateY(-3px); }
+.landing-model-controls { padding: 0 4px; }
+.landing-model-controls .composer-model-select { min-width: 0; }
 .prompt-chip-row { gap: 5px; padding: 0 4px; }
 .prompt-chip-row .option-chip { gap: 4px; min-height: 28px; border-color: transparent; border-radius: 999px; background: var(--color-surface-soft); color: #4c534c; font-size: 11px; padding: 4px 8px; }
 .prompt-chip-row .option-chip small { display: none; }
@@ -436,11 +438,17 @@
 .message-row:hover .message-actions button, .message-row:focus-within .message-actions button { opacity: 1; }
 .message-actions button:hover { background: var(--color-surface-soft); color: var(--color-accent); }
 
-.composer { position: relative; bottom: auto; z-index: 6; display: grid; grid-template-columns: auto auto minmax(0, 1fr) 42px; grid-template-areas: "input input input send" "model compare spacer send"; align-items: center; gap: 6px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 16px; }
+.composer { position: relative; bottom: auto; z-index: 6; display: grid; grid-template-columns: auto minmax(0, 1fr) 42px; grid-template-areas: "input input send" "controls spacer send"; align-items: center; gap: 6px 8px; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 6%); margin-top: 12px; padding: 10px 10px 10px 16px; }
 .composer textarea { grid-area: input; resize: none; border: 0; outline: 0; background: transparent; box-sizing: border-box; min-height: 42px; max-height: 180px; padding: 8px 4px; line-height: 1.55; overflow-y: hidden; }
-.composer-model-selector { grid-area: model; justify-self: start; }
-.composer-compare-button { grid-area: compare; border: 0; border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); cursor: pointer; font-size: 12px; font-weight: 850; padding: 7px 12px; }
-.composer-compare-button:hover { background: #dcebe3; }
+.composer-model-controls { grid-area: controls; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.composer-model-selector { flex: 0 1 auto; min-width: 0; }
+.composer-model-controls .model-selector-trigger { background: #f1f2ef; color: #71776f; }
+.composer-model-controls > .composer-compare-button { flex: 0 0 auto; border: 0; border-radius: 999px; background: #f1f2ef; color: #71776f; cursor: pointer; font-size: 12px; font-weight: 850; padding: 7px 12px; }
+.composer-model-controls .model-selector-trigger:hover,
+.composer-model-controls .model-selector-trigger:focus-visible,
+.composer-model-controls .model-selector.open .model-selector-trigger,
+.composer-model-controls > .composer-compare-button:hover,
+.composer-model-controls > .composer-compare-button:focus-visible { background: #e8ebe6; color: var(--color-text); }
 .send-button { grid-area: send; align-self: center; display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 20px; padding: 0; }
 
 .workspace-content.chat-visible { min-height: 0; overflow: hidden; }
@@ -473,11 +481,13 @@
 .workspace-content.split-view-open .chat-workspace { width: 100%; padding: 0 10px 10px; overflow: hidden; }
 .workspace-content.split-view-open .chat-header { border-radius: 18px 18px 0 0; }
 .workspace-content.split-view-open .composer,
-.split-conversation-panel .composer { grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "input send" "model send" "compare compare"; align-items: center; }
+.split-conversation-panel .composer { grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "input send" "controls send"; align-items: center; }
+.workspace-content.split-view-open .composer-model-controls,
+.split-conversation-panel .composer-model-controls { width: 100%; overflow: hidden; }
 .workspace-content.split-view-open .composer-model-selector,
-.split-conversation-panel .composer-model-selector { min-width: 0; max-width: 100%; }
+.split-conversation-panel .composer-model-selector { min-width: 0; max-width: calc(100% - 84px); }
 .workspace-content.split-view-open .composer-compare-button,
-.split-conversation-panel .composer-compare-button { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split-conversation-panel .composer-compare-button { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-content.split-view-open .send-button,
 .split-conversation-panel .send-button { align-self: center; }
 
@@ -609,7 +619,7 @@
   .message-actions button { opacity: 1; }
   .message-row.user .message-bubble { max-width: 92%; }
   .merge-summary-grid { grid-template-columns: 1fr; }
-  .composer { bottom: auto; grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "input send" "model send" "compare compare"; }
+  .composer { bottom: auto; grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "input send" "controls send"; }
   .model-selector-popover { width: calc(100vw - 32px); max-height: 66vh; }
   .model-selector-grid { grid-template-columns: 1fr; }
   .node-comparison-grid { grid-template-columns: 1fr; overflow-y: auto; }
