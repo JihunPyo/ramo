@@ -1,4 +1,6 @@
 const MAIN_TARGET_FALLBACK = ''
+const GRAPH_NODE_TITLE_MAX_LENGTH = 10
+const GRAPH_NODE_TITLE_ELLIPSIS = '⋯'
 
 export function createEmptyGraphState() {
   return {
@@ -445,7 +447,7 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
             ...node,
             x: paddingX + depth * horizontalDepthGap,
             y: crossPosition,
-            shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
+            shortTitle: truncateGraphNodeTitle(node.title),
           })
           return
         }
@@ -454,7 +456,7 @@ export function buildGraphLayout(nodes, rootId, size = 'mini', direction = 'vert
           ...node,
           x: crossPosition,
           y: paddingY + depth * verticalGap,
-          shortTitle: node.title.length > 7 ? `${node.title.slice(0, 7)}.` : node.title,
+          shortTitle: truncateGraphNodeTitle(node.title),
         })
       })
     })
@@ -818,6 +820,16 @@ function addEvent(events, name, targetId) {
       createdAt: formatTime(),
     },
   ]
+}
+
+function truncateGraphNodeTitle(title) {
+  const titleCharacters = Array.from(String(title ?? ''))
+
+  if (titleCharacters.length <= GRAPH_NODE_TITLE_MAX_LENGTH) {
+    return titleCharacters.join('')
+  }
+
+  return `${titleCharacters.slice(0, GRAPH_NODE_TITLE_MAX_LENGTH).join('')}${GRAPH_NODE_TITLE_ELLIPSIS}`
 }
 
 function formatTime() {
