@@ -43,11 +43,13 @@ export function ChatWorkspace({
   const [sessionNameDraft, setSessionNameDraft] = useState('')
   const [comparisonNodeId, setComparisonNodeId] = useState(null)
   const [previousContextState, setPreviousContextState] = useState({ nodeId: null, revealedCount: 0 })
+  const [isMessageListAtTop, setIsMessageListAtTop] = useState(true)
   const activeSectionRef = useRef(null)
   const activeStartMessageRef = useRef(null)
   const messageListRef = useRef(null)
   const previousConversationStateRef = useRef(null)
   const previousContextAnchorTopRef = useRef(null)
+  const skipNextAutoScrollRef = useRef(false)
   const textareaRef = useAutoResizeTextarea(draft, { maxHeight: 180 })
 
   const branchPath = getBranchPath(graphState.nodes, activeNode?.id ?? '')
@@ -79,6 +81,8 @@ export function ChatWorkspace({
     ? previousContextSections.slice(Math.max(0, previousContextSections.length - revealedPreviousContextCount))
     : []
   const hasHiddenPreviousContext = previousContextSections.length > visiblePreviousContextSections.length
+  const shouldShowPreviousContextControls =
+    isMessageListAtTop && (hasHiddenPreviousContext || isPreviousContextOpen)
   const currentContextSections = activeSectionIndex >= 0
     ? contextSectionsWithMessages.slice(activeSectionIndex)
     : contextSectionsWithMessages
@@ -130,6 +134,14 @@ export function ChatWorkspace({
   }, [activeNode?.id, isSplitViewOpen])
 
   useEffect(() => {
+    const animationFrameId = window.requestAnimationFrame(() => {
+      setIsMessageListAtTop((messageListRef.current?.scrollTop ?? 0) <= 4)
+    })
+
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [activeNode?.id, revealedPreviousContextCount])
+
+  useEffect(() => {
     const previousState = previousConversationStateRef.current
     const currentState = {
       nodeId: activeNode?.id,
@@ -138,6 +150,11 @@ export function ChatWorkspace({
     }
 
     previousConversationStateRef.current = currentState
+
+    if (skipNextAutoScrollRef.current) {
+      skipNextAutoScrollRef.current = false
+      return undefined
+    }
 
     if (previousContextAnchorTopRef.current !== null) {
       const anchorTop = previousContextAnchorTopRef.current
@@ -207,6 +224,42 @@ export function ChatWorkspace({
 
     event.preventDefault()
     onAttachFiles?.(files)
+  }
+
+  const handleMessageListScroll = (event) => {
+    setIsMessageListAtTop(event.currentTarget.scrollTop <= 4)
+  }
+
+  const revealPreviousContextNode = () => {
+    skipNextAutoScrollRef.current = true
+
+    setPreviousContextState((currentState) => {
+      const currentRevealedCount = currentState.nodeId === activeNode?.id
+        ? currentState.revealedCount
+        : 0
+      const nextRevealedCount = Math.min(previousContextSections.length, currentRevealedCount + 1)
+
+      return {
+        nodeId: activeNode?.id ?? null,
+        revealedCount: nextRevealedCount,
+      }
+    })
+  }
+
+  const hidePreviousContextNode = () => {
+    skipNextAutoScrollRef.current = true
+
+    setPreviousContextState((currentState) => {
+      const currentRevealedCount = currentState.nodeId === activeNode?.id
+        ? currentState.revealedCount
+        : 0
+      const nextRevealedCount = Math.max(0, currentRevealedCount - 1)
+
+      return {
+        nodeId: nextRevealedCount > 0 ? activeNode?.id ?? null : null,
+        revealedCount: nextRevealedCount,
+      }
+    })
   }
 
   const startRenamingSession = () => {
@@ -305,32 +358,35 @@ export function ChatWorkspace({
           onClose={() => setComparisonNodeId(null)}
         />
       ) : (
-      <section ref={messageListRef} className="message-list" aria-label="메시지 목록">
-        {hasHiddenPreviousContext ? (
-          <button
-            type="button"
-            className={isPreviousContextOpen ? 'previous-context-toggle active' : 'previous-context-toggle'}
-            aria-expanded={isPreviousContextOpen}
-            aria-label={isPreviousContextOpen ? '이전 대화 숨기기' : '이전 대화 보기'}
-            onClick={() => {
-              setPreviousContextState((currentState) => {
-                const currentRevealedCount = currentState.nodeId === activeNode?.id
-                  ? currentState.revealedCount
-                  : 0
-                const nextRevealedCount = Math.min(previousContextSections.length, currentRevealedCount + 1)
-
-                const scrollTarget = activeStartMessageRef.current ?? activeSectionRef.current
-                previousContextAnchorTopRef.current = scrollTarget?.getBoundingClientRect().top ?? null
-
-                return {
-                  nodeId: activeNode?.id ?? null,
-                  revealedCount: nextRevealedCount,
-                }
-              })
-            }}
-          >
-            <span aria-hidden="true">↑</span>
-          </button>
+      <section
+        ref={messageListRef}
+        className="message-list"
+        aria-label="메시지 목록"
+        onScroll={handleMessageListScroll}
+      >
+        {shouldShowPreviousContextControls ? (
+          <div className="previous-context-controls" aria-label="상위 노드 대화 보기 제어">
+            {isPreviousContextOpen ? (
+              <button
+                type="button"
+                className="previous-context-toggle active"
+                aria-label="상위 노드 대화 닫기"
+                onClick={hidePreviousContextNode}
+              >
+                <span aria-hidden="true">↓</span>
+              </button>
+            ) : null}
+            {hasHiddenPreviousContext ? (
+              <button
+                type="button"
+                className="previous-context-toggle"
+                aria-label="상위 노드 대화 한 단계 보기"
+                onClick={revealPreviousContextNode}
+              >
+                <span aria-hidden="true">↑</span>
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {renderedContextSections.map((section) => {
           return (
