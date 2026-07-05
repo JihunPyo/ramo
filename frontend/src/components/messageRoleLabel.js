@@ -1,5 +1,4 @@
-const ASSISTANT_BRAND_NAME = 'Ramo'
-const DEFAULT_PERSONA_NAME = 'Ramo'
+const DEFAULT_PERSONA_NAME = '페르소나'
 const UNKNOWN_MODEL_LABEL = '모델 미상'
 
 export function getMessageRoleLabel(message, modelOptions = []) {
@@ -32,11 +31,10 @@ function formatAssistantRoleLabel({
   modelLabel,
   modelOptions,
 }) {
-  return [
-    ASSISTANT_BRAND_NAME,
-    normalizeLabel(personaName) || DEFAULT_PERSONA_NAME,
+  return dedupeLabelParts([
     resolveModelDisplayName({ modelProvider, modelName, modelLabel, modelOptions }),
-  ].join(' · ')
+    normalizeLabel(personaName) || DEFAULT_PERSONA_NAME,
+  ]).join(' · ')
 }
 
 function resolveModelDisplayName({ modelProvider, modelName, modelLabel, modelOptions = [] }) {
@@ -60,4 +58,20 @@ function resolveModelDisplayName({ modelProvider, modelName, modelLabel, modelOp
 
 function normalizeLabel(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function dedupeLabelParts(parts) {
+  const seen = new Set()
+
+  return parts.filter((part) => {
+    const normalizedPart = normalizeLabel(part)
+    const normalizedKey = normalizedPart.toLocaleLowerCase()
+
+    if (!normalizedPart || seen.has(normalizedKey)) {
+      return false
+    }
+
+    seen.add(normalizedKey)
+    return true
+  })
 }
