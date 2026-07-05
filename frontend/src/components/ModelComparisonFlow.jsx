@@ -82,7 +82,7 @@ export function ModelComparisonFlow({
                   }}
                 >
                   <span className="model-picker-order">{isSelected ? selectionIndex + 1 : ''}</span>
-                  <span className="model-picker-provider">{getProviderLabel(model.provider)}</span>
+                  <span className="model-picker-provider">{model.groupLabel ?? getProviderLabel(model.provider)}</span>
                   <strong>{model.label}</strong>
                 </button>
               )

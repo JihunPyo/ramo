@@ -35,6 +35,26 @@ import {
   shouldUseInheritedMessagesForNode,
 } from './features/branchGraph/branchGraphModel.js'
 
+const CHATKHU_MODEL_GROUPS = {
+  anthropic: { groupLabel: 'CLAUDE', mark: '✺' },
+  google: { groupLabel: 'GEMINI', mark: '◆' },
+  xai: { groupLabel: 'X-AI', mark: '𝕏' },
+  meta: { groupLabel: 'META', mark: '∞' },
+  perplexity: { groupLabel: 'PERPLEXITY', mark: '⌬' },
+  deepseek: { groupLabel: 'DEEPSEEK', mark: 'D' },
+}
+
+function createChatKhuModel(group, name, label, extra = {}) {
+  return {
+    provider: 'chatkhu',
+    name,
+    label,
+    group,
+    ...CHATKHU_MODEL_GROUPS[group],
+    ...extra,
+  }
+}
+
 const CHAT_MODEL_OPTIONS = [
   { provider: 'openai', name: 'gpt-4o-mini', label: 'GPT-4o mini' },
   { provider: 'openai', name: 'gpt-4o', label: 'GPT-4o' },
@@ -54,29 +74,29 @@ const CHAT_MODEL_OPTIONS = [
   { provider: 'openai', name: 'gpt-5-nano', label: 'GPT-5 nano', badge: '무제한' },
   { provider: 'chatkhu', name: 'gpt-4o-mini', label: 'GPT-4o mini (ChatKHU)' },
   { provider: 'chatkhu', name: 'gpt-4o', label: 'GPT-4o (ChatKHU)' },
-  { provider: 'anthropic', name: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
-  { provider: 'anthropic', name: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
-  { provider: 'anthropic', name: 'claude-fable-5', label: 'Claude Fable 5' },
-  { provider: 'anthropic', name: 'claude-4-6-sonnet', label: 'Claude 4.6 Sonnet' },
-  { provider: 'anthropic', name: 'claude-4-5-sonnet', label: 'Claude 4.5 Sonnet' },
-  { provider: 'anthropic', name: 'claude-4-8-opus', label: 'Claude 4.8 Opus' },
-  { provider: 'anthropic', name: 'claude-4-7-opus', label: 'Claude 4.7 Opus' },
-  { provider: 'anthropic', name: 'claude-4-6-opus', label: 'Claude 4.6 Opus' },
-  { provider: 'anthropic', name: 'claude-4-5-opus', label: 'Claude 4.5 Opus' },
-  { provider: 'anthropic', name: 'claude-4-5-haiku', label: 'Claude 4.5 Haiku' },
-  { provider: 'google', name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { provider: 'google', name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-  { provider: 'google', name: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
-  { provider: 'google', name: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
-  { provider: 'google', name: 'gemini-3-flash', label: 'Gemini 3 Flash' },
-  { provider: 'google', name: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { provider: 'google', name: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-  { provider: 'xai', name: 'grok-4.1-fast', label: 'Grok 4.1 Fast' },
-  { provider: 'xai', name: 'grok-3-mini', label: 'Grok 3 Mini' },
-  { provider: 'xai', name: 'grok-4', label: 'Grok 4' },
-  { provider: 'meta', name: 'llama-4-maverick', label: 'Llama 4 Maverick' },
-  { provider: 'perplexity', name: 'sonar-pro', label: 'Sonar Pro' },
-  { provider: 'deepseek', name: 'deepseek-chat', label: 'DeepSeek Chat' },
+  createChatKhuModel('anthropic', 'claude-3-5-sonnet', 'Claude 3.5 Sonnet'),
+  createChatKhuModel('anthropic', 'claude-sonnet-5', 'Claude Sonnet 5'),
+  createChatKhuModel('anthropic', 'claude-fable-5', 'Claude Fable 5'),
+  createChatKhuModel('anthropic', 'claude-4-6-sonnet', 'Claude 4.6 Sonnet'),
+  createChatKhuModel('anthropic', 'claude-4-5-sonnet', 'Claude 4.5 Sonnet'),
+  createChatKhuModel('anthropic', 'claude-4-8-opus', 'Claude 4.8 Opus'),
+  createChatKhuModel('anthropic', 'claude-4-7-opus', 'Claude 4.7 Opus'),
+  createChatKhuModel('anthropic', 'claude-4-6-opus', 'Claude 4.6 Opus'),
+  createChatKhuModel('anthropic', 'claude-4-5-opus', 'Claude 4.5 Opus'),
+  createChatKhuModel('anthropic', 'claude-4-5-haiku', 'Claude 4.5 Haiku'),
+  createChatKhuModel('google', 'gemini-2.0-flash', 'Gemini 2.0 Flash'),
+  createChatKhuModel('google', 'gemini-3.5-flash', 'Gemini 3.5 Flash'),
+  createChatKhuModel('google', 'gemini-3.1-pro', 'Gemini 3.1 Pro'),
+  createChatKhuModel('google', 'gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite'),
+  createChatKhuModel('google', 'gemini-3-flash', 'Gemini 3 Flash'),
+  createChatKhuModel('google', 'gemini-2.5-flash', 'Gemini 2.5 Flash'),
+  createChatKhuModel('google', 'gemini-2.5-pro', 'Gemini 2.5 Pro'),
+  createChatKhuModel('xai', 'grok-4.1-fast', 'Grok 4.1 Fast'),
+  createChatKhuModel('xai', 'grok-3-mini', 'Grok 3 Mini'),
+  createChatKhuModel('xai', 'grok-4', 'Grok 4'),
+  createChatKhuModel('meta', 'llama-4-maverick', 'Llama 4 Maverick'),
+  createChatKhuModel('perplexity', 'sonar-pro', 'Sonar Pro'),
+  createChatKhuModel('deepseek', 'deepseek-chat', 'DeepSeek Chat'),
 ]
 const OPENAI_COMPARISON_MODEL_OPTIONS = [
   { provider: 'openai', name: 'gpt-5.5', label: 'GPT-5.5' },
@@ -732,7 +752,7 @@ function App() {
       return
     }
 
-    const mergeModel = ['openai', 'anthropic', 'chatkhu'].includes(selectedChatModel.provider)
+    const mergeModel = ['openai', 'chatkhu'].includes(selectedChatModel.provider)
       ? selectedChatModel
       : COMPARISON_MODEL_OPTIONS[0]
 
