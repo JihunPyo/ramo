@@ -16,13 +16,8 @@ export function ModelComparisonFlow({
   onClose,
 }) {
   const sortedModelOptions = useMemo(() => sortModelsByProvider(modelOptions), [modelOptions])
-  const defaultModelKeys = useMemo(() => {
-    const openAiModel = sortedModelOptions.find((model) => model.provider === 'openai')
-    const anthropicModel = sortedModelOptions.find((model) => model.provider === 'anthropic')
-    return [openAiModel, anthropicModel].filter(Boolean).map(getModelKey).slice(0, 2)
-  }, [sortedModelOptions])
   const [promptDraft, setPromptDraft] = useState(prompt)
-  const [selectedModelKeys, setSelectedModelKeys] = useState(defaultModelKeys)
+  const [selectedModelKeys, setSelectedModelKeys] = useState([])
   const [sidePanel, setSidePanel] = useState(null)
   const [mergeInstruction, setMergeInstruction] = useState('')
   const selectedModels = selectedModelKeys
@@ -101,6 +96,16 @@ export function ModelComparisonFlow({
             </button>
           </footer>
         </section>
+        {isBusy ? (
+          <div
+            className="model-comparison-loading-overlay"
+            role="status"
+            aria-label="답변 생성 중"
+            aria-live="polite"
+          >
+            <span className="model-comparison-loading-spinner" aria-hidden="true" />
+          </div>
+        ) : null}
       </div>
     )
   }
