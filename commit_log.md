@@ -1,5 +1,24 @@
 # Commit Log
 
+## 2026-07-05 브랜치 그래프 전체 노드 설명 생성 API 연결
+
+### 변경 사항
+
+- 그래프 노드 설명은 `GET /sessions/{session_id}/graph`의 `nodes[].description`을 우선 사용하도록 정리했다.
+- 그래프 로딩 시 설명이 없는 모든 노드 중 직접 메시지가 있는 노드에 대해 `POST /branches/{branch_id}/describe`를 호출하도록 했다.
+- 설명 생성 호출 후 그래프와 브랜치 목록을 다시 조회해 hover tooltip에 API 생성 설명이 반영되도록 했다.
+- Mock API에도 `describeBranch`를 추가해 실제 API와 같은 흐름으로 개발 모드 검증이 가능하도록 했다.
+
+### 검증 결과
+
+- `frontend/`에서 `npm run lint`를 실행하여 ESLint 검사가 통과했다.
+- `frontend/`에서 `npm run build`를 실행하여 Vite 프로덕션 빌드가 통과했다.
+- 프론트 저장소에서 `git diff --check` 실행 결과, 공백 오류가 없었다.
+
+### Git 상태
+
+- 사용자가 커밋 및 push를 요청해 이 변경 사항을 커밋 대상으로 포함했다.
+
 ## 2026-07-05 답변 라벨 페르소나·모델 표시
 
 ### 변경 사항

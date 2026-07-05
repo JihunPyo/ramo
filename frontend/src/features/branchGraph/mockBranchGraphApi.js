@@ -29,6 +29,7 @@ export function createMockBranchGraphApi() {
         parent_branch_id: null,
         fork_from_message_id: null,
         name: title,
+        description: null,
         tags: ['새 대화', '메인'],
         status: 'active',
         is_collapsed: false,
@@ -156,6 +157,7 @@ export function createMockBranchGraphApi() {
         nodes: branches.map((branch) => ({
           id: branch.id,
           label: branch.name,
+          description: branch.description,
           summary: branch.summary,
           tags: branch.tags,
           status: branch.status,
@@ -320,6 +322,7 @@ export function createMockBranchGraphApi() {
         parent_branch_id: parentBranchId,
         fork_from_message_id: forkFromMessageId,
         name: name ?? `분기: ${forkMessage.content.slice(0, 16)}`,
+        description: null,
         tags: ['새 분기', '대화'],
         status: 'active',
         is_collapsed: false,
@@ -361,6 +364,7 @@ export function createMockBranchGraphApi() {
         merge_parent_ids: uniqueBranchIds,
         fork_from_message_id: null,
         name: name?.trim() || `병합: ${sourceBranches.map((branch) => branch.name).join(' + ')}`,
+        description: null,
         tags: ['병합', '대화 흐름'],
         status: 'active',
         is_collapsed: false,
@@ -393,6 +397,31 @@ export function createMockBranchGraphApi() {
       ])
 
       return branch
+    },
+    async describeBranch(branchId) {
+      await delay()
+      const branch = store.branches.get(branchId)
+
+      if (!branch) {
+        throw new Error('branch_id가 존재하지 않는다.')
+      }
+
+      const messages = (store.messagesByBranchId.get(branchId) ?? [])
+        .filter((message) => message.status !== 'hidden' && message.role !== 'system')
+
+      if (messages.length === 0) {
+        return { branch_id: branchId, description: null }
+      }
+
+      const latestMessage = messages[messages.length - 1]
+      const description = stripMarkdown(latestMessage.content).slice(0, 120)
+      store.branches.set(branchId, {
+        ...branch,
+        description,
+        updated_at: new Date().toISOString(),
+      })
+
+      return { branch_id: branchId, description }
     },
     async getMergeCandidates(branchId) {
       await delay()
@@ -633,6 +662,7 @@ function createMockStore() {
         fork_from_message_id: node.parentMessageId,
         name: node.title,
         summary: node.description,
+        description: node.description,
         tags: createMockTags(node),
         status: node.isActive ? 'active' : 'inactive',
         deleted_at: null,

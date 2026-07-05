@@ -118,6 +118,11 @@ export function createHttpBranchGraphApi(client = httpClient) {
         method: 'POST',
       })
     },
+    describeBranch(branchId) {
+      return client.request(`/branches/${branchId}/describe`, {
+        method: 'POST',
+      })
+    },
     compareModels({ branchId, message, modelA, modelB }) {
       return client.request('/compare', {
         method: 'POST',

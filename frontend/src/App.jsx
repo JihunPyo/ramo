@@ -1315,13 +1315,59 @@ function readComparisonContent(response) {
 
 async function loadSessionGraphResponse(session) {
   const sessionId = readSessionId(session)
+  let graphPayload = await fetchSessionGraphPayload(sessionId)
+  const didRequestDescriptions = await describeMissingGraphNodes(graphPayload)
+
+  if (didRequestDescriptions) {
+    graphPayload = await fetchSessionGraphPayload(sessionId)
+  }
+
+  return { session, ...graphPayload }
+}
+
+async function fetchSessionGraphPayload(sessionId) {
   const [graph, branches, branchTrash] = await Promise.all([
     branchGraphApi.getSessionGraph(sessionId, true),
     branchGraphApi.listBranches(sessionId),
     branchGraphApi.listBranchTrash(sessionId),
   ])
 
-  return { session, graph, branches, branchTrash }
+  return { graph, branches, branchTrash }
+}
+
+async function describeMissingGraphNodes({ graph, branches }) {
+  const branchById = new Map((branches ?? []).map((branch) => [readBranchId(branch), branch]))
+  const branchIds = (graph?.nodes ?? [])
+    .filter((node) => shouldDescribeGraphNode(node, branchById.get(readBranchId(node))))
+    .map((node) => readBranchId(node))
+    .filter(Boolean)
+  const uniqueBranchIds = [...new Set(branchIds)]
+
+  if (uniqueBranchIds.length === 0 || typeof branchGraphApi.describeBranch !== 'function') {
+    return false
+  }
+
+  const results = await Promise.allSettled(
+    uniqueBranchIds.map((branchId) => branchGraphApi.describeBranch(branchId)),
+  )
+
+  return results.some((result) => result.status === 'fulfilled')
+}
+
+function shouldDescribeGraphNode(node, branch) {
+  const status = node?.status ?? branch?.status
+  const messageCount = Number(node?.message_count ?? node?.messageCount ?? 0)
+
+  return (
+    status !== 'deleted' &&
+    messageCount > 0 &&
+    !hasText(node?.description) &&
+    !hasText(branch?.description)
+  )
+}
+
+function hasText(value) {
+  return typeof value === 'string' && value.trim().length > 0
 }
 
 function resolveSessionToLoad({ apiSessions, currentState, activeNodeId, selectedRootNodeId }) {

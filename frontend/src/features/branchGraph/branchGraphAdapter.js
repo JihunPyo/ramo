@@ -275,10 +275,10 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
 
 function resolveNodeDescription({ node, branch, previousNode, sessionTitle, title }) {
   const rawDescription =
-    node.summary ??
-    branch?.summary ??
     node.description ??
     branch?.description ??
+    node.summary ??
+    branch?.summary ??
     previousNode?.description
 
   if (typeof rawDescription === 'string' && rawDescription.trim()) {
