@@ -174,11 +174,30 @@ export function StartNodeSidebar({
     const closeToggleTooltip = () => {
       setToggleTooltip(null)
     }
+    const closeToggleTooltipWhenOutside = (event) => {
+      const buttonRect = toggleButtonRef.current?.getBoundingClientRect()
+
+      if (!buttonRect) {
+        closeToggleTooltip()
+        return
+      }
+
+      const isInsideButton =
+        event.clientX >= buttonRect.left &&
+        event.clientX <= buttonRect.right &&
+        event.clientY >= buttonRect.top &&
+        event.clientY <= buttonRect.bottom
+
+      if (!isInsideButton) {
+        closeToggleTooltip()
+      }
+    }
     const timerId = window.setTimeout(updateToggleTooltip, 0)
 
     window.addEventListener('resize', updateToggleTooltip)
     window.addEventListener('scroll', closeToggleTooltip, true)
     window.addEventListener('blur', closeToggleTooltip)
+    document.addEventListener('pointermove', closeToggleTooltipWhenOutside)
     document.addEventListener('pointerdown', closeToggleTooltip)
 
     return () => {
@@ -186,6 +205,7 @@ export function StartNodeSidebar({
       window.removeEventListener('resize', updateToggleTooltip)
       window.removeEventListener('scroll', closeToggleTooltip, true)
       window.removeEventListener('blur', closeToggleTooltip)
+      document.removeEventListener('pointermove', closeToggleTooltipWhenOutside)
       document.removeEventListener('pointerdown', closeToggleTooltip)
     }
   }, [getToggleTooltipPosition, toggleTooltip])
@@ -385,9 +405,6 @@ export function StartNodeSidebar({
           >
             <span className="sidebar-trash-icon" aria-hidden="true" />
             <span className="sidebar-trash-label">휴지통</span>
-            {trashNodes.length > 0 ? (
-              <strong className="sidebar-trash-count">{trashNodes.length}</strong>
-            ) : null}
           </button>
           {isTrashOpen ? (
             <section className="trash-popover" aria-label="휴지통">
