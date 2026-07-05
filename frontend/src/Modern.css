@@ -501,7 +501,7 @@
 .workspace-content.split-view-open .split-chat-pane,
 .workspace-content.split-view-open .graph-split-pane { border-radius: 18px; overflow: hidden; }
 .workspace-content.split-view-open .workspace-primary { background: var(--color-surface); }
-.workspace-content.split-view-open .chat-workspace { width: 100%; padding: 0 10px 10px; overflow: hidden; }
+.workspace-content.split-view-open .chat-workspace { width: 100%; max-width: none; padding: 0 10px 10px; overflow: hidden; }
 .workspace-content.split-view-open .chat-workspace.split-conversation-panel { padding: 0; }
 .workspace-content.split-view-open .chat-header { border-radius: 18px 18px 0 0; }
 .workspace-content.split-view-open .composer,
