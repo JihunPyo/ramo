@@ -10,6 +10,7 @@ import {
 } from '../features/branchGraph/branchGraphModel.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
+import { getMessageRoleLabel, getPendingAssistantRoleLabel } from './messageRoleLabel.js'
 
 export function ChatWorkspace({
   activeNode,
@@ -251,6 +252,8 @@ export function ChatWorkspace({
           comparisonNode={comparisonNode}
           comparisonSession={getSessionByNodeId(graphState, comparisonNode.id)}
           isAwaitingResponse={isAwaitingResponse}
+          modelOptions={modelOptions}
+          selectedModel={selectedModel}
           onClose={() => setComparisonNodeId(null)}
         />
       ) : (
@@ -292,7 +295,7 @@ export function ChatWorkspace({
                     className={`message-row ${message.role}`}
                   >
                     <div className="message-bubble">
-                      <span className="message-role">{getMessageRoleLabel(message)}</span>
+                      <span className="message-role">{getMessageRoleLabel(message, modelOptions)}</span>
                       <RichMessageContent content={message.content} />
                       {message.role === 'assistant' ? (
                         <div className="message-actions">
@@ -320,7 +323,9 @@ export function ChatWorkspace({
             </div>
           </article>
         ) : null}
-        {isAwaitingResponse ? <PendingAssistantMessage /> : null}
+        {isAwaitingResponse ? (
+          <PendingAssistantMessage modelOptions={modelOptions} selectedModel={selectedModel} />
+        ) : null}
       </section>
       )}
 
@@ -390,6 +395,8 @@ function NodeComparison({
   comparisonNode,
   comparisonSession,
   isAwaitingResponse,
+  modelOptions,
+  selectedModel,
   onClose,
 }) {
   return (
@@ -402,14 +409,28 @@ function NodeComparison({
         <button type="button" onClick={onClose}>비교 닫기</button>
       </header>
       <div className="node-comparison-grid">
-        <ComparisonColumn node={comparisonNode} session={comparisonSession} />
-        <ComparisonColumn node={activeNode} session={activeSession} isCurrent isAwaitingResponse={isAwaitingResponse} />
+        <ComparisonColumn node={comparisonNode} session={comparisonSession} modelOptions={modelOptions} />
+        <ComparisonColumn
+          node={activeNode}
+          session={activeSession}
+          isCurrent
+          isAwaitingResponse={isAwaitingResponse}
+          modelOptions={modelOptions}
+          selectedModel={selectedModel}
+        />
       </div>
     </section>
   )
 }
 
-function ComparisonColumn({ node, session, isCurrent = false, isAwaitingResponse = false }) {
+function ComparisonColumn({
+  node,
+  session,
+  isCurrent = false,
+  isAwaitingResponse = false,
+  modelOptions = [],
+  selectedModel,
+}) {
   const messages = session.messages.filter(isVisibleMessage)
 
   return (
@@ -421,21 +442,23 @@ function ComparisonColumn({ node, session, isCurrent = false, isAwaitingResponse
       <div className="comparison-messages">
         {messages.length > 0 ? messages.map((message) => (
           <div key={message.id} className={`comparison-message ${message.role}`}>
-            <span>{getMessageRoleLabel(message)}</span>
+            <span>{getMessageRoleLabel(message, modelOptions)}</span>
             <RichMessageContent content={message.content} />
           </div>
         )) : <p className="comparison-empty">이 노드에는 아직 표시할 대화가 없습니다.</p>}
-        {isCurrent && isAwaitingResponse ? <PendingAssistantMessage /> : null}
+        {isCurrent && isAwaitingResponse ? (
+          <PendingAssistantMessage modelOptions={modelOptions} selectedModel={selectedModel} />
+        ) : null}
       </div>
     </article>
   )
 }
 
-function PendingAssistantMessage() {
+function PendingAssistantMessage({ modelOptions = [], selectedModel }) {
   return (
     <article className="message-row assistant pending-response" aria-live="polite" aria-label="답변 생성 대기">
       <div className="message-bubble pending-response-bubble">
-        <span className="message-role">Ramo</span>
+        <span className="message-role">{getPendingAssistantRoleLabel(selectedModel, modelOptions)}</span>
         <div className="pending-response-card">
           <span className="pending-response-dots" aria-hidden="true">
             <i />
@@ -505,12 +528,4 @@ function isMergeSeedAckMessage(message) {
 
 function isMergeResultSeedMessage(message) {
   return message.kind === 'merge_result'
-}
-
-function getMessageRoleLabel(message) {
-  if (message.role === 'user') {
-    return 'User'
-  }
-
-  return message.modelName || message.modelProvider || 'Ramo'
 }

@@ -3,6 +3,7 @@ import { getSessionByNodeId } from '../features/branchGraph/branchGraphModel.js'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
+import { getMessageRoleLabel, getPendingAssistantRoleLabel } from './messageRoleLabel.js'
 
 export function SplitConversationPanel({
   graphState,
@@ -51,7 +52,7 @@ export function SplitConversationPanel({
         {messages.length > 0 ? messages.map((message) => (
           <article key={message.id} className={`message-row ${message.role}`}>
             <div className="message-bubble">
-              <span className="message-role">{getMessageRoleLabel(message)}</span>
+              <span className="message-role">{getMessageRoleLabel(message, modelOptions)}</span>
               <RichMessageContent content={message.content} />
               {message.role === 'assistant' ? (
                 <div className="message-actions">
@@ -79,7 +80,7 @@ export function SplitConversationPanel({
         {isAwaitingResponse ? (
           <article className="message-row assistant pending-response" aria-live="polite">
             <div className="message-bubble pending-response-bubble">
-              <span className="message-role">Ramo</span>
+              <span className="message-role">{getPendingAssistantRoleLabel(selectedModel, modelOptions)}</span>
               <p>선택한 노드에서 답변을 생성하고 있습니다.</p>
             </div>
           </article>
@@ -127,12 +128,4 @@ export function SplitConversationPanel({
       </form>
     </aside>
   )
-}
-
-function getMessageRoleLabel(message) {
-  if (message.role === 'user') {
-    return 'User'
-  }
-
-  return message.modelName || message.modelProvider || 'Ramo'
 }

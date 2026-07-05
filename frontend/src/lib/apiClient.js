@@ -16,13 +16,14 @@ export function createHttpClient({ baseUrl = import.meta.env.VITE_API_BASE_URL ?
   return {
     async request(path, { method = 'GET', body, query, headers } = {}) {
       const url = buildUrl(baseUrl, path, query)
+      const isFormDataBody = typeof FormData !== 'undefined' && body instanceof FormData
       const response = await fetch(url, {
         method,
         headers: {
-          ...DEFAULT_HEADERS,
+          ...getDefaultHeaders(isFormDataBody),
           ...headers,
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: getRequestBody(body, isFormDataBody),
       })
 
       const payload = await parseResponse(response)
@@ -40,6 +41,22 @@ export function createHttpClient({ baseUrl = import.meta.env.VITE_API_BASE_URL ?
 }
 
 export const httpClient = createHttpClient()
+
+function getDefaultHeaders(isFormDataBody) {
+  if (isFormDataBody) {
+    return { Accept: DEFAULT_HEADERS.Accept }
+  }
+
+  return DEFAULT_HEADERS
+}
+
+function getRequestBody(body, isFormDataBody) {
+  if (body === undefined) {
+    return undefined
+  }
+
+  return isFormDataBody ? body : JSON.stringify(body)
+}
 
 function buildUrl(baseUrl, path, query) {
   const normalizedBaseUrl = baseUrl.replace(/\/$/, '')

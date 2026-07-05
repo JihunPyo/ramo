@@ -20,6 +20,29 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
+    searchBranches(sessionId, query) {
+      return client.request(`/sessions/${sessionId}/search`, {
+        query: {
+          q: query,
+        },
+      })
+    },
+    getSessionMemory(sessionId) {
+      return client.request(`/sessions/${sessionId}/memory`)
+    },
+    updateSessionMemory(sessionId, memory) {
+      return client.request(`/sessions/${sessionId}/memory`, {
+        method: 'PATCH',
+        body: {
+          memory,
+        },
+      })
+    },
+    extractSessionMemory(sessionId) {
+      return client.request(`/sessions/${sessionId}/memory/extract`, {
+        method: 'POST',
+      })
+    },
     deleteSession(sessionId) {
       return client.request(`/sessions/${sessionId}`, {
         method: 'DELETE',
@@ -78,6 +101,21 @@ export function createHttpBranchGraphApi(client = httpClient) {
           fork_from_message_id: forkFromMessageId,
           ...(name ? { name } : {}),
         },
+      })
+    },
+    autoNameBranch(branchId) {
+      return client.request(`/branches/${branchId}/auto-name`, {
+        method: 'POST',
+      })
+    },
+    autoTagBranch(branchId) {
+      return client.request(`/branches/${branchId}/auto-tag`, {
+        method: 'POST',
+      })
+    },
+    summarizeBranch(branchId) {
+      return client.request(`/branches/${branchId}/summarize`, {
+        method: 'POST',
       })
     },
     compareModels({ branchId, message, modelA, modelB }) {
@@ -153,7 +191,68 @@ export function createHttpBranchGraphApi(client = httpClient) {
         method: 'DELETE',
       })
     },
+    createTag({ sessionId, name, color = null, type = 'normal' }) {
+      return client.request('/tags', {
+        method: 'POST',
+        body: {
+          session_id: sessionId,
+          name,
+          color,
+          type,
+        },
+      })
+    },
+    listSessionTags(sessionId) {
+      return client.request(`/sessions/${sessionId}/tags`)
+    },
+    listBranchTags(branchId) {
+      return client.request(`/branches/${branchId}/tags`)
+    },
+    addBranchTag(branchId, tagId) {
+      return client.request(`/branches/${branchId}/tags`, {
+        method: 'POST',
+        body: {
+          tag_id: tagId,
+        },
+      })
+    },
+    removeBranchTag(branchId, tagId) {
+      return client.request(`/branches/${branchId}/tags/${tagId}`, {
+        method: 'DELETE',
+      })
+    },
+    uploadBranchFile(branchId, file, { modelProvider = 'openai', modelName = 'gpt-4o-mini' } = {}) {
+      return client.request(`/branches/${branchId}/upload`, {
+        method: 'POST',
+        body: createUploadFormData(file, { modelProvider, modelName }),
+      })
+    },
+    uploadSessionFile(sessionId, file, { modelProvider = 'openai', modelName = 'gpt-4o-mini' } = {}) {
+      return client.request(`/sessions/${sessionId}/upload`, {
+        method: 'POST',
+        body: createUploadFormData(file, { modelProvider, modelName }),
+      })
+    },
+    listBranchFiles(branchId) {
+      return client.request(`/branches/${branchId}/files`)
+    },
+    listSessionFiles(sessionId) {
+      return client.request(`/sessions/${sessionId}/files`)
+    },
+    deleteFile(fileId) {
+      return client.request(`/files/${fileId}`, {
+        method: 'DELETE',
+      })
+    },
   }
+}
+
+function createUploadFormData(file, { modelProvider, modelName }) {
+  const formData = new FormData()
+  formData.set('file', file)
+  formData.set('model_provider', modelProvider)
+  formData.set('model_name', modelName)
+  return formData
 }
 
 export function createBranchGraphApi() {

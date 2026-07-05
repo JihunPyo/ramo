@@ -200,6 +200,7 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
     .map((node) => {
       const branchId = readBranchId(node)
       const branch = branchById.get(branchId)
+      const previousNode = previousNodeById.get(branchId)
       const status = node.status ?? branch?.status ?? 'active'
 
       if (!branchId || status === 'deleted') {
@@ -217,7 +218,7 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
         node.mergedParentBranchIds ??
         node.parent_branch_ids ??
         []
-      const previousParentIds = previousNodeById.get(branchId)?.parentIds ?? []
+      const previousParentIds = previousNode?.parentIds ?? []
       const parentIds = [
         ...new Set([
           ...(parentIdsByNodeId.get(branchId) ?? []),
@@ -245,7 +246,13 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
           null,
         title,
         tags: normalizeNodeTags(node.tags ?? node.tag_list ?? node.tagList),
-        description: node.summary ?? `${sessionTitle}의 ${title} 흐름이다.`,
+        description: resolveNodeDescription({
+          node,
+          branch,
+          previousNode,
+          sessionTitle,
+          title,
+        }),
         sessionId: `messages-${branchId}`,
         apiSessionId,
         createdAt: formatDisplayTime(branch?.created_at ?? node.created_at ?? node.createdAt),
@@ -264,6 +271,21 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
     ...node,
     rootId: resolveRootId(nodes, node.id),
   }))
+}
+
+function resolveNodeDescription({ node, branch, previousNode, sessionTitle, title }) {
+  const rawDescription =
+    node.summary ??
+    branch?.summary ??
+    node.description ??
+    branch?.description ??
+    previousNode?.description
+
+  if (typeof rawDescription === 'string' && rawDescription.trim()) {
+    return rawDescription.trim()
+  }
+
+  return `${sessionTitle}의 ${title} 흐름이다.`
 }
 
 function normalizeNodeTags(rawTags) {
@@ -379,6 +401,7 @@ function normalizeMessage(message) {
   const status = message.status ?? 'active'
   const metadata = message.metadata ?? message.meta ?? {}
   const model = message.model ?? metadata.model ?? {}
+  const persona = message.persona ?? metadata.persona ?? {}
 
   return {
     id: message.id ?? message.message_id,
@@ -399,6 +422,13 @@ function normalizeMessage(message) {
       model.name ??
       metadata.model_name ??
       metadata.modelName ??
+      '',
+    personaName:
+      message.persona_name ??
+      message.personaName ??
+      persona.name ??
+      metadata.persona_name ??
+      metadata.personaName ??
       '',
     isHidden:
       status === 'hidden' ||

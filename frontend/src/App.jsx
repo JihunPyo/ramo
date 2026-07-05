@@ -137,6 +137,10 @@ function formatMergeRecommendation(reasons = []) {
       }
 
       if (reason?.type === 'content') {
+        if (reason.text) {
+          return reason.text
+        }
+
         const score = Number(reason.score)
         return Number.isFinite(score)
           ? `대화 내용의 유사도가 ${Math.round(score * 100)}%로 높습니다.`
@@ -144,13 +148,17 @@ function formatMergeRecommendation(reasons = []) {
       }
 
       if (reason?.type === 'role') {
-        const labels = reason.tags ?? reason.roles ?? reason.shared_roles ?? []
+        if (reason.text) {
+          return reason.text
+        }
+
+        const labels = reason.matched ?? reason.tags ?? reason.roles ?? reason.shared_roles ?? []
         return labels.length > 0
           ? `공통 태그 ${labels.join(', ')}를 공유합니다.`
           : '대화에서 수행하는 역할이 유사합니다.'
       }
 
-      return reason?.description ?? reason?.message ?? ''
+      return reason?.text ?? reason?.description ?? reason?.message ?? ''
     })
     .filter(Boolean)
     .join(' ')
