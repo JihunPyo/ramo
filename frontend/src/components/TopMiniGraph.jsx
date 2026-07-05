@@ -67,7 +67,7 @@ export function TopMiniGraph({
             aria-pressed={isSplitNodeSelectionMode}
             onClick={() => setIsSplitNodeSelectionMode((isSelecting) => !isSelecting)}
           >
-            새 탭
+            스플릿뷰
           </button>
           <button
             type="button"

@@ -1276,8 +1276,8 @@
   height: 38px;
   border: 1px solid #d8dee6;
   border-radius: 50%;
-  background: #e8eefc;
-  object-fit: cover;
+  background: #f4f6f2;
+  object-fit: contain;
 }
 
 .sidebar-account-copy {

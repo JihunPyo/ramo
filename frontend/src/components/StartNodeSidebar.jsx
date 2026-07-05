@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
+import malangiAvatarUrl from '../assets/malangi-avatar.jpg'
 import { RamoLogo } from './RamoLogo.jsx'
 
-const MOCK_USER_AVATAR_URL = `data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#5b9df8"/><circle cx="40" cy="31" r="14" fill="#fff"/><path d="M17 70c4-15 14-23 23-23s19 8 23 23" fill="#fff"/></svg>',
-)}`
-
 const DEFAULT_SIDEBAR_USER_PROFILE = {
-  avatarUrl: MOCK_USER_AVATAR_URL,
-  name: 'name',
+  avatarUrl: malangiAvatarUrl,
+  name: '말랑이',
 }
 
 export function StartNodeSidebar({
