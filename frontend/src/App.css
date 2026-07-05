@@ -1086,6 +1086,58 @@
   color: #b34336;
 }
 
+.sidebar-session-rename-form {
+  display: grid;
+  gap: 7px;
+  padding: 2px 4px 6px;
+}
+
+.sidebar-session-rename-form label {
+  color: #667168;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sidebar-session-rename-form input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #c9d0ca;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2922;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 8px;
+}
+
+.sidebar-session-rename-form input:focus {
+  border-color: #2f9e6f;
+  box-shadow: 0 0 0 2px rgb(47 158 111 / 14%);
+  outline: none;
+}
+
+.sidebar-session-rename-form small {
+  color: #b34336;
+  font-size: 11px;
+}
+
+.sidebar-session-rename-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.sidebar-context-menu .sidebar-session-rename-actions button {
+  flex: 1;
+  padding: 7px;
+  text-align: center;
+}
+
+.sidebar-context-menu button:disabled,
+.sidebar-session-rename-form input:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .trash-panel {
   display: none;
 }

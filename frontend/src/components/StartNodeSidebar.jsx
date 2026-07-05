@@ -25,11 +25,15 @@ export function StartNodeSidebar({
   onOpenHome,
   onNewChat,
   onSelectRoot,
+  onRenameSession,
   onMoveSessionToTrash,
   onRestoreFromTrash,
   onDeleteForever,
 }) {
   const [contextMenu, setContextMenu] = useState(null)
+  const [renameValue, setRenameValue] = useState(null)
+  const [renameError, setRenameError] = useState('')
+  const [isRenaming, setIsRenaming] = useState(false)
   const [isTrashOpen, setIsTrashOpen] = useState(false)
   const [toggleTooltip, setToggleTooltip] = useState(null)
   const contextMenuRef = useRef(null)
@@ -214,13 +218,15 @@ export function StartNodeSidebar({
     }
 
     const menuWidth = 176
-    const menuHeight = 88
+    const menuHeight = 126
 
     setContextMenu({
       nodeId,
       x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8)),
       y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
     })
+    setRenameValue(null)
+    setRenameError('')
   }
 
   const handleSelectRoot = (nodeId) => {
@@ -237,6 +243,40 @@ export function StartNodeSidebar({
     setContextMenu(null)
     onMoveSessionToTrash?.(nodeId)
     setIsTrashOpen(true)
+  }
+
+  const handleRenameSession = async (event) => {
+    event.preventDefault()
+    const normalizedTitle = renameValue.trim()
+
+    if (!normalizedTitle) {
+      setRenameError('세션 이름을 입력해 주세요.')
+      return
+    }
+
+    if (normalizedTitle === contextNode.title) {
+      setContextMenu(null)
+      return
+    }
+
+    setIsRenaming(true)
+    setRenameError('')
+
+    try {
+      const wasRenamed = await onRenameSession?.(contextNode.id, normalizedTitle)
+
+      if (!wasRenamed) {
+        setRenameError('세션 이름을 수정하지 못했습니다.')
+        return
+      }
+
+      setContextMenu(null)
+      setRenameValue(null)
+    } catch (error) {
+      setRenameError(error?.message ?? '세션 이름을 수정하지 못했습니다.')
+    } finally {
+      setIsRenaming(false)
+    }
   }
 
   const getTrashItemMeta = (node) => {
@@ -422,6 +462,57 @@ export function StartNodeSidebar({
           role="menu"
         >
           <strong>{contextNode.title}</strong>
+          {renameValue === null ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setRenameValue(contextNode.title)
+                setRenameError('')
+              }}
+            >
+              세션 이름 수정
+            </button>
+          ) : (
+            <form className="sidebar-session-rename-form" onSubmit={handleRenameSession}>
+              <label htmlFor={`session-name-${contextNode.id}`}>세션 이름</label>
+              <input
+                id={`session-name-${contextNode.id}`}
+                value={renameValue}
+                maxLength={60}
+                autoFocus
+                disabled={isRenaming}
+                onChange={(event) => {
+                  setRenameValue(event.target.value)
+                  setRenameError('')
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setRenameValue(null)
+                    setRenameError('')
+                  }
+                }}
+              />
+              {renameError ? <small role="alert">{renameError}</small> : null}
+              <div className="sidebar-session-rename-actions">
+                <button type="submit" disabled={isRenaming}>
+                  {isRenaming ? '저장 중' : '저장'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isRenaming}
+                  onClick={() => {
+                    setRenameValue(null)
+                    setRenameError('')
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          )}
           <button
             type="button"
             role="menuitem"

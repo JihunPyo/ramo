@@ -172,8 +172,11 @@ export function ChatWorkspace({
       return
     }
 
-    await onRenameSession(rootNode.id, nextName)
-    setIsRenamingSession(false)
+    const wasRenamed = await onRenameSession(rootNode.id, nextName)
+
+    if (wasRenamed) {
+      setIsRenamingSession(false)
+    }
   }
 
   const handleSessionNameKeyDown = (event) => {

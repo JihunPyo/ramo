@@ -815,7 +815,7 @@ function App() {
     const rootNode = getNodeById(currentState.nodes, rootNodeId)
 
     if (!rootNode?.apiSessionId) {
-      return
+      return false
     }
 
     setPendingAction('세션 이름 변경 중')
@@ -828,8 +828,10 @@ function App() {
         loadMessages: true,
       })
       setErrorMessage('')
+      return true
     } catch (error) {
       setErrorMessage(getDisplayError(error))
+      return false
     } finally {
       setPendingAction('')
     }
@@ -1038,6 +1040,7 @@ function App() {
         onOpenHome={handleOpenHome}
         onNewChat={handleOpenNewChatDraft}
         onSelectRoot={handleSelectRoot}
+        onRenameSession={handleRenameSession}
         onMoveSessionToTrash={handleMoveSessionToTrash}
         onRestoreFromTrash={handleRestoreFromTrash}
         onDeleteForever={handleDeleteForever}
