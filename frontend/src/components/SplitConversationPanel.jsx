@@ -3,7 +3,7 @@ import { getSessionByNodeId } from '../features/branchGraph/branchGraphModel.js'
 import { useAutoResizeTextarea } from '../hooks/useAutoResizeTextarea.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
-import { getMessageRoleLabel, getPendingAssistantRoleLabel } from './messageRoleLabel.js'
+import { getMessageRoleLabel } from './messageRoleLabel.js'
 
 export function SplitConversationPanel({
   graphState,
@@ -78,11 +78,12 @@ export function SplitConversationPanel({
           </article>
         ) : null}
         {isAwaitingResponse ? (
-          <article className="message-row assistant pending-response" aria-live="polite">
-            <div className="message-bubble pending-response-bubble">
-              <span className="message-role">{getPendingAssistantRoleLabel(selectedModel, modelOptions)}</span>
-              <p>선택한 노드에서 답변을 생성하고 있습니다.</p>
-            </div>
+          <article className="message-row assistant pending-response" aria-live="polite" aria-label="답변 생성 대기">
+            <span className="pending-response-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
           </article>
         ) : null}
       </div>

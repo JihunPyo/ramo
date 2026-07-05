@@ -10,7 +10,7 @@ import {
 } from '../features/branchGraph/branchGraphModel.js'
 import { ModelSelector } from './ModelSelector.jsx'
 import { RichMessageContent } from './RichMessageContent.jsx'
-import { getMessageRoleLabel, getPendingAssistantRoleLabel } from './messageRoleLabel.js'
+import { getMessageRoleLabel } from './messageRoleLabel.js'
 
 export function ChatWorkspace({
   activeNode,
@@ -491,28 +491,14 @@ function ComparisonColumn({
   )
 }
 
-function PendingAssistantMessage({ modelOptions = [], selectedModel }) {
+function PendingAssistantMessage() {
   return (
     <article className="message-row assistant pending-response" aria-live="polite" aria-label="답변 생성 대기">
-      <div className="message-bubble pending-response-bubble">
-        <span className="message-role">{getPendingAssistantRoleLabel(selectedModel, modelOptions)}</span>
-        <div className="pending-response-card">
-          <span className="pending-response-dots" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <div>
-            <strong>답변을 구성중이에요</strong>
-            <p>현재 노드의 맥락과 선택한 모델 응답을 기다리고 있다.</p>
-          </div>
-        </div>
-        <div className="pending-response-skeleton" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
+      <span className="pending-response-dots" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
     </article>
   )
 }
