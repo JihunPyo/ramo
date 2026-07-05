@@ -1,4 +1,3 @@
-const DEFAULT_PERSONA_NAME = '페르소나'
 const UNKNOWN_MODEL_LABEL = '모델 미상'
 
 export function getMessageRoleLabel(message, modelOptions = []) {
@@ -33,7 +32,7 @@ function formatAssistantRoleLabel({
 }) {
   return dedupeLabelParts([
     resolveModelDisplayName({ modelProvider, modelName, modelLabel, modelOptions }),
-    normalizeLabel(personaName) || DEFAULT_PERSONA_NAME,
+    normalizeLabel(personaName),
   ]).join(' · ')
 }
 
