@@ -174,11 +174,11 @@
 .chat-landing h1 { color: var(--color-text); font-size: clamp(30px, 4vw, 42px); letter-spacing: -.035em; margin: 0 0 28px; }
 .landing-context { margin: 10px 0 28px; color: var(--color-text-muted); font-size: 14px; }
 .landing-composer { width: 100%; border: 0; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-soft), 0 0 0 1px rgb(32 35 31 / 5%); padding: 8px 10px 10px; }
-.landing-input-row { align-items: center; min-height: 54px; border: 0; background: transparent; }
+.landing-input-row { width: 100%; align-items: center; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 54px; border: 0; background: transparent; }
 .landing-input-row textarea { min-height: 26px; max-height: 180px; padding: 6px 8px; line-height: 1.55; overflow-y: hidden; }
 .landing-input-row textarea:focus-visible { outline: 0; box-shadow: none; }
 .landing-input-row button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; margin-top: 10px; transform: translateY(-3px); }
-.landing-model-controls { padding: 0 4px; }
+.composer-model-controls.landing-model-controls { grid-area: auto; justify-self: start; width: auto; max-width: 100%; flex-wrap: nowrap; padding: 0 4px; }
 .landing-model-controls .composer-model-select { min-width: 0; }
 .prompt-chip-row { gap: 5px; padding: 0 4px; }
 .prompt-chip-row .option-chip { gap: 4px; min-height: 28px; border-color: transparent; border-radius: 999px; background: var(--color-surface-soft); color: #4c534c; font-size: 11px; padding: 4px 8px; }
@@ -477,9 +477,9 @@
 .workspace-content.split-view-open .composer-model-controls,
 .split-conversation-panel .composer-model-controls { width: 100%; overflow: hidden; }
 .workspace-content.split-view-open .composer-model-selector,
-.split-conversation-panel .composer-model-selector { min-width: 0; max-width: calc(100% - 84px); }
+.split-conversation-panel .composer-model-selector { min-width: 0; max-width: calc(100% - 88px); }
 .workspace-content.split-view-open .composer-compare-button,
-.split-conversation-panel .composer-compare-button { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split-conversation-panel .composer-compare-button { min-width: 80px; white-space: nowrap; }
 .workspace-content.split-view-open .send-button,
 .split-conversation-panel .send-button { align-self: center; }
 
