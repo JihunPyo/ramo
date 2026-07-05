@@ -10,6 +10,8 @@ export function FullscreenGraphModal({
   onSetMainTarget,
   onRenameNode,
   onToggleNodeCollapse,
+  onSetNodePersona,
+  onClearNodePersona,
   onStartNodeMerge,
   onMoveToTrash,
   layoutDirection,
@@ -87,6 +89,8 @@ export function FullscreenGraphModal({
           onSetMainTarget={onSetMainTarget}
           onRenameNode={onRenameNode}
           onToggleNodeCollapse={onToggleNodeCollapse}
+          onSetNodePersona={onSetNodePersona}
+          onClearNodePersona={onClearNodePersona}
           onStartNodeMerge={onStartNodeMerge}
           onMoveToTrash={onMoveToTrash}
           allowLayoutToggle

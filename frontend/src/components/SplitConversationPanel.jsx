@@ -52,7 +52,9 @@ export function SplitConversationPanel({
         {messages.length > 0 ? messages.map((message) => (
           <article key={message.id} className={`message-row ${message.role}`}>
             <div className="message-bubble">
-              <span className="message-role">{getMessageRoleLabel(message, modelOptions)}</span>
+              <span className="message-role">
+                {getMessageRoleLabel(withNodePersona(message, node), modelOptions)}
+              </span>
               <RichMessageContent content={message.content} />
               {message.role === 'assistant' ? (
                 <div className="message-actions">
@@ -129,4 +131,15 @@ export function SplitConversationPanel({
       </form>
     </aside>
   )
+}
+
+function withNodePersona(message, node) {
+  if (message.role !== 'assistant' || message.personaName || !node?.personaName) {
+    return message
+  }
+
+  return {
+    ...message,
+    personaName: node.personaName,
+  }
 }

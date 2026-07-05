@@ -300,6 +300,55 @@ export function setNodeCollapsed(state, nodeId, isCollapsed) {
   }
 }
 
+export function setNodePersonaForSubtree(state, nodeId, persona) {
+  const node = getNodeById(state.nodes, nodeId)
+
+  if (!node || !persona?.key || !persona?.name) {
+    return state
+  }
+
+  const subtreeNodeIds = new Set(getSubtreeNodeIds(state.nodes, nodeId))
+
+  return {
+    ...state,
+    nodes: state.nodes.map((candidate) =>
+      subtreeNodeIds.has(candidate.id)
+        ? {
+            ...candidate,
+            personaKey: persona.key,
+            personaName: persona.name,
+          }
+        : candidate,
+    ),
+    events: addEvent(state.events, 'set_node_persona', nodeId),
+  }
+}
+
+export function clearNodePersonaForSubtree(state, nodeId) {
+  const node = getNodeById(state.nodes, nodeId)
+
+  if (!node) {
+    return state
+  }
+
+  const subtreeNodeIds = new Set(getSubtreeNodeIds(state.nodes, nodeId))
+
+  return {
+    ...state,
+    nodes: state.nodes.map((candidate) => {
+      if (!subtreeNodeIds.has(candidate.id)) {
+        return candidate
+      }
+
+      const nodeWithoutPersona = { ...candidate }
+      delete nodeWithoutPersona.personaKey
+      delete nodeWithoutPersona.personaName
+      return nodeWithoutPersona
+    }),
+    events: addEvent(state.events, 'clear_node_persona', nodeId),
+  }
+}
+
 export function setMergedNodeParentLinks(state, nodeId, parentNodeIds) {
   const node = getNodeById(state.nodes, nodeId)
   const uniqueParentNodeIds = [
@@ -372,6 +421,8 @@ export function addBranchFromMessage(state, messageId, parentNodeId = state.acti
     createdAt: formatTime(),
     isActive: true,
     isHidden: false,
+    personaKey: parentNode.personaKey,
+    personaName: parentNode.personaName,
   }
 
   const newSession = {

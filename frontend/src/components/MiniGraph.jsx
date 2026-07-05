@@ -6,6 +6,7 @@ import {
   getSubtreeNodeIds,
   isStartNode,
 } from '../features/branchGraph/branchGraphModel.js'
+import { PERSONA_OPTIONS, getPersonaOption } from '../features/personas/personaOptions.js'
 import { GraphNodeTooltip } from './GraphNodeTooltip.jsx'
 
 const MIN_ZOOM = 0.45
@@ -23,6 +24,8 @@ export function MiniGraph({
   onSetMainTarget,
   onRenameNode,
   onToggleNodeCollapse,
+  onSetNodePersona,
+  onClearNodePersona,
   onStartNodeMerge,
   onMoveToTrash,
   autoFitOnResize = false,
@@ -76,6 +79,7 @@ export function MiniGraph({
     ? graphState.nodes.some((node) => node.parentId === contextNode.id && !node.isHidden)
     : false
   const contextNodeCanMerge = contextNode ? !isStartNode(contextNode) : false
+  const isPersonaPickerOpen = Boolean(contextMenu?.isPersonaPickerOpen)
 
   const showTooltipNode = (nodeId) => {
     window.clearTimeout(tooltipHideTimerRef.current)
@@ -208,11 +212,23 @@ export function MiniGraph({
       nodeId: node.id,
       x: Math.max(8, Math.min(clientX - graphRect.left, graphRect.width - 184)),
       y: menuTop,
+      pickerX: graphRect.left + 8,
+      pickerY: graphRect.top + menuTop,
       maxHeight: Math.max(96, graphRect.height - menuTop - 8),
     })
     setRenameValue(null)
     setRenameError('')
     setActiveTooltipNodeId(null)
+  }
+
+  const openPersonaPicker = () => {
+    setRenameValue(null)
+    setRenameError('')
+    setContextMenu((menu) => menu ? { ...menu, isPersonaPickerOpen: true } : menu)
+  }
+
+  const closePersonaPicker = () => {
+    setContextMenu((menu) => menu ? { ...menu, isPersonaPickerOpen: false } : menu)
   }
 
   const handleRenameSubmit = async (event) => {
@@ -416,6 +432,7 @@ export function MiniGraph({
             const isMergeSelected = mergeSelectedNodeIds.includes(layoutNode.id)
             const isMergedNode = (layoutNode.parentIds?.length ?? 0) > 1
             const isSelectionDisabled = Boolean(isNodeSelectionDisabled?.(layoutNode.id))
+            const persona = getPersonaOption(layoutNode.personaKey)
             const collapsedDescendantCount = layoutNode.isCollapsed
               ? Math.max(0, getSubtreeNodeIds(graphState.nodes, layoutNode.id).length - 1)
               : 0
@@ -427,6 +444,7 @@ export function MiniGraph({
               isMergedNode ? 'merged' : '',
               isSelectionDisabled ? 'selection-disabled' : '',
               collapsedDescendantCount > 0 ? 'collapsed' : '',
+              persona ? 'has-persona' : '',
               layoutNode.isActive ? '' : 'inactive',
               isHoveredPathNode ? 'hover-path' : '',
               hoveredPathNodeIds && !isHoveredPathNode ? 'path-muted' : '',
@@ -493,6 +511,14 @@ export function MiniGraph({
                 }}
               >
                 <circle cx={layoutNode.x} cy={layoutNode.y} r={size === 'full' ? 18 : 12} />
+                {persona ? (
+                  <PersonaNodeIcon
+                    icon={persona.icon}
+                    x={layoutNode.x}
+                    y={layoutNode.y}
+                    size={size === 'full' ? 18 : 12}
+                  />
+                ) : null}
                 {collapsedDescendantCount > 0 ? (
                   <g className="graph-collapse-indicator" aria-hidden="true">
                     <title>하위 노드 {collapsedDescendantCount}개 접힘</title>
@@ -528,7 +554,7 @@ export function MiniGraph({
 
       {contextNode ? (
         <div
-          className="graph-context-menu"
+          className={isPersonaPickerOpen ? 'graph-context-menu persona-picker-open' : 'graph-context-menu'}
           style={{ left: contextMenu.x, top: contextMenu.y, maxHeight: contextMenu.maxHeight }}
           role="menu"
           onClick={(event) => event.stopPropagation()}
@@ -588,6 +614,22 @@ export function MiniGraph({
           <button type="button" role="menuitem" onClick={() => onSetMainTarget(contextNode.id)}>
             main 지정
           </button>
+          {contextNode.personaKey ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setContextMenu(null)
+                onClearNodePersona?.(contextNode.id)
+              }}
+            >
+              도움 해제
+            </button>
+          ) : (
+            <button type="button" role="menuitem" onClick={openPersonaPicker}>
+              도움 받기
+            </button>
+          )}
           {onStartNodeMerge && contextNodeCanMerge ? (
             <button
               type="button"
@@ -599,6 +641,39 @@ export function MiniGraph({
             >
               노드 합치기
             </button>
+          ) : null}
+          {isPersonaPickerOpen ? (
+            <div
+              className="graph-persona-picker"
+              style={{ left: contextMenu.pickerX, top: contextMenu.pickerY }}
+              role="dialog"
+              aria-label="파트너 선택"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <strong>도움 받을 파트너</strong>
+              <div className="graph-persona-options">
+                {PERSONA_OPTIONS.map((persona) => (
+                  <button
+                    key={persona.key}
+                    type="button"
+                    className="graph-persona-option"
+                    onClick={() => {
+                      setContextMenu(null)
+                      onSetNodePersona?.(contextNode.id, persona)
+                    }}
+                  >
+                    <PersonaMenuIcon icon={persona.icon} />
+                    <span>
+                      <b>{persona.name}</b>
+                      <small>{persona.description}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="graph-persona-close" onClick={closePersonaPicker}>
+                닫기
+              </button>
+            </div>
           ) : null}
           {contextNodeHasChildren && onToggleNodeCollapse ? (
             <button
@@ -684,6 +759,94 @@ function getMergeFanInOffset(edge, size) {
 
   const gap = size === 'full' ? 13 : 8
   return (edge.mergeIndex - (edge.mergeCount - 1) / 2) * gap
+}
+
+function PersonaNodeIcon({ icon, x, y, size }) {
+  const iconSize = size
+  const half = iconSize / 2
+
+  return (
+    <g
+      className="graph-persona-node-icon"
+      transform={`translate(${x - half} ${y - half})`}
+      aria-hidden="true"
+    >
+      <PersonaIconPaths icon={icon} size={iconSize} />
+    </g>
+  )
+}
+
+function PersonaMenuIcon({ icon }) {
+  return (
+    <svg className="graph-persona-menu-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <PersonaIconPaths icon={icon} size={20} />
+    </svg>
+  )
+}
+
+function PersonaIconPaths({ icon, size }) {
+  const transform = `scale(${size / 20})`
+
+  switch (icon) {
+    case 'strategy':
+      return (
+        <g transform={transform}>
+          <path d="M5 15.5l4.2-4.2 2.6 2.6L16 6.5" />
+          <path d="M12.7 6.5H16v3.3" />
+          <circle cx="5" cy="15.5" r="1.4" />
+        </g>
+      )
+    case 'translate':
+      return (
+        <g transform={transform}>
+          <path d="M4 6h7" />
+          <path d="M7.5 4v2" />
+          <path d="M5.2 6c.6 2.4 2.4 4.1 5.1 5.1" />
+          <path d="M10.5 6c-.5 2.3-2 4-4.7 5.3" />
+          <path d="M12 15l2.2-5 2.2 5" />
+          <path d="M12.8 13.2h2.8" />
+        </g>
+      )
+    case 'writing':
+      return (
+        <g transform={transform}>
+          <path d="M5 15l1-3.8L13.8 3.5l2.7 2.7L8.7 14z" />
+          <path d="M12.4 4.9l2.7 2.7" />
+          <path d="M5 15l3.7-1" />
+        </g>
+      )
+    case 'learn':
+      return (
+        <g transform={transform}>
+          <path d="M4 8l6-3 6 3-6 3z" />
+          <path d="M6.5 10v3.2c1.9 1.2 5.1 1.2 7 0V10" />
+          <path d="M16 8v4" />
+        </g>
+      )
+    case 'code':
+      return (
+        <g transform={transform}>
+          <path d="M8 6l-4 4 4 4" />
+          <path d="M12 6l4 4-4 4" />
+          <path d="M11 4.5l-2 11" />
+        </g>
+      )
+    case 'talk':
+      return (
+        <g transform={transform}>
+          <path d="M5 6.5h10v6H9l-3.5 3v-3H5z" />
+          <path d="M7.5 9.5h5" />
+        </g>
+      )
+    default:
+      return (
+        <g transform={transform}>
+          <circle cx="10" cy="10" r="5.5" />
+          <path d="M10 7v6" />
+          <path d="M7 10h6" />
+        </g>
+      )
+  }
 }
 
 function clamp(value, min, max) {

@@ -263,6 +263,20 @@ function normalizeGraphNodes({ session, graph, branches = [], previousNodes = []
         isMain: Boolean(branch?.is_main ?? node.is_main ?? node.isMain),
         isMerge: Boolean(branch?.is_merge ?? node.is_merge ?? node.isMerge),
         messageCount: node.message_count ?? node.messageCount ?? 0,
+        personaKey:
+          node.persona_key ??
+          node.personaKey ??
+          branch?.persona_key ??
+          branch?.personaKey ??
+          previousNode?.personaKey ??
+          '',
+        personaName:
+          node.persona_name ??
+          node.personaName ??
+          branch?.persona_name ??
+          branch?.personaName ??
+          previousNode?.personaName ??
+          '',
       }
     })
     .filter(Boolean)

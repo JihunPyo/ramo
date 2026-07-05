@@ -11,6 +11,8 @@ export function TopMiniGraph({
   onSetMainTarget,
   onRenameNode,
   onToggleNodeCollapse,
+  onSetNodePersona,
+  onClearNodePersona,
   onStartNodeMerge,
   onMoveToTrash,
   onOpenFullscreen,
@@ -94,6 +96,8 @@ export function TopMiniGraph({
         onSetMainTarget={onSetMainTarget}
         onRenameNode={onRenameNode}
         onToggleNodeCollapse={onToggleNodeCollapse}
+        onSetNodePersona={onSetNodePersona}
+        onClearNodePersona={onClearNodePersona}
         onStartNodeMerge={onStartNodeMerge}
         onMoveToTrash={onMoveToTrash}
         autoFitOnResize

@@ -167,6 +167,8 @@ export function createMockBranchGraphApi() {
           is_main: branch.is_main,
           parent_branch_id: branch.parent_branch_id,
           merge_parent_ids: branch.merge_parent_ids,
+          persona_key: branch.persona_key,
+          persona_name: branch.persona_name,
         })),
         edges: branches.flatMap((branch) =>
           (branch.merge_parent_ids?.length ? branch.merge_parent_ids : [branch.parent_branch_id])
@@ -195,7 +197,14 @@ export function createMockBranchGraphApi() {
 
       return getInheritedMessages(store, branchId)
     },
-    async sendChatMessage({ branchId, message, modelProvider = 'openai', modelName = 'gpt-4o-mini' }) {
+    async sendChatMessage({
+      branchId,
+      message,
+      modelProvider = 'openai',
+      modelName = 'gpt-4o-mini',
+      personaKey = '',
+      personaName = '',
+    }) {
       await delay()
       const branch = store.branches.get(branchId)
 
@@ -220,6 +229,12 @@ export function createMockBranchGraphApi() {
         content: createMockLlmResponse(message, branch.name),
         modelProvider,
         modelName,
+        metadata: {
+          persona: {
+            key: personaKey,
+            name: personaName,
+          },
+        },
       })
       const branchMessages = store.messagesByBranchId.get(branchId) ?? []
 
@@ -517,6 +532,8 @@ export function createMockBranchGraphApi() {
         status: patch.status ?? branch.status,
         deleted_at: patch.status === 'active' ? null : branch.deleted_at,
         is_collapsed: patch.is_collapsed ?? branch.is_collapsed,
+        persona_key: patch.persona_key === undefined ? branch.persona_key : patch.persona_key,
+        persona_name: patch.persona_name === undefined ? branch.persona_name : patch.persona_name,
         updated_at: new Date().toISOString(),
       }
 

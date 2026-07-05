@@ -81,7 +81,14 @@ export function createHttpBranchGraphApi(client = httpClient) {
         },
       })
     },
-    sendChatMessage({ branchId, message, modelProvider = 'openai', modelName = 'gpt-4o-mini' }) {
+    sendChatMessage({
+      branchId,
+      message,
+      modelProvider = 'openai',
+      modelName = 'gpt-4o-mini',
+      personaKey = '',
+      personaName = '',
+    }) {
       return client.request('/chat', {
         method: 'POST',
         body: {
@@ -89,6 +96,8 @@ export function createHttpBranchGraphApi(client = httpClient) {
           message,
           model_provider: modelProvider,
           model_name: modelName,
+          ...(personaKey ? { persona_key: personaKey } : {}),
+          ...(personaName ? { persona_name: personaName } : {}),
         },
       })
     },

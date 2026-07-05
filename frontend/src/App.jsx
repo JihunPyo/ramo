@@ -30,9 +30,11 @@ import {
   getSubtreeNodeIds,
   selectNode,
   renameNode,
+  clearNodePersonaForSubtree,
   setMainTargetNode,
   setMergedNodeParentLinks,
   setNodeCollapsed,
+  setNodePersonaForSubtree,
   shouldUseInheritedMessagesForNode,
 } from './features/branchGraph/branchGraphModel.js'
 
@@ -418,6 +420,40 @@ function App() {
     }
   }
 
+  const handleSetNodePersona = async (nodeId, persona) => {
+    setPendingAction('페르소나 지정 중')
+    setErrorMessage('')
+    setGraphState((currentState) => setNodePersonaForSubtree(currentState, nodeId, persona))
+
+    try {
+      await branchGraphApi.updateBranch(nodeId, {
+        persona_key: persona.key,
+        persona_name: persona.name,
+      })
+    } catch {
+      // Persona persistence is best-effort until the backend API is ready.
+    } finally {
+      setPendingAction('')
+    }
+  }
+
+  const handleClearNodePersona = async (nodeId) => {
+    setPendingAction('페르소나 해제 중')
+    setErrorMessage('')
+    setGraphState((currentState) => clearNodePersonaForSubtree(currentState, nodeId))
+
+    try {
+      await branchGraphApi.updateBranch(nodeId, {
+        persona_key: null,
+        persona_name: null,
+      })
+    } catch {
+      // Persona persistence is best-effort until the backend API is ready.
+    } finally {
+      setPendingAction('')
+    }
+  }
+
   const handleStartNodeMerge = async (nodeId) => {
     const node = getNodeById(graphStateRef.current.nodes, nodeId)
 
@@ -598,11 +634,15 @@ function App() {
         setPendingAction('메시지 전송 중')
       }
 
+      const personaNode = getNodeById(graphStateRef.current.nodes, branchId)
+
       await branchGraphApi.sendChatMessage({
         branchId,
         message: messageText,
         modelProvider: selectedChatModel.provider,
         modelName: selectedChatModel.name,
+        personaKey: personaNode?.personaKey,
+        personaName: personaNode?.personaName,
       })
       await loadGraphState({
         activeNodeId: branchId,
@@ -629,11 +669,15 @@ function App() {
     setErrorMessage('')
 
     try {
+      const personaNode = getNodeById(graphStateRef.current.nodes, branchId)
+
       await branchGraphApi.sendChatMessage({
         branchId,
         message: messageText,
         modelProvider: selectedSplitChatModel.provider,
         modelName: selectedSplitChatModel.name,
+        personaKey: personaNode?.personaKey,
+        personaName: personaNode?.personaName,
       })
       const messages = await branchGraphApi.getBranchMessages(branchId, true)
       setGraphState((currentState) => applyBranchMessages(currentState, branchId, messages))
@@ -1236,6 +1280,8 @@ function App() {
                   onSetMainTarget={handleSetMainTarget}
                   onRenameNode={handleRenameNode}
                   onToggleNodeCollapse={handleToggleNodeCollapse}
+                  onSetNodePersona={handleSetNodePersona}
+                  onClearNodePersona={handleClearNodePersona}
                   onStartNodeMerge={handleStartNodeMerge}
                   onMoveToTrash={handleMoveToTrash}
                   onOpenFullscreen={handleOpenFullscreenGraph}
@@ -1259,6 +1305,8 @@ function App() {
           onSetMainTarget={handleSetMainTarget}
           onRenameNode={handleRenameNode}
           onToggleNodeCollapse={handleToggleNodeCollapse}
+          onSetNodePersona={handleSetNodePersona}
+          onClearNodePersona={handleClearNodePersona}
           onStartNodeMerge={handleStartNodeMerge}
           onMoveToTrash={handleMoveToTrash}
           layoutDirection={graphLayoutDirection}
