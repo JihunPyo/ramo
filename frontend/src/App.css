@@ -1751,9 +1751,13 @@
 .usage-type-list > div { display: grid; min-width: 0; align-items: center; grid-template-columns: 1.8cqw 5.4cqw minmax(0, 1fr) 2.8cqw; gap: .42cqw; }
 .usage-type-list span { white-space: nowrap; }
 .usage-type-list span, .usage-stage-list span, .usage-change-list span { min-width: 0; overflow: visible; font-size: 1.08em; text-overflow: clip; white-space: nowrap; }
+.usage-type-list span,
+.usage-stage-list span { font-size: .94em; }
 .usage-type-list i, .usage-stage-list i, .usage-change-list i { position: relative; display: block; width: 100%; min-width: 0; height: .78cqw; overflow: hidden; border-radius: 999px; background: #ecefed; font-style: normal; }
 .usage-type-list i b, .usage-stage-list i b, .usage-change-list i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #09803f, #087238); }
 .usage-type-list em, .usage-stage-list em, .usage-change-list em { font-size: 1.06em; font-style: normal; text-align: right; }
+.usage-type-list em,
+.usage-stage-list em { font-size: .96em; }
 
 .usage-row-icon {
   display: block;
