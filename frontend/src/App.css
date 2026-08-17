@@ -912,7 +912,8 @@
 .start-sidebar.collapsed .sidebar-trash,
 .start-sidebar.collapsed .sidebar-scroll-area,
 .start-sidebar.collapsed .sidebar-account-copy,
-.start-sidebar.collapsed .sidebar-download-button {
+.start-sidebar.collapsed .sidebar-download-button,
+.start-sidebar.collapsed .sidebar-report-button {
   display: none;
 }
 
@@ -1484,6 +1485,129 @@
   color: #8a94aa;
   font-size: 14px;
   font-weight: 700;
+}
+
+.sidebar-report-button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d8dee6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #253128;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 12px;
+  text-align: left;
+}
+
+.sidebar-report-button:hover {
+  border-color: #99b4a1;
+  background: #edf5ef;
+  color: #176b38;
+}
+
+.sidebar-report-button:focus-visible,
+.report-modal-close:focus-visible {
+  outline: 2px solid #25834a;
+  outline-offset: 2px;
+}
+
+.sidebar-report-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.report-modal-backdrop {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgb(12 20 15 / 68%);
+  backdrop-filter: blur(4px);
+}
+
+.report-modal {
+  display: flex;
+  width: min(1500px, 96vw);
+  max-height: 94vh;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 36%);
+}
+
+.report-modal-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e1e6e2;
+  padding: 13px 16px 13px 20px;
+}
+
+.report-modal-header h2 {
+  margin: 0;
+  color: #14221a;
+  font-size: 18px;
+}
+
+.report-modal-close {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #48544c;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.report-modal-close:hover {
+  background: #edf1ee;
+  color: #17241b;
+}
+
+.report-modal-content {
+  overflow: auto;
+  background: #f3f6f4;
+}
+
+.report-modal-content img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .report-modal-backdrop {
+    padding: 10px;
+  }
+
+  .report-modal {
+    width: 100%;
+    max-height: 96vh;
+    border-radius: 12px;
+  }
 }
 
 .topbar-action-button {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
+import aiUsageReportUrl from '../assets/ai-usage-report.png'
 import malangiAvatarUrl from '../assets/malangi-avatar.jpg'
 import { RamoLogo } from './RamoLogo.jsx'
 
@@ -32,6 +33,7 @@ export function StartNodeSidebar({
   const [renameError, setRenameError] = useState('')
   const [isRenaming, setIsRenaming] = useState(false)
   const [isTrashOpen, setIsTrashOpen] = useState(false)
+  const [isReportOpen, setIsReportOpen] = useState(false)
   const [toggleTooltip, setToggleTooltip] = useState(null)
   const contextMenuRef = useRef(null)
   const trashMenuRef = useRef(null)
@@ -83,6 +85,27 @@ export function StartNodeSidebar({
       top: buttonRect.top + buttonRect.height / 2,
     }
   }, [isCollapsed, isDrawerMode, toggleLabel])
+
+  useEffect(() => {
+    if (!isReportOpen) {
+      return undefined
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsReportOpen(false)
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isReportOpen])
 
   useEffect(() => {
     if (!contextMenu) {
@@ -452,18 +475,24 @@ export function StartNodeSidebar({
           </details>
         </div>
 
+        <button
+          type="button"
+          className="sidebar-report-button"
+          onClick={() => setIsReportOpen(true)}
+        >
+          <svg className="sidebar-report-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 4v10" />
+            <path d="m8 10 4 4 4-4" />
+            <path d="M5 19h14" />
+          </svg>
+          <span>AI 활용 리포트</span>
+        </button>
+
         <footer className="sidebar-account" aria-label="사용자 정보">
           <img className="sidebar-account-avatar" src={userProfile.avatarUrl} alt="" aria-hidden="true" />
           <div className="sidebar-account-copy">
             <strong>{userProfile.name}</strong>
           </div>
-          <button type="button" className="sidebar-download-button" aria-label="다운로드">
-            <svg className="sidebar-download-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 4v10" />
-              <path d="m8 10 4 4 4-4" />
-              <path d="M5 19h14" />
-            </svg>
-          </button>
         </footer>
       </div>
 
@@ -544,6 +573,30 @@ export function StartNodeSidebar({
           role="tooltip"
         >
           {toggleTooltip.label}
+        </div>,
+        document.body,
+      ) : null}
+      {isReportOpen && typeof document !== 'undefined' ? createPortal(
+        <div
+          className="report-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsReportOpen(false)
+            }
+          }}
+        >
+          <section className="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+            <header className="report-modal-header">
+              <h2 id="report-modal-title">AI 활용 리포트</h2>
+              <button type="button" className="report-modal-close" aria-label="AI 활용 리포트 닫기" onClick={() => setIsReportOpen(false)}>
+                <span aria-hidden="true">×</span>
+              </button>
+            </header>
+            <div className="report-modal-content">
+              <img src={aiUsageReportUrl} alt="2026년 8월 10일부터 16일까지의 AI 활용 리포트" />
+            </div>
+          </section>
         </div>,
         document.body,
       ) : null}
