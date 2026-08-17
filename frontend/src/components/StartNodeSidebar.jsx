@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getSubtreeNodeIds } from '../features/branchGraph/branchGraphModel.js'
-import aiUsageReportUrl from '../assets/ai-usage-report.png'
 import malangiAvatarUrl from '../assets/malangi-avatar.jpg'
+import { AiUsageReport } from './AiUsageReport.jsx'
 import { RamoLogo } from './RamoLogo.jsx'
 
 const DEFAULT_SIDEBAR_USER_PROFILE = {
@@ -586,16 +586,11 @@ export function StartNodeSidebar({
             }
           }}
         >
-          <section className="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
-            <header className="report-modal-header">
-              <h2 id="report-modal-title">AI 활용 리포트</h2>
-              <button type="button" className="report-modal-close" aria-label="AI 활용 리포트 닫기" onClick={() => setIsReportOpen(false)}>
-                <span aria-hidden="true">×</span>
-              </button>
-            </header>
-            <div className="report-modal-content">
-              <img src={aiUsageReportUrl} alt="2026년 8월 10일부터 16일까지의 AI 활용 리포트" />
-            </div>
+          <section className="report-modal" role="dialog" aria-modal="true" aria-label="AI 활용 리포트">
+            <button type="button" className="report-modal-close" aria-label="AI 활용 리포트 닫기" onClick={() => setIsReportOpen(false)}>
+              <span aria-hidden="true">×</span>
+            </button>
+            <AiUsageReport />
           </section>
         </div>,
         document.body,
